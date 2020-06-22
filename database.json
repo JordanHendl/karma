@@ -1,0 +1,24 @@
+{
+  "textures":
+  {
+    "test":
+    {
+      "name" : "test_texture",
+      "path" : "data/img/test.bim"
+    }
+  },
+  "models": 
+  {
+    "player_model":
+    {
+      "name"         : "test_model",
+      "path"         : "data/md/test.uwu",
+      "render_type"  : "outline",
+      "texture_types":
+      [
+        {"type_1":"COOL_TYPE"  , "scale":9.5 , "thing":true },
+        {"type_2":"COOLER_TYPE", "scale":15.0, "thing":false}
+      ]
+    }
+  }
+}
