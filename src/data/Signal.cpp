@@ -1,20 +1,7 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   casper_signal.cpp
- * Author: jhendl
- * 
- * Created on February 24, 2020, 1:52 AM
- */
-
+#include "Signal.h"
 #include <memory>
 #include <map>
 
-#include "Signal.h"
 
 namespace data
 {
@@ -22,8 +9,8 @@ namespace data
   {
     struct SignalData
     {
-      typedef std::multimap<SignalType, Signal::Callback*       > CallbackMap        ;
-      typedef std::multimap<SignalType, Signal::IndexedCallback*> IndexedCallbackMap ;
+      typedef std::multimap<long, Signal::Callback*       > CallbackMap        ;
+      typedef std::multimap<long, Signal::IndexedCallback*> IndexedCallbackMap ;
       
       CallbackMap        callbacks         ;
       IndexedCallbackMap indexed_callbacks ;
@@ -72,25 +59,25 @@ namespace data
       return *this->signal_data ;
     }
     
-    void Signal::attachBase(SignalType type, Callback* callback)
+    void Signal::attachBase( unsigned type, Callback* callback)
     {
       data().callbacks.insert( { type, callback } ) ;
     }
     
-    void Signal::attachBase(SignalType type, IndexedCallback* callback)
+    void Signal::attachBase( unsigned type, IndexedCallback* callback)
     {
       data().indexed_callbacks.insert( { type, callback } ) ;
     }
     
-    void Signal::emitBase(SignalType type, const void* ptr)
+    void Signal::emitBase( unsigned type, const void* ptr)
     {
-      for( auto it : data().callbacks ) 
+      for( auto it = data().callbacks.lower_bound( type ); it != data().callbacks.upper_bound( type ); ++it ) 
       {
-        it.second->execute( ptr ) ;
+        it->second->execute( ptr ) ;
       }
     }
     
-    void Signal::emitBase(SignalType type, unsigned idx, const void* ptr)
+    void Signal::emitBase( unsigned type, unsigned idx, const void* ptr)
     {
       for( auto it : data().indexed_callbacks ) 
       {

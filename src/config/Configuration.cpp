@@ -14,6 +14,7 @@
 #include "Configuration.h"
 #include "Parser.h"
 #include <Bus.h>
+#include <Signal.h>
 #include <fstream>
 #include <istream>
 
@@ -27,10 +28,10 @@ namespace karma
      */
     struct ConfigurationData
     {
-      ::data::module::Bus      bus    ; ///< The bus to sent data over.
+      ::data::module::Bus         bus    ; ///< The bus to sent data over.
       karma::config::json::Parser parser ; ///< The parser to use to parse the configuration.
-      json::Token              begin  ; ///< The beginning of this object's internal parsed data.
-      json::Token              end    ; ///< The end of this object's internal parsed data.
+      json::Token                 begin  ; ///< The beginning of this object's internal parsed data.
+      json::Token                 end    ; ///< The end of this object's internal parsed data.
     };
 
     #pragma endregion

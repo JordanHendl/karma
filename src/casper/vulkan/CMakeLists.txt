@@ -8,39 +8,46 @@ set( CASPER_VULKAN_SOURCES
      casper_vulkan.cpp
      casper_vulkan_command_buffer.cpp
      casper_vulkan_device.cpp
+     casper_vulkan_device_pool.cpp
      casper_vulkan_surface.cpp
      casper_vulkan_swapchain.cpp
+     casper_vulkan_shader.cpp
      casper_vulkan_pipeline.cpp
-     casper_vulkan_surface_manager.cpp
-     casper_vulkan_2d_vertex.cpp
      casper_vulkan_validation_layer.cpp
      casper_vulkan_semaphore.cpp
+     casper_vulkan_image.cpp
+     casper_vulkan_window.cpp
      casper_vulkan_buffer.cpp
      casper_vulkan_error_handler.cpp
      casper_vulkan_descriptor_pool.cpp
-   )
-      
-set( CASPER_VULKAN_HEADERS
+     casper_vulkan_pipeline_configuration.cpp
+     stb_image.cpp
+     )
+     
+     set( CASPER_VULKAN_HEADERS
+     stb_image.h
      casper_vulkan.h
      casper_vulkan_command_buffer.h
      casper_vulkan_device.h
+     casper_vulkan_image.h
+     casper_vulkan_device_pool.h
      casper_vulkan_surface.h
      casper_vulkan_swapchain.h
      casper_vulkan_pipeline.h
-     casper_vulkan_surface_manager.h
-     casper_vulkan_vertex.h
-     casper_vulkan_2d_vertex.h
+     casper_vulkan_shader.h
      casper_vulkan_validation_layer.h
      casper_vulkan_semaphore.h
+     casper_vulkan_window.h
      casper_vulkan_buffer.h
      casper_vulkan_error_handler.h
      casper_vulkan_descriptor_pool.h
+     casper_vulkan_pipeline_configuration.h
    )
 
 set( CASPER_VULKAN_INCLUDE_DIRS
       ${SDL2_INCLUDE_DIRS}
       ${Vulkan_INCLUDE_DIRS}
-      ${CASPER_TOOLS_SHADER_DIR}
+      ${TOOLS_DIR}
       ${DATA_BUS_DIR}
    )
 
@@ -48,8 +55,8 @@ set( CASPER_VULKAN_LIBRARIES
      ${SDL2_LIBRARIES}
      ${Vulkan_LIBRARIES}
      data_bus
-     casper_shader
-    )
+     glsl_compiler
+   )
 
 add_library               ( casper_vulkan SHARED ${CASPER_VULKAN_SOURCES} ${CASPER_VULKAN_HEADERS} )
 target_include_directories( casper_vulkan PRIVATE  ${CASPER_VULKAN_INCLUDE_DIRS}                   )

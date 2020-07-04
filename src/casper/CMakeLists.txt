@@ -1,7 +1,5 @@
 set( CASPER_VULKAN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan )
-set( CASPER_TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tools )
-set( CASPER_TOOLS_GLSLANG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslang )
-set( CASPER_TOOLS_SHADER_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/tools/shader  )
+
 
 find_package( X11                )
 find_package( PNG                )
@@ -11,13 +9,11 @@ find_package( SDL2 REQUIRED      )
 
 set( CASPER_SOURCES 
       casper.cpp 
-      window/casper_window.cpp
       window/casper_library.cpp
    )
       
 set( CASPER_HEADERS
       casper.h
-      window/casper_window.h
       window/casper_library.h
    )
 
@@ -35,18 +31,16 @@ set( CASPER_LIBRARIES
      ${Vulkan_LIBRARIES}
      data_bus
      casper_vulkan
-     casper_shader
     )
 
 add_subdirectory( io     )
-add_subdirectory( tools  )
 add_subdirectory( vulkan )
 
 add_library               ( casper SHARED ${CASPER_SOURCES} ${CASPER_HEADERS} )
 target_include_directories( casper PRIVATE  ${CASPER_INCLUDE_DIRS}            )
 target_link_libraries     ( casper PRIVATE  ${CASPER_LIBRARIES}               )
 
-add_executable       ( casper_test main.cpp        )
-target_include_directories( casper_test PRIVATE  ${CASPER_INCLUDE_DIRS} )
-target_link_libraries( casper_test PRIVATE  ${CASPER_LIBRARIES} casper casper_vulkan casper_shader )
+add_executable            ( casper_test main.cpp                                          )
+target_include_directories( casper_test PRIVATE  ${CASPER_INCLUDE_DIRS}                   )
+target_link_libraries     ( casper_test PRIVATE  ${CASPER_LIBRARIES} casper casper_vulkan )
 

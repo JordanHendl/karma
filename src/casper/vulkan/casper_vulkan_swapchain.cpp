@@ -1,5 +1,6 @@
 #include "casper_vulkan_swapchain.h"
 #include "casper_vulkan_device.h"
+#include "casper_vulkan_error_handler.h"
 #include "casper_vulkan_surface.h"
 #include <vulkan/vulkan.h>
 #include <stdexcept>
@@ -145,7 +146,7 @@ namespace casper
       support = false ;
       for (const auto& queueFamily : list ) 
       {
-        vkGetPhysicalDeviceSurfaceSupportKHR( device.physicalDevice(), id, surface.surface(), &support ) ;
+        HANDLE_ERROR( vkGetPhysicalDeviceSurfaceSupportKHR( device.physicalDevice(), id, surface.surface(), &support ) ) ;
         if( support )
         {
           vkGetDeviceQueue( device.device(), id, 0, &data().presentQ ) ;
@@ -162,7 +163,7 @@ namespace casper
     {
       this->findProperties( device, surface ) ;
       
-      const unsigned present   = findPresent( surface, device ) ;
+      const unsigned present   = device.presentFamily()                ;
       const uint32_t indices[] = { device.graphicsFamily(), present }  ;
       const unsigned width     = surface.width()                       ;
       const unsigned height    = surface.height()                      ;
@@ -207,7 +208,7 @@ namespace casper
         
       vkGetSwapchainImagesKHR( device.device(), chain, &count, NULL ) ;
       data().images.resize( count ) ;
-      vkGetSwapchainImagesKHR( device.device(), chain, &count, data().images.data() ) ;
+      vkGetSwapchainImagesKHR( device.device(), chain, &count, &data().images[0] ) ;
       
       data().img_format = format.format                                 ;
       data().extent     = data().details.chooseExtent( width, height )  ;
@@ -243,22 +244,24 @@ namespace casper
 
       for( unsigned i = 0; i < data().views.size(); i++ )
       {
-        info.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO ;
-        info.image    = data().images.at( i )                    ;
-        info.viewType = VK_IMAGE_VIEW_TYPE_2D                    ;
-        info.format   = data().img_format                        ;
-        info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY        ;
-        info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY        ;
-        info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY        ;
-        info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY        ;
-
+        info = {} ;
+        info.sType        = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO     ;
+        info.image        = data().images.at( i )                        ;
+        info.viewType     = VK_IMAGE_VIEW_TYPE_2D                        ;
+        info.format       = data().img_format                            ;
+        info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY                ;
+        info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY                ;
+        info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY                ;
+        info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY                ;
+        info.pNext        = nullptr                                      ;
         info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT ;
         info.subresourceRange.baseMipLevel   = 0                         ;
         info.subresourceRange.levelCount     = 1                         ;
         info.subresourceRange.baseArrayLayer = 0                         ;
         info.subresourceRange.layerCount     = 1                         ;
+        
 
-        if ( vkCreateImageView(device.device(), &info, nullptr, &data().views.at( i ) ) != VK_SUCCESS )
+        if ( vkCreateImageView( device.device(), &info, nullptr, &data().views[i]) != VK_SUCCESS )
         {
           throw std::runtime_error( "failed to create image views!" ) ;
         }

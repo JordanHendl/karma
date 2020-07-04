@@ -35,17 +35,14 @@ namespace casper
       this->surf_data = new SurfaceData() ;
     }
 
-    void Surface::initialize( unsigned gpu, const SDL_Window& window )
+    void Surface::initialize( const SDL_Window& window )
     {
-      DeviceManager manager ;
       data().window = const_cast<SDL_Window*>( &window ) ;
 
       if( SDL_Vulkan_CreateSurface( data().window , data().pool[ "CASPER_VULKAN_INSTANCE" ].get<VkInstance>(), &data().surface ) != SDL_TRUE )
       {
         printf(" ERROR MAKING SURFACE \n" ) ;
       }
-
-      manager.create( *this, gpu ) ;
     }
 
     VkSurfaceKHR Surface::surface() const 
@@ -78,11 +75,10 @@ namespace casper
 
     void Surface::present( const VkPresentInfoKHR& present_info )
     {
-      DeviceManager manager ;
-      vkQueuePresentKHR( manager.device( name() ).present(), &present_info ) ;
+      //vkQueuePresentKHR( manager.device( name() ).present(), &present_info ) ;
       // std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-      vkQueueWaitIdle( manager.device( name() ).present() ) ;
+      //vkQueueWaitIdle( manager.device( name() ).present() ) ;
     }
 
     const char* Surface::name() const

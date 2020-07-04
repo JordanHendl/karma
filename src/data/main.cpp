@@ -21,7 +21,7 @@ class object
     
     void subscribe()
     {
-      bus[ "1111" ].attach( this, &object::setConfiguration ) ;
+      bus[ "1111" ].attach<object, const char*>( this, &object::setConfiguration ) ;
     }
 };
 
@@ -30,7 +30,7 @@ int main( int argc, char** argv )
   object obj ;
   
   obj.subscribe() ;
-  bus["1111"].emit( "LMAOOOO" ) ;
+  bus["1111"].emit<const char*>( "peepee poo poo" ) ;
 
   float value = 1.5f ;
   pool[ "instance" ].set<float>( value ) ;

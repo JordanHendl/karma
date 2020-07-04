@@ -386,6 +386,13 @@ namespace karma
         delete this->parser_data ;
       }
 
+      Token Parser::find( const char* key ) const
+      {
+        Token token ;
+        token.data().it = data().map.find( key ) ;
+        return token ;
+      }
+
       Token Parser::end() const
       {
         Token token ;

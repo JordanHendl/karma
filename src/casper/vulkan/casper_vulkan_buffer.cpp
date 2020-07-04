@@ -1,15 +1,19 @@
 #include "casper_vulkan_buffer.h"
 #include "casper_vulkan_error_handler.h"
+#include "casper_vulkan_device_pool.h"
 #include "casper_vulkan_device.h"
 #include <vulkan/vulkan.h>
 #include <cstring>
+
 namespace casper
 {
   namespace vulkan
   {
     static VkBufferUsageFlags TypeToUsage( BufferType type )
     {
-      if( type == BufferType::VERTEX ) return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT ;
+      if( type == BufferType::VERTEX  ) return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT  ;
+      if( type == BufferType::INDEX   ) return VK_BUFFER_USAGE_INDEX_BUFFER_BIT   ;
+      if( type == BufferType::UNIFORM ) return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT ;
 
       return 0 ;
     }
@@ -34,8 +38,8 @@ namespace casper
     {
       BufferType         type       ;
       VkBuffer           buffer     ;
-      VkDeviceMemory     memory       ;
-      Device             device     ;
+      VkDeviceMemory     memory     ;
+      unsigned           gpu        ;
       unsigned           element_sz ;
       unsigned           count      ;
     };
@@ -50,8 +54,11 @@ namespace casper
       delete this->buffer_data ;
     }
 
-    void BufferImpl::allocate( const Device& device, unsigned sz )
+    void BufferImpl::allocate( unsigned gpu, unsigned sz )
     {
+      const DevicePool pool                        ;
+      const Device     device = pool.device( gpu ) ;
+
       VkMemoryAllocateInfo alloc_info   ;
       VkMemoryRequirements requirements ;
 
@@ -66,11 +73,13 @@ namespace casper
       HANDLE_ERROR( vkBindBufferMemory( device.device(), data().buffer, data().memory, 0 ) ) ;
     }
 
-    void BufferImpl::initializeBase( const Device& device, BufferType type, unsigned element_sz, unsigned count )
+    void BufferImpl::initializeBase( unsigned gpu, BufferType type, unsigned element_sz, unsigned count )
     {
+      const DevicePool pool                        ;
+      const Device     device = pool.device( gpu ) ;
+
       VkBufferCreateInfo info ;
 
-      this->data().device     = device      ;
       this->data().count      = count       ;
       this->data().type       = type        ; 
       this->data().element_sz = element_sz ;
@@ -83,7 +92,17 @@ namespace casper
       info.pNext       = NULL                                 ;
       HANDLE_ERROR( vkCreateBuffer( device.device(), &info, NULL, &this->data().buffer ) ) ;
 
-      this->allocate( device, element_sz * count ) ;
+      this->allocate( gpu, element_sz * count ) ;
+    }
+    
+    unsigned BufferImpl::byteSize() const
+    {
+      return data().count * data().element_sz ;
+    }
+    
+    BufferType BufferImpl::type() const
+    {
+      return data().type ;
     }
 
     const VkBuffer& BufferImpl::buffer() const
@@ -96,14 +115,42 @@ namespace casper
       return data().count ;
     }
 
-    void BufferImpl::copyToDevice( void* data, unsigned offset )
+    void BufferImpl::copyToDevice( const void* data, unsigned offset )
     {
+      const DevicePool pool                                     ;
+      const Device     device = pool.device( this->data().gpu ) ;
+
       const unsigned sz = this->data().element_sz * this->data().count ;
       void* mapped_data ;
 
-      vkMapMemory( this->data().device.device(), this->data().memory, 0, sz, 0, &mapped_data ) ;
-      std::memcpy( mapped_data, data, (size_t)sz ) ;
-      vkUnmapMemory( this->data().device.device(), this->data().memory ) ;
+      vkMapMemory( device.device(), this->data().memory, 0, sz, 0, &mapped_data ) ;
+      std::memcpy( mapped_data, data, (size_t)sz                                ) ;
+      vkUnmapMemory( device.device(), this->data().memory                       ) ;
+    }
+
+    const VkBuffer& Buffer::buffer() const
+    {
+      return this->impl.buffer() ;
+    }
+
+    unsigned Buffer::size() const
+    {
+      return this->impl.size() ;
+    }
+
+    unsigned Buffer::elementSize() const
+    {
+      return this->impl.data().element_sz ;
+    }
+
+    unsigned Buffer::byteSize() const
+    {
+      return this->impl.byteSize() ;
+    }
+
+    BufferType Buffer::type() const
+    {
+      return this->impl.type() ;
     }
 
     const BufferData& BufferImpl::data() const

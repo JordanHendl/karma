@@ -52,7 +52,7 @@ namespace casper
         VkApplicationInfo info ;
 
         info.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO ;
-        info.pApplicationName   = "Casper_Test"                      ;
+        info.pApplicationName   = "CASPER"                           ;
         info.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 )         ;
         info.pEngineName        = "CASPER"                           ;
         info.engineVersion      = VK_MAKE_VERSION( 1, 0, 0 )         ;

@@ -1,38 +1,59 @@
 #include "Database.h"
-#include <config/Parser.h>
+#include <Parser.h>
 #include <string>
-#include <casper_bus.h>
-#include <casper_signal.h>
-namespace database
+#include <Bus.h>
+#include <Signal.h>
+
+namespace karma
 {
-  struct DatabaseData
+  namespace database
   {
-    std::string         database_path ;
-    casper::module::Bus bus           ;
-    void setDBPath( const char* path )
+    struct DatabaseData
     {
-      this->database_path = path ; 
+      std::string                 database_path ;
+      data::module::Bus         bus           ;
+      karma::config::json::Parser parser        ;
+      
+      void setDBPath( const char* path )
+      {
+        this->database_path = path ; 
+      }
+
+      void getValue( const char* key )
+      {
+        auto token = parser.find( key ) ;
+        this->bus[ key ].emit( token.string() ) ;
+      }
+    };
+  
+    Database::Database()
+    {
+      this->db_data = new DatabaseData() ;
     }
-
-  };
-
-  Database::Database()
-  {
-    this->db_data = new DatabaseData() ;
-  }
-
-  Database::~Database()
-  {
-    delete this->db_data ;
-  }
-
-  void Database::initialize()
-  {
-
-  }
-
-  void Database::subscribe( unsigned id )
-  {
-
+  
+    Database::~Database()
+    {
+      delete this->db_data ;
+    }
+  
+    DatabaseData& Database::data()
+    {
+      return *this->db_data ;
+    }
+  
+    const DatabaseData& Database::data() const
+    {
+      return *this->db_data ;
+    }
+  
+    void Database::initialize()
+    {
+      data().parser.initialize( data().database_path.c_str() ) ;
+    }
+  
+    void Database::subscribe( unsigned id )
+    {
+      data().bus[ "database_path" ].attach( this->db_data, &DatabaseData::setDBPath ) ;
+    }
   }
 }

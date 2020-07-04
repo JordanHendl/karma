@@ -2,21 +2,44 @@
 #include <map>
 #include <stdio.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32
   #include <windows.h>
   #define dlopen LoadLibrary 
   #define LibHandle HINSTANCE 
   #define dlsym GetProcAddress
-#elif(UNIX)
+
+  static inline LibHandle loadSharedObject( const char* input )
+  {
+    return LibHandle() ;
+  }
+
+  static inline const char* getError()
+  {
+    return "Windows Error handler not yet implemented." ;
+  }
+
+#elif __linux__ 
   #include <dlfcn.h>
   #define LibHandle void* 
+
+  static inline LibHandle loadSharedObject( const char* input )
+  {
+    return dlopen( input, RTLD_LAZY ) ;
+  }
+  
+  static inline const char* getError()
+  {
+    return dlerror() ;
+  }
 #endif
+
 
 namespace casper
 {
   namespace io
   {
-
+    
+    
     struct ObjectLoaderData
     {
       typedef std::map<std::string, ObjectLoader::DL_FUNC> FunctionMap ;
@@ -54,11 +77,11 @@ namespace casper
 
     void ObjectLoader::load( const char* lib_path )
     {
-      data().handle = dlopen( lib_path ) ;
+      data().handle = loadSharedObject( lib_path ) ;
 
-      if( data().handle == NULL )
+      if( data().handle == nullptr )
       {
-        printf(" Error loading shared object %s.", lib_path ) ;
+        printf(" Error loading shared object %s. Error: %s. ", lib_path, ::getError() ) ;
       }
     }
 

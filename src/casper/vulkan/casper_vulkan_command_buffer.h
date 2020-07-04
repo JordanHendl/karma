@@ -9,27 +9,34 @@ namespace casper
 {
   namespace vulkan
   {
-    template<typename T>
     class Buffer ;
 
-    class Device    ;
-    class SwapChain ;
     class Pipeline  ;
-    class Semaphore ;
+    class Window    ;
     
     class CommandBuffer
     {
       public:
+        
+        enum SubmitionType
+        {
+          GRAPHICS,
+          COMPUTE,
+          PRESENT
+        };
+
         CommandBuffer() ;
         ~CommandBuffer() ;
 
         const VkCommandBuffer& buffer( unsigned i ) const ;
-
-        void draw( unsigned count, const VkBuffer& buffer, const Pipeline& pipeline ) ;
+        const VkCommandBuffer* bufferPtr( unsigned i ) const ;
+        void drawIndexed( const Buffer& index, const Buffer& vert ) ;
+        void draw( const Buffer& buffer ) ;
         void record() ;
         void stop() ;
-        void initialize( const Device& device, const Pipeline& pipeline, const SwapChain& chain ) ;
-        const VkPresentInfoKHR& submit( const SwapChain& chain ) ;
+        void initCompute( unsigned gpu, unsigned num_buffers ) ;
+        void submit( SubmitionType type = SubmitionType::GRAPHICS ) ;
+        void initRender( const Window& window ) ;
       private:
         struct CommandBufferData* buffer_data ;
         CommandBufferData& data() ;

@@ -9,14 +9,13 @@ namespace casper
 {
   namespace vulkan
   {
-    class Device    ;
-
+    class Device ;
     class Surface
     {
       public:
         Surface() ;
         ~Surface() ;
-        void initialize( unsigned gpu, const SDL_Window& window ) ;
+        void initialize( const SDL_Window& window ) ;
         void present( const VkPresentInfoKHR& present_info ) ;
         VkSurfaceKHR surface() const ;
         const SDL_Window* window() const ;

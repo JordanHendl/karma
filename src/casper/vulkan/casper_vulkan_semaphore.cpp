@@ -62,7 +62,7 @@ namespace casper
     unsigned Semaphore::acquire( const SwapChain& chain ) const 
     {
       uint32_t index ;
-      vkAcquireNextImageKHR( data().device, *chain.chain(), 10000, data().semaphore, VK_NULL_HANDLE, &index ) ;
+      vkAcquireNextImageKHR( data().device, *chain.chain(), UINT64_MAX, data().semaphore, VK_NULL_HANDLE, &index ) ;
 
       return index ;
     }

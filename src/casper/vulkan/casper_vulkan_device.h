@@ -11,21 +11,15 @@ namespace casper
 {
   namespace vulkan
   {
-    void findDevices( const VkInstance& instance ) ;
+    static void findDevices( const VkInstance& instance ) ;
     class Device ;
     class Surface ;
-    class DeviceManager
-    {
-      public:
-        DeviceManager() ;
-        ~DeviceManager() ;
-        void create( const Surface& surface, unsigned physical_device ) ;
-        const Device& device( const char* surface_name ) ;
-    };
 
     class Device
     {
       public:
+        void initialize( const casper::vulkan::Surface& surface, const VkInstance& instance, unsigned device ) ;
+        void initialize( unsigned device ) ;
         VkDevice device() const ;
         VkPhysicalDevice physicalDevice() const ;
         unsigned graphicsFamily() const ;
@@ -33,19 +27,18 @@ namespace casper
         unsigned computeFamily()  const ;
         VkQueue present() const ;
         VkQueue graphics() const ;
+        VkQueue compute() const ;
         const char* name() const ;
         Device() ;
+        Device( const Device& device ) ;
+        void operator=( const Device& device ) ;
         ~Device() ;
 
       private:
-        void genVirtualDevice() ;
-        void findQueueFamilies( const Surface& surface ) ;
-
         struct DeviceData* device_data ;
         DeviceData& data() ;
         const DeviceData& data() const ;
 
-        friend class DeviceManager ;
         friend void findDevices( const VkInstance& instance ) ;
     };
   }

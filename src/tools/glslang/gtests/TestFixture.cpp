@@ -46,7 +46,7 @@ std::string FileNameAsCustomTestSuffix(
     return name;
 }
 
-EShLanguage GetShaderStage(const std::string& stage)
+EShLanguage GetShaderStage( const std::string& stage )
 {
     if (stage == "vert") {
         return EShLangVertex;

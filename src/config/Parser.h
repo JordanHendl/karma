@@ -135,6 +135,12 @@ namespace karma
            */
           void initialize( const char* input ) ;
 
+          /** Method to retrieve a token at a specific key, if it exists. Otherwise returns a token at the end of the map.
+           * @param key The key to search for in the map.
+           * @return Token The token places at the key:value found in the mapping.
+           */
+          Token find( const char* key ) const ;
+
           /** Returns a Token pointing to the beginning of this object's internal mapping.
            * @return A Token pointing at the beginning of this object's internal mapping.
            */
