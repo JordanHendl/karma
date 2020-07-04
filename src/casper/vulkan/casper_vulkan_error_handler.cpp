@@ -1,21 +1,21 @@
 #include "casper_vulkan_error_handler.h"
 #include <stdlib.h> 
 #include <stdio.h>
-
+#include <vulkan/vulkan.h>
 static const char* vulkanStringFromError( VkResult res )
 {
   switch( res )
   {
     // VK_SUCCESS = 0,
-    case VK_NOT_READY : return "A fence or query has not yet completed"                   ;
-    case VK_TIMEOUT   : return "A wait operation has not completed in the specified time" ;
-    case VK_EVENT_SET : return "An event is signaled"                                     ;
-    // VK_EVENT_RESET = 4,
-    // VK_INCOMPLETE = 5,
-    // VK_ERROR_OUT_OF_HOST_MEMORY = -1,
-    // VK_ERROR_OUT_OF_DEVICE_MEMORY = -2,
-    // VK_ERROR_INITIALIZATION_FAILED = -3,
-    // VK_ERROR_DEVICE_LOST = -4,
+    case VK_NOT_READY                   : return "A fence or query has not yet completed"                                                  ;
+    case VK_TIMEOUT                     : return "A wait operation has not completed in the specified time"                                ;
+    case VK_EVENT_SET                   : return "An event is signaled"                                                                    ;
+    case VK_EVENT_RESET                 : return "An event is unsignaled"                                                                  ;
+    case VK_INCOMPLETE                  : return "A return array was too small for the result"                                             ;
+    case VK_ERROR_OUT_OF_HOST_MEMORY    : return "A host memory allocation has failed."                                                    ; 
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY  : return "A device memory allocation has failed."                                                  ; 
+    case VK_ERROR_INITIALIZATION_FAILED : return "Initialization of an object could not be completed for implementation-specific reasons." ;
+    case VK_ERROR_DEVICE_LOST           : return "The logical or physical device has been lost."                                           ;  
     // VK_ERROR_MEMORY_MAP_FAILED = -5,
     // VK_ERROR_LAYER_NOT_PRESENT = -6,
     // VK_ERROR_EXTENSION_NOT_PRESENT = -7,
@@ -59,11 +59,11 @@ namespace casper
 {
   namespace vulkan
   {
-    void ErrorHandler::HandleError( VkResult err, const char *file, int line )
+    void ErrorHandler::HandleError( int err, const char *file, int line )
     {
       if ( err != VK_SUCCESS ) 
       {
-        printf( "%s in %s at line %d\n", vulkanStringFromError( err ), file, line );
+        printf( "%s in %s at line %d\n", vulkanStringFromError( static_cast<VkResult>( err ) ), file, line );
         exit( EXIT_FAILURE );
       }
     }

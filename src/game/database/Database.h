@@ -1,19 +1,62 @@
-#ifndef SAISEI_DATABASE_H
-#define SAISEI_DATABASE_H
+/**********************************************************************
+ * Copyright (C) 2020 Jordan Hendl - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the <INSERT_LICENSE>
+ *
+ * You should have received a copy of the <INSERT_LICENSE> license with
+ * this file. If not, please write to: jordiehendl@gmail.com.
+ * Author       : Jordan Hendl
+ * File         : Bus.h
+ * Version      : 1.0
+ * Date created : 6/22/2020
+ * Purpose      : Declaration for Data bus object.
+**********************************************************************/
+#ifndef KARMA_DATABASE_H
+#define KARMA_DATABASE_H
 
-namespace database
+namespace karma
 {
-  class Database
+  namespace database
   {
-    public:
-      Database() ;
-      ~Database() ;
-      void subscribe( unsigned id ) ;
-      void initialize() ;
-    private:
-      struct DatabaseData& db_data ;
-      DatabaseData& data() ;
-      const DatabaseData& data() const ;
-  };
+    /**
+     */
+    class Database
+    {
+      public:
+        /**
+         */
+        Database() ;
+
+        /**
+         */
+        ~Database() ;
+
+        /**
+         * @param id 
+         */
+        void subscribe( unsigned id ) ;
+
+        /**
+         */
+        void initialize() ;
+
+
+      private:
+
+        /**
+         */
+        struct DatabaseData* db_data ;
+
+        /**
+         * @return DatabaseData& 
+         */
+        DatabaseData& data() ;
+
+        /**
+         * @return const DatabaseData& 
+         */
+        const DatabaseData& data() const ;
+    };
+  }
 }
 #endif

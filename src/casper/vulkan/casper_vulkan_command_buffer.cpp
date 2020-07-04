@@ -1,5 +1,10 @@
 #include "casper_vulkan_command_buffer.h"
+#include "casper_vulkan_window.h"
+#include "casper_vulkan_device_pool.h"
+#include "casper_vulkan_error_handler.h"
 #include "casper_vulkan_device.h"
+#include "casper_vulkan_buffer.h"
+#include "casper_vulkan_semaphore.h"
 #include "casper_vulkan_swapchain.h"
 #include "casper_vulkan_pipeline.h"
 #include "casper_vulkan_semaphore.h"
@@ -15,43 +20,30 @@ namespace casper
     typedef std::map<std::string, VkCommandPool> CommandBufferPool ;    
     static CommandBufferPool pool ;
 
-    struct CommandBufferConf
+    static VkQueue getQueue( casper::vulkan::CommandBuffer::SubmitionType type, unsigned gpu )
     {
-      unsigned max_frames_in_flight ;
+      static VkQueue dummy ;
+      DevicePool     pool  ;
 
-      CommandBufferConf()
+      switch( type )
       {
-        this->max_frames_in_flight = 2 ;
-      }
-    };
-
+        case CommandBuffer::SubmitionType::COMPUTE  : return pool.device( gpu ).compute () ;
+        case CommandBuffer::SubmitionType::GRAPHICS : return pool.device( gpu ).graphics() ;
+        case CommandBuffer::SubmitionType::PRESENT  : return pool.device( gpu ).present () ;
+        default                                     : return dummy                         ;
+      };
+    }
     struct CommandBufferData
     {
       typedef std::vector<VkRenderPassBeginInfo> RenderPasses   ;
       typedef std::vector<VkCommandBuffer>       CommandBuffers ;
-      typedef std::vector<Semaphore>             Semaphores     ;
-      typedef std::vector<VkFence>               ImageFences    ;
-      typedef std::vector<VkFence>               FlightFences   ;
       typedef VkClearValue                       ClearColor     ;
 
-      CommandBufferConf conf          ;
-      ImageFences       img_fences    ;
-      FlightFences      fences        ;
-      VkPresentInfoKHR  present_info  ;
-      Semaphores        image_sem     ;
-      Semaphores        finish_sem    ;
-      ClearColor        color         ;
-      CommandBuffers    buffers       ;
-      RenderPasses      render_info   ;
-      VkClearValue      clear_color   ;
-      Device            device        ;
-      unsigned          current_frame ;
-      uint32_t          image        ;
-
-      CommandBufferData()
-      {
-        this->current_frame = 0 ;
-      }
+      ClearColor        color       ;
+      CommandBuffers    buffers     ;
+      RenderPasses      render_info ;
+      VkClearValue      clear_color ;
+      unsigned          gpu         ;
     } ;
 
     static VkCommandPool createCommandBufferPool( const Device& device, unsigned family, unsigned flags )
@@ -81,58 +73,72 @@ namespace casper
     {
       this->buffer_data = new CommandBufferData() ;
     }
-
-    void CommandBuffer::initialize( const Device& device, const Pipeline& pipeline, const SwapChain& chain )
+    
+    void CommandBuffer::initCompute( unsigned gpu, unsigned num_buffers )
     {
-      VkCommandBufferAllocateInfo info       ;
-      VkFenceCreateInfo           fence_info ;
-
-      data().device = device ;
+      DevicePool                  device_pool ;
+      VkCommandBufferAllocateInfo info        ;
+      VkFenceCreateInfo           fence_info  ;
       
-      data().finish_sem.resize( data().conf.max_frames_in_flight                 ) ;
-      data().image_sem .resize( data().conf.max_frames_in_flight                 ) ;
-      data().fences    .resize( data().conf.max_frames_in_flight                 ) ;
-      data().img_fences.resize( chain.numBuffers(), VK_NULL_HANDLE               ) ;
+      const Device device = device_pool.device( gpu ) ;
       
-      fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO ;
-      fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT        ;
-      fence_info.pNext = NULL                                ;
-
-      for( unsigned i = 0; i < data().fences.size(); i++ ) 
-      {
-        vkCreateFence( device.device(), &fence_info, NULL, &data().fences.at( i ) ) ;
-        data().image_sem .at( i ).initialize( device ) ;
-        data().finish_sem.at( i ).initialize( device ) ;
-      }
-
       if( pool.find( std::string( device.name() ) ) == pool.end() ) 
       {
-        pool.insert( { device.name(), createCommandBufferPool( device, device.graphicsFamily(), 0 ) } ) ;
+        pool.insert( { device.name(), createCommandBufferPool( device, device.graphicsFamily(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ) } ) ;
       }
-
-      data().buffers    .resize( chain.numBuffers() ) ;
-      data().render_info.resize( chain.numBuffers() ) ;
-
+      
+      data().gpu = gpu ;
+      data().buffers.resize( num_buffers ) ;
+      
       info                    = {}                                             ;
       info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO ;
       info.commandPool        = pool.at( device.name() )                       ;
       info.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY                ;
-      info.commandBufferCount = static_cast<uint32_t>( chain.numBuffers() )    ;
+      info.commandBufferCount = static_cast<uint32_t>( num_buffers )           ;
 
       if( vkAllocateCommandBuffers( device.device(), &info, data().buffers.data() ) != VK_SUCCESS )
       {
         std::string error = "Failed to allocate command buffers on device " ;
         error.append( std::string( device.name() ) ) ;
-        throw std::runtime_error( error.c_str() ) ;
+        throw std::runtime_error( error.c_str()    ) ;
+      }
+    }
+
+    void CommandBuffer::initRender( const Window& window )
+    {
+      VkCommandBufferAllocateInfo info       ;
+      VkFenceCreateInfo           fence_info ;
+
+      if( pool.find( std::string( window.device().name() ) ) == pool.end() ) 
+      {
+        pool.insert( { window.device().name(), createCommandBufferPool( window.device(), window.device().graphicsFamily(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT ) } ) ;
       }
 
-      for( unsigned i = 0; i < chain.numBuffers(); i++ )
+      data().gpu = 0 ;
+      data().buffers    .resize( window.chain().numBuffers() ) ;
+      data().render_info.resize( window.chain().numBuffers() ) ;
+
+      info                    = {}                                                   ;
+      info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO       ;
+      info.commandPool        = pool.at( window.device().name() )                    ;
+      info.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY                      ;
+      info.commandBufferCount = static_cast<uint32_t>( window.chain().numBuffers() ) ;
+
+      if( vkAllocateCommandBuffers( window.device().device(), &info, data().buffers.data() ) != VK_SUCCESS )
+      {
+        std::string error = "Failed to allocate command buffers on device " ;
+        error.append( std::string( window.device().name() ) ) ;
+        throw std::runtime_error( error.c_str() ) ;
+      }
+      
+      data().clear_color = {0.0f, 0.5f, 0.0f, 1.0f } ;
+      for( unsigned i = 0; i < window.chain().numBuffers(); i++ )
       {
         data().render_info[ i ].sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO ;
-        data().render_info[ i ].renderPass        = pipeline.renderPass()                    ;
-        data().render_info[ i ].framebuffer       = chain.buffers()[ i ]                     ;
+        data().render_info[ i ].renderPass        = window.pass()                            ;
+        data().render_info[ i ].framebuffer       = window.chain().buffers()[ i ]            ;
         data().render_info[ i ].renderArea.offset = { 0, 0 }                                 ;
-        data().render_info[ i ].renderArea.extent = {chain.width(), chain.height()}          ;
+        data().render_info[ i ].renderArea.extent = {window.chain().width(), window.chain().height()} ;
         data().render_info[ i ].pClearValues      = &data().clear_color                      ;
         data().render_info[ i ].clearValueCount   = 1                                        ;
       }
@@ -156,88 +162,66 @@ namespace casper
           throw std::runtime_error("Failed to begin recording command buffers.") ;
         }
 
-        vkCmdBeginRenderPass( data().buffers.at( i ), &data().render_info[ i ], VK_SUBPASS_CONTENTS_INLINE ) ;
+        if( !data().render_info.empty() ) vkCmdBeginRenderPass( data().buffers.at( i ), &data().render_info[ i ], VK_SUBPASS_CONTENTS_INLINE ) ;
       }
     }
-
-    const VkPresentInfoKHR& CommandBuffer::submit( const SwapChain& chain )
+    
+    void CommandBuffer::submit( SubmitionType type )
     {
-      const VkPipelineStageFlags flags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT } ;
-
-      VkSubmitInfo        info         ;
-      const VkSemaphore*  wait_sem     ;
-      const VkSemaphore*  signal_sem   ;
-      VkFence             fence        ;
-
-      wait_sem   = data().image_sem .at( data().current_frame ).semaphore() ;
-      signal_sem = data().finish_sem.at( data().current_frame ).semaphore() ;
-
-      vkWaitForFences( data().device.device(), 1, &data().fences  .at( data().current_frame ), VK_TRUE, UINT64_MAX ) ;
-      vkResetFences( data().device.device(), 1, &data().fences    .at( data().current_frame ) ) ;
-
-      data().image =  data().image_sem.at( data().current_frame ).acquire( chain ) ;
+      const DevicePool pool ;
+      const Device device = pool.device( data().gpu ) ;
+      VkSubmitInfo info ;
+      info                    = {}                            ;
+      info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO ;
+      info.commandBufferCount = data().buffers.size()         ;
+      info.pCommandBuffers    = data().buffers.data()         ;
       
-      if( data().img_fences.at( data().image ) != VK_NULL_HANDLE )
-      {
-        vkWaitForFences( data().device.device(), 1, &data().img_fences.at( data().image ), VK_TRUE, UINT64_MAX ) ;
-      }
-
-      data().img_fences.at( data().image ) = data().fences.at( data().current_frame ) ;
-
-      info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO      ;
-      info.pNext                = NULL                               ;
-      info.waitSemaphoreCount   = 1                                  ;
-      info.pWaitSemaphores      = wait_sem                           ;
-      info.pWaitDstStageMask    = flags                              ;
-      info.commandBufferCount   = 1                                  ;
-      info.pCommandBuffers      = &data().buffers.at( data().image ) ;
-      info.signalSemaphoreCount = 1                                  ;
-      info.pSignalSemaphores    = signal_sem                         ;
-
-      if( vkQueueSubmit( data().device.graphics(), 1, &info, data().fences.at( data().current_frame ) ) != VK_SUCCESS )
-      {
-        throw std::runtime_error("Failed to submit draw command buffer." ) ;
-      }
-
-      data().present_info.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR ;
-      data().present_info.waitSemaphoreCount = 1                                  ;
-      data().present_info.pWaitSemaphores    = signal_sem                         ;
-      data().present_info.swapchainCount     = 1                                  ;
-      data().present_info.pSwapchains        = chain.chain()                      ;
-      data().present_info.pImageIndices      = &data().image                      ;
-      data().present_info.pResults           = NULL                               ;
-      data().present_info.pNext              = NULL                               ;
-
-      data().current_frame = ( data().current_frame + 1 ) % data().conf.max_frames_in_flight ;
-      return data().present_info ;
+      HANDLE_ERROR( vkQueueSubmit( getQueue( type, data().gpu ), 1, &info, VK_NULL_HANDLE ) ) ;
+      vkQueueWaitIdle( getQueue( type, data().gpu ) ) ;
     }
 
     void CommandBuffer::stop()
     {
       for( auto cmd : data().buffers )
       {
-        vkCmdEndRenderPass( cmd ) ;
-        if( vkEndCommandBuffer( cmd ) != VK_SUCCESS ) throw std::runtime_error( "Failed to record command buffer" ) ;
+        if( !data().render_info.empty() )  vkCmdEndRenderPass( cmd ) ;
+        HANDLE_ERROR( vkEndCommandBuffer( cmd ) ) ;
       }
     }
 
-    void CommandBuffer::draw( unsigned count, const VkBuffer& buffer, const Pipeline& pipeline )
+    void CommandBuffer::drawIndexed( const Buffer& index, const Buffer& vert )
     {
-      unsigned     it      ;
       VkDeviceSize offsets ;
 
-      it = 0 ;
       for( auto cmd : data().buffers )
       {
         offsets = 0 ;
-        pipeline.bind( *this, it ) ;
-        vkCmdBindVertexBuffers( cmd, 0, 1, &buffer, &offsets ) ;
-        vkCmdDraw( cmd, static_cast<uint32_t>( count ), 1, 0, 0 ) ;
+        vkCmdBindVertexBuffers( cmd, 0, 1, &vert.buffer(), &offsets          ) ;
+        vkCmdBindIndexBuffer  ( cmd, index.buffer(), 0, VK_INDEX_TYPE_UINT32 ) ;
+        vkCmdDrawIndexed( cmd, static_cast<uint32_t>( index.size() ), 1, 0, 0, 0 ) ;
       }
     }
+
+    void CommandBuffer::draw( const Buffer& buffer )
+    {
+      VkDeviceSize offsets ;
+
+      for( auto cmd : data().buffers )
+      {
+        offsets = 0 ;
+        vkCmdBindVertexBuffers( cmd, 0, 1, &buffer.buffer(), &offsets ) ;
+        vkCmdDraw( cmd, static_cast<uint32_t>( buffer.size() / 4 ), 1, 0, 0 ) ;
+      }
+    }
+
     const VkCommandBuffer& CommandBuffer::buffer( unsigned id ) const
     {
-      return id < data().buffers.size() ? data().buffers.at( 0 ) : data().buffers.at( id ) ;
+      return id < data().buffers.size() ? data().buffers.at( id ) : data().buffers.at( 0 ) ;
+    }
+
+    const VkCommandBuffer* CommandBuffer::bufferPtr( unsigned id ) const
+    {
+      return id < data().buffers.size() ? &data().buffers.at( id ) : &data().buffers.at( 0 ) ;
     }
     
     CommandBufferData& CommandBuffer::data()

@@ -7,69 +7,171 @@ namespace casper
 {
   namespace vulkan
   {
-    class Device ;
-
-    template<typename T>
     class Buffer ;
-
+    
+    /** TODO
+     */
     enum class BufferType
     {
-      VERTEX = 0,
+      VERTEX  = 0,
+      UNIFORM = 1,
+      INDEX   = 2
     };
     
-
+    /**
+     */
     class BufferImpl
     {
       private:
-      BufferImpl() ;
-      ~BufferImpl() ;
-      void initializeBase( const Device& device, BufferType type, unsigned element_sz, unsigned count ) ;
-      void copyToDevice( void* data, unsigned offset ) ;
-      void allocate( const Device& device, unsigned sz ) ;
-      void reset() ;
-      unsigned size() const ;
-      const VkBuffer& buffer() const ;
+        
+        /**
+         */
+        BufferImpl() ;
+        
+        /**
+         */
+        ~BufferImpl() ;
+        
+        /**
+         * @param device
+         * @param type
+         * @param element_sz
+         * @param count
+         */
+        void initializeBase( unsigned device, BufferType type, unsigned element_sz, unsigned count ) ;
+        
+        /**
+         * @param data
+         * @param offset
+         */
+        void copyToDevice( const void* data, unsigned offset ) ;
+        
+        /**
+         * @param device
+         * @param sz
+         */
+        void allocate( unsigned device, unsigned sz ) ;
+        
+        /**
+         */
+        void reset() ;
+        
+        /**
+         * @return 
+         */
+        unsigned size() const ;
+        
+        /**
+         * @return 
+         */
+        unsigned byteSize() const ;
+        
+        /**
+         * @return 
+         */
+        const VkBuffer& buffer() const ;
+        
+        /**
+         * @return 
+         */
+        BufferType type() const ;
 
-      struct BufferData *buffer_data ;
-      const BufferData& data() const ;
-      BufferData& data() ;
-      template<typename> friend class Buffer ;
+        /**
+         */
+        struct BufferData *buffer_data ;
+        
+        /**
+         * @return 
+         */
+        const BufferData& data() const ;
+        
+        /**
+         * @return 
+         */
+        BufferData& data() ;
+        
+        /**
+         */
+        friend class Buffer ;
     };
     
-    template<typename T>
+    /**
+     */
     class Buffer
     {
       public:
-        void intialize( const Device& device, BufferType type, unsigned count ) ;
-        void copyToDevice( T* data, unsigned offset = 0 ) ;
+        
+        /**
+         * @param device
+         * @param type
+         * @param count
+         */
+        template<typename T>
+        void initialize( unsigned device, BufferType type, unsigned count ) ;
+        
+        /**
+         * @param data
+         * @param offset
+         */
+        template<typename T>
+        void copyToDevice( const T& data, unsigned offset = 0 ) ;
+
+        /**
+         * @param data
+         * @param offset
+         */
+        template<typename T>
+        void copyToDevice( const T* data, unsigned offset = 0 ) ;
+        
+        /**
+         * @return 
+         */
         const VkBuffer& buffer() const ;
+        
+        /**
+         * @return 
+         */
+        unsigned elementSize() const ;
+
+        /**
+         * @return 
+         */
+        unsigned byteSize() const ;
+        
+        /**
+         * @return 
+         */
+        BufferType type() const ;
+        
+        /**
+         * @return 
+         */
         unsigned size() const ;
+        
+        /**
+         */
         void reset() ;
       private:
+        
+        /**
+         */
         BufferImpl impl ;
     };
+
+    template<typename T>
+    void Buffer::copyToDevice( const T& data, unsigned offset )
+    {
+       this->impl.copyToDevice( static_cast<const void*>( &data ), offset ) ;
+    }
+
+    template<typename T>
+    void Buffer::copyToDevice( const T* data, unsigned offset )
+    {
+       this->impl.copyToDevice( reinterpret_cast<const void*>( data ), offset ) ;
+    }
     
-
     template<typename T>
-    const VkBuffer& Buffer<T>::buffer() const
-    {
-      return impl.buffer() ;
-    }
-
-    template<typename T>
-    unsigned Buffer<T>::size() const
-    {
-      return impl.size() ;
-    }
-
-    template<typename T>
-    void Buffer<T>::copyToDevice( T* data, unsigned offset )
-    {
-       impl.copyToDevice( reinterpret_cast<void*>( data ), offset ) ;
-    }
-
-    template<typename T>
-    void Buffer<T>::intialize( const Device& device, BufferType type, unsigned count )
+    void Buffer::initialize( unsigned device, BufferType type, unsigned count )
     {
       this->impl.initializeBase( device, type, sizeof( T ), count ) ;
     } ;

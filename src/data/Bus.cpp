@@ -1,3 +1,16 @@
+/**********************************************************************
+ * Copyright (C) 2020 Jordan Hendl - All Rights Reserved
+ * You may use, distribute and modify this code under the
+ * terms of the <INSERT_LICENSE>
+ *
+ * You should have received a copy of the <INSERT_LICENSE> license with
+ * this file. If not, please write to: jordiehendl@gmail.com.
+ * Author       : Jordan Hendl
+ * File         : Bus.cpp
+ * Version      : 1.0
+ * Date created : 6/22/2020
+ * Purpose      : Definitions for Data bus object.
+**********************************************************************/
 #include "Bus.h"
 #include "Signal.h"
 #include <map>
