@@ -1,0 +1,32 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 32, local_size_y = 32) in ;
+
+layout( binding = 0, std430 ) buffer data
+{
+  float data_to_change[] ;
+};
+
+layout( binding = 1, std140 ) uniform data_width
+{
+  uint width  ;
+};
+
+layout( binding = 2, std140 ) uniform data_height
+{
+  uint height ;
+};
+
+void main()
+{
+  const uint idx = gl_GlobalInvocationID.x ;
+  const uint idy = gl_GlobalInvocationID.y ;
+  const uint idz = gl_GlobalInvocationID.z ;
+  const uint gid  = idx + ( idy * width )  ;
+
+  if( idx < width && idy < height )
+  {
+    data_to_change[ gid ] = 5.0f ;
+  }
+}

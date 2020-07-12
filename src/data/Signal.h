@@ -14,16 +14,18 @@
 
 #ifndef DATA_SIGNAL_H
 #define DATA_SIGNAL_H
-#include <stdio.h>
+
 namespace data
 {
   namespace module
   {
     typedef long unsigned FunctionIdentifier ;
+
     // CRC32 Table (zlib polynomial)
-static constexpr unsigned int crc_table[256] = {
+    static constexpr unsigned int crc_table[256] = 
+    {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
-    0xe963a535, 0x9e6495a3,    0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+    0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
     0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
     0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
     0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9,
@@ -90,7 +92,7 @@ static constexpr unsigned int crc_table[256] = {
     FunctionIdentifier hash()
     {
       const char * name = __PRETTY_FUNCTION__ + 61 ;
-      return ( crc32<sizeof( name ) - 2>( name ) ^ 0xFFFFFFFF ) ;
+      return ( crc32<sizeof( name ) - 2>( name ) ^ 0xFFFFFFFF ) ; ;
     }
 
     template<FunctionIdentifier idx>
@@ -257,6 +259,7 @@ static constexpr unsigned int crc_table[256] = {
             virtual void execute( unsigned idx, const void* p ) ;
           private:
             Callback method ;
+            C*       object ;
         } ;
         
         template<class C, class T>
@@ -366,6 +369,15 @@ static constexpr unsigned int crc_table[256] = {
 
       attachBase( hash<T>(), dynamic_cast<Callback*>( new CallbackMethod( object, method ) ) ) ;
     }
+
+    template<class C, class T>
+    void Signal::attach( C* object, void (C::*method)( unsigned, T ) )
+    {
+      typedef Signal::IndexedCallback           Callback       ;
+      typedef Signal::IndexedObjectMethod<C, T> CallbackMethod ;
+
+      attachBase( hash<T>(), dynamic_cast<Callback*>( new CallbackMethod( object, method ) ) ) ;
+    }
     
     template<class T>
     void Signal::emit( const T& val )
@@ -415,6 +427,19 @@ static constexpr unsigned int crc_table[256] = {
       ( this->method )( idx, *static_cast<const T*>( pointer ) ) ;
     }
     
+    template<class C, class T>
+    Signal::IndexedObjectMethod<C, T>::IndexedObjectMethod( C* object, Callback method )
+    {
+      this->method = method ;
+      this->object = object ;
+    }
+
+    template <class C, class T>
+    void Signal::IndexedObjectMethod<C, T>::execute( unsigned idx, const void* p )
+    {
+      ( ( this->object )->*( this->method ) )( idx, static_cast<T>( p ) ) ;
+    }
+
     template <class T>
     Signal::IndexedReferenceMethod<T>::IndexedReferenceMethod( Callback method )
     {

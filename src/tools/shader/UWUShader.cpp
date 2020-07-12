@@ -217,7 +217,7 @@ namespace tools
      */
     struct ShaderIteratorData
     {
-      ShaderMap::iterator it ;
+      ShaderMap::const_iterator it ;
     };
   
     /**
@@ -506,17 +506,29 @@ namespace tools
   
           shader.uniforms.push_back( uniform ) ;
         }
+
+        if( name.find( "image") != std::string::npos )
+        {
+          uniform.name    = program.getUniformName( i )    ;
+          uniform.binding = program.getUniformBinding( i ) ;
+          uniform.size    = 1                              ;
+          uniform.type    = UniformType::IMAGE             ;
+  
+          shader.uniforms.push_back( uniform ) ;
+        }
       }
   
       for( unsigned i = 0; i < program.getNumUniformBlocks(); i++ )
       {
+        std::string complete_string = program.getUniformBlock( i ).getType()->getCompleteString().c_str() ;
+
         sz   = program.getUniformArraySize( i ) ;
         name = program.getUniformBlockName( i ) ;
-  
-        uniform.name    = name                                ;
-        uniform.binding = program.getUniformBlockBinding( i ) ;
-        uniform.size    = program.getUniformArraySize( i )    ;
-        uniform.type    = UniformType::UBO                    ;
+        
+        uniform.name    = name                                                                                           ;
+        uniform.binding = program.getUniformBlockBinding( i )                                                            ;
+        uniform.size    = complete_string.find( " buffer " ) != std::string::npos ? 1 : program.getUniformBlockSize( i ) ;
+        uniform.type    = complete_string.find( " buffer " ) != std::string::npos ? UniformType::SSBO : UniformType::UBO ;
   
         shader.uniforms.push_back( uniform ) ;
       }
@@ -836,7 +848,7 @@ namespace tools
       data().include_directory = include_directory ;
     }
 
-    ShaderIterator UWUShader::begin()
+    ShaderIterator UWUShader::begin() const
     {
       ShaderIterator it ;
       it.data().it = data().map.begin() ;
@@ -844,7 +856,7 @@ namespace tools
       return it ;
     }
 
-    ShaderIterator UWUShader::end()
+    ShaderIterator UWUShader::end() const 
     {
       ShaderIterator it ;
       it.data().it = data().map.end() ;
@@ -860,7 +872,7 @@ namespace tools
     void UWUShader::compile( ShaderStage stage, const char* shader_data )
     {
       this->data().loadShader     ( shader_data, stage ) ;
-      this->data().parseAttributes( shader_data, stage ) ;
+      if( stage != ShaderStage::COMPUTE ) this->data().parseAttributes( shader_data, stage ) ;
     }
   
     UWUShaderData& UWUShader::data()

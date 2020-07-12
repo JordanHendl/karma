@@ -15,6 +15,8 @@
 #include "Signal.h"
 #include <map>
 #include <string>
+#include <sstream>
+#include <iostream>
 
 namespace data
 {
@@ -25,28 +27,114 @@ namespace data
     
     static BusPool pool ;
     
+    void operator<<( String& first, const char* second )
+    {
+      std::stringstream stream ;
+      std::string       string ;
+
+      stream << first.str()  ;
+      stream << second       ;
+      
+      string = stream.str() ;
+      first.setStr( string.c_str() ) ;
+    }
+
+    void operator<<( String& first, unsigned second )
+    {
+      std::stringstream stream ;
+      std::string       string ;
+
+      stream << first.str()  ;
+      stream << second       ;
+      
+      string = stream.str() ;
+      first.setStr( string.c_str() ) ;
+    }
+    
+    void operator<<( String& first, float second )
+    {
+      std::stringstream stream ;
+      std::string       string ;
+      
+      stream << first.str() ;
+      stream << second      ;
+      
+      string = stream.str() ;
+      first.setStr( string.c_str() ) ;
+    }
+    
+    void operator<<( String& first, const String& second )
+    {
+      std::stringstream stream ;
+      std::string       string ;
+      
+      stream << first.str()  ;
+      stream << second.str() ;
+      
+      string = stream.str() ;
+      first.setStr( string.c_str() ) ;
+    }
+
+    struct StringData
+    {
+      std::string str ;
+    };
+
+    String::String()
+    {
+      this->string_data = new StringData() ;
+    }
+
+    String::String( const String& string )
+    {
+      this->string_data = new StringData() ;
+      *this->string_data = *string.string_data ;
+    }
+    
+    void String::operator=( const String& string )
+    {
+      *this->string_data = *string.string_data ;
+    }
+        
+    String::~String()
+    {
+      delete this->string_data ;
+    }
+    
+    void String::setStr( const char* str )
+    {
+      data().str = str ;
+    }
+
+    const char* String::str() const
+    {
+      return data().str.c_str() ;
+    }
+
+    StringData& String::data()
+    {
+      return *this->string_data ;
+    }
+
+    const StringData& String::data() const
+    {
+      return *this->string_data ;
+    }
+
     Bus::Bus( unsigned id )
     {
-      setId( id ) ;
+      setChannel( id ) ;
     }
-
-    Signal& Bus::operator[]( const char* key )
+    
+    Signal& Bus::getBase( const char* key  )
     {
+//      std::cout << "KEY::::: " << key << std::endl ;
       return pool[ this->identifier ][ key ] ;
     }
 
-    const Signal& Bus::operator[]( const char* key ) const
+    const Signal& Bus::getBase( const char* key ) const
     {
-      return pool[ this->identifier ][ key ] ;
-    }
-
-    Signal& Bus::get( const char* key )
-    {
-      return pool[ this->identifier ][ key ] ;
-    }
-
-    const Signal& Bus::get( const char* key ) const
-    {
+//      std::cout << "CONST  KEY::::: " << key << std::endl ;
       return pool[ this->identifier ][ key ] ;
     }
 
@@ -55,7 +143,7 @@ namespace data
       return this->identifier ;
     }
 
-    void Bus::setId( unsigned id )
+    void Bus::setChannel( unsigned id )
     {
       this->identifier = id ;
     }

@@ -1,0 +1,13 @@
+Language: Cpp
+
+AccessModifierOffset         : 1
+AlignAfterOpenBracket        : false
+AlignConsecutiveAssignments  : true
+AlignConsecutiveBitFields    : true
+AlignConsecutiveDeclarations : true
+AlignConsecutiveMacros       : true
+AlignOperands                : false
+AlignTrailingComments        : true
+SpacesInParentheses          : true
+SpacesInSquareBrackets       : true
+CompactNamespaces            : false
