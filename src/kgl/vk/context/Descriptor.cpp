@@ -33,16 +33,6 @@ namespace kgl
       delete this->set_data ;
     }
 
-    void DescriptorSet::bind( const render::CommandBuffer& buffer )
-    {
-    
-    }
-
-    void DescriptorSet::bind( const compute::CommandBuffer& buffer )
-    {
-    
-    }
-
     void DescriptorSet::operator=( const DescriptorSet& set )
     {
     
@@ -53,7 +43,7 @@ namespace kgl
     
     }
 
-    const ::vk::DescriptorSet DescriptorSet::set() const
+    const ::vk::DescriptorSet DescriptorSet::descriptor( unsigned index ) const
     {
     
     }

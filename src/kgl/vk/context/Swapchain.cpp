@@ -134,7 +134,6 @@ namespace kgl
       const unsigned height    = surface.height()                                                                          ;
       const auto     format    = data().details.format( ::vk::Format::eB8G8R8A8Srgb, ::vk::ColorSpaceKHR::eSrgbNonlinear ) ;
 
-      unsigned                     count ;
       ::vk::SwapchainCreateInfoKHR info  ; 
       ::vk::SwapchainKHR           chain ;
 

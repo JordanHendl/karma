@@ -15,6 +15,9 @@ namespace kgl
     class BufferImpl
     {
       private:
+        BufferImpl() ;
+        ~BufferImpl() ;
+        
         void initializeBase( unsigned device, unsigned type, unsigned element_sz, unsigned count ) ;
         void copyToDevice( const void* data, unsigned offset ) ;
         
@@ -42,6 +45,7 @@ namespace kgl
         ~Buffer() ;
         const ::vk::Buffer buffer() const ;
         
+        void operator=( const Buffer& buffer ) ;
         template<typename T>
         void initialize( unsigned device, Type type, unsigned count ) ;
 
@@ -50,7 +54,7 @@ namespace kgl
 
         template<typename T>
         void copyToDevice( T* const data, unsigned offset = 0 ) ;
-        
+        Type type() const ;
         unsigned byteSize() const ;
         unsigned elementSize() const ;
       private:

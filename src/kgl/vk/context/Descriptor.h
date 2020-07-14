@@ -5,6 +5,7 @@ namespace vk
 {
   class DescriptorSet  ;
   class DescriptorPool ;
+  class CommandBuffer  ;
 }
 namespace kgl
 {
@@ -29,11 +30,9 @@ namespace kgl
         DescriptorSet() ;
         DescriptorSet( const DescriptorSet& set ) ;
         ~DescriptorSet() ;
-        void bind( const render::CommandBuffer& buffer ) ;
-        void bind( const compute::CommandBuffer& buffer ) ;
         void operator=( const DescriptorSet& set ) ;
         void set( const Uniform& uniform ) ;
-        const ::vk::DescriptorSet set() const ;
+        const ::vk::DescriptorSet descriptor( unsigned index ) const ;
       private:
         struct DescriptorSetData *set_data ;
         DescriptorSetData& data() ;

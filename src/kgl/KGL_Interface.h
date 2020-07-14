@@ -43,7 +43,7 @@ class KGL_Interface
     void initialize( const char* base_path ) ;
     void setCurrentWindow( const char* name ) ;
     void loadPack( const char* path ) ;
-    void unlockPack() ;
+    void unloadPack() ;
     void drawModel( const ModelSubmition& submit ) ;
     void drawImage( const ImageSubmition& submit ) ;
     void drawParticle( const char* name, float cx, float cy, unsigned amount ) ;

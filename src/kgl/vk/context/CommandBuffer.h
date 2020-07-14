@@ -61,7 +61,11 @@ namespace kgl
            * @return 
            */
           unsigned count() const ;
-
+          
+          /**
+           */
+          void clearSynchronization() ;
+          
           /**
            */
           void record() const ;
@@ -171,6 +175,10 @@ namespace kgl
           void record() const ;
 
           /**
+           */
+          void clearSynchronization() ;
+
+          /**
            * @param id
            * @return 
            */
@@ -180,6 +188,21 @@ namespace kgl
            * @return 
            */
           unsigned count() const ;
+
+          /**
+           * @param sem
+           */
+          void waitOn( ::vk::Semaphore sem ) ;
+          
+          /**
+           * @param sem
+           */
+          void onFinish( ::vk::Semaphore sem ) ;
+          
+          /**
+           * @param fence
+           */
+          void attach( ::vk::Fence fence ) ;
 
           /**
            */

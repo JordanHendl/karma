@@ -57,6 +57,7 @@ namespace kgl
         template<typename T>
         void add( const char* name, Type type, T* const val, unsigned count ) ;
       private:
+        void addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count ) ;
         struct UniformData* uni_data ;
         UniformData& data() ;
         const UniformData& data() const ;

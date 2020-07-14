@@ -1,6 +1,5 @@
 set( KGL_NODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/node )
 
-ADD_SUBDIRECTORY( data     ) 
 ADD_SUBDIRECTORY( context  ) 
 ADD_SUBDIRECTORY( node     ) 
 ADD_SUBDIRECTORY( modules  ) 

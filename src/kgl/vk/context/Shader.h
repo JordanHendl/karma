@@ -17,6 +17,7 @@ namespace vk
   class VertexInputBindingDescription   ;
   class ShaderModule                    ;
   class DescriptorSetLayout             ;
+  class PipelineShaderStageCreateInfo   ;
 }
 
 namespace kgl
@@ -32,10 +33,12 @@ namespace kgl
         unsigned numModules() const ;
         const ::vk::ShaderModule module( ::tools::shader::ShaderStage stage ) const ;
         const ::vk::DescriptorSetLayout layout() const ;
-        const ::vk::VertexInputAttributeDescription vertexAttributes() const ;
-        const ::vk::VertexInputBindingDescription vertexBindings() const ;
+        const ::vk::VertexInputAttributeDescription* vertexAttributes() const ;
+        const ::vk::VertexInputBindingDescription* vertexBindings() const ;
         unsigned numVertexAttributes() const ;
         unsigned numVertexBindings() const ;
+        const ::vk::PipelineShaderStageCreateInfo* infos() const ;
+        unsigned numShaders() const ;
         const ::tools::shader::ShaderIterator& begin() const ;
         const ::tools::shader::ShaderIterator& end() const ;
       private:

@@ -1,18 +1,20 @@
-find_package( X11                )
-find_package( PNG                )
-find_package( Threads            )
-find_package( Vulkan REQUIRED    )
-find_package( SDL2 REQUIRED      )
+FIND_PACKAGE( X11                )
+FIND_PACKAGE( PNG                )
+FIND_PACKAGE( Threads            )
+FIND_PACKAGE( Vulkan REQUIRED    )
+FIND_PACKAGE( SDL2 REQUIRED      )
 
-set( KGL_VK_SOURCES 
+SET( KGL_VK_SOURCES 
      Context.cpp
      CommandBuffer.cpp
+     Buffer.cpp
      Device.cpp
      Instance.cpp
      Library.cpp
      Uniform.cpp
      Descriptor.cpp
      PipelineConfig.cpp
+     Image.cpp
      Shader.cpp
      RenderPass.cpp
      Pipeline.cpp
@@ -24,12 +26,14 @@ set( KGL_VK_SOURCES
      Window.cpp
    )
      
-set( KGL_VK_HEADERS
+SET( KGL_VK_HEADERS
      Context.h
      CommandBuffer.h
+     Buffer.h
      RenderPass.h
      Device.h
      Uniform.h
+     Image.h
      Descriptor.h
      PipelineConfig.h
      Shader.h
@@ -44,20 +48,20 @@ set( KGL_VK_HEADERS
      Window.h
    )
 
-set( KGL_VK_INCLUDE_DIRS
+SET( KGL_VK_INCLUDE_DIRS
       ${SDL2_INCLUDE_DIRS}
       ${Vulkan_INCLUDE_DIRS}
       ${TOOLS_DIR}
       ${DATA_BUS_DIR}
     )
 
-set( KGL_VK_LIBRARIES
+SET( KGL_VK_LIBRARIES
      ${SDL2_LIBRARIES}
      ${Vulkan_LIBRARIES}
      data_bus
      glsl_compiler
    )
 
-add_library               ( kgl_vk_context SHARED   ${KGL_VK_SOURCES} ${KGL_VK_HEADERS} )
-target_include_directories( kgl_vk_context PRIVATE  ${KGL_VK_INCLUDE_DIRS}              )
-target_link_libraries     ( kgl_vk_context PRIVATE  ${KGL_VK_LIBRARIES}                 )
+ADD_LIBRARY               ( kgl_vk_context SHARED   ${KGL_VK_SOURCES} ${KGL_VK_HEADERS} )
+TARGET_INCLUDE_DIRECTORIES( kgl_vk_context PRIVATE  ${KGL_VK_INCLUDE_DIRS}              )
+TARGET_LINK_LIBRARIES     ( kgl_vk_context PRIVATE  ${KGL_VK_LIBRARIES}                 )

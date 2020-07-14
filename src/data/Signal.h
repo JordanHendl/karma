@@ -437,7 +437,7 @@ namespace data
     template <class C, class T>
     void Signal::IndexedObjectMethod<C, T>::execute( unsigned idx, const void* p )
     {
-      ( ( this->object )->*( this->method ) )( idx, static_cast<T>( p ) ) ;
+      ( ( this->object )->*( this->method ) )( idx, *static_cast<const T*>( p ) ) ;
     }
 
     template <class T>
@@ -463,6 +463,19 @@ namespace data
     void Signal::ObjectReferencedMethod<C, T>::execute( const void* p )
     {
       ( ( this->object )->*( this->method ) )( *static_cast<const T*>( p ) ) ;
+    }
+
+    template <class C, class T>
+    Signal::IndexedObjectReferencedMethod<C, T>::IndexedObjectReferencedMethod( C* object, Callback method )
+    {
+      this->method = method ;
+      this->object = object ;
+    }
+    
+    template <class C, class T>
+    void Signal::IndexedObjectReferencedMethod<C, T>::execute( unsigned idx, const void* p )
+    {
+      ( ( this->object )->*( this->method ) )( idx, *static_cast<const T*>( p ) ) ;
     }
     
     template <class C, class T>

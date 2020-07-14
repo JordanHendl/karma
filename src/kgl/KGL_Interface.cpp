@@ -180,7 +180,7 @@ void KGL_Interface::loadPack( const char* path )
   data().config.initialize( path ) ;
 }
 
-void KGL_Interface::unlockPack()
+void KGL_Interface::unloadPack()
 {
   
 }

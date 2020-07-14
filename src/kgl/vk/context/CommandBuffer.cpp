@@ -55,11 +55,11 @@ namespace kgl
         
         Semaphores       wait_sems     ;
         Semaphores       signal_sems   ;
+        Semaphores       image_sem     ; ///< TODO
+        Semaphores       finish_sem    ; ///< TODO
         ::vk::Fence      fence         ;
         ImageFences      img_fences    ; ///< TODO
         FlightFences     fences        ; ///< TODO
-        Semaphores       image_sem     ; ///< TODO
-        Semaphores       finish_sem    ; ///< TODO
         ::vk::Semaphore  wait_sem      ; ///< TODO
         ::vk::Semaphore  signal_sem    ; ///< TODO
         unsigned         current_frame ; ///< TODO
@@ -94,10 +94,17 @@ namespace kgl
       struct CmdBuffData
       {
         typedef std::vector<::vk::CommandBuffer> CommandBuffers ;
+        typedef std::vector<::vk::Semaphore>     Semaphores     ;
+        typedef std::vector<::vk::Fence>         Fences         ;
         
-        CommandBuffers buffers ; ///< The buffers that make up this object.
-        unsigned       gpu     ; ///< The gpu to use for all operations.
-        BufferLevel    level   ; ///< The level of buffer.
+        
+        Semaphores     wait_sems   ;
+        Semaphores     signal_sems ;
+        Semaphores     finish_sem  ; ///< TODO
+        ::vk::Fence    fence       ;
+        CommandBuffers buffers     ; ///< The buffers that make up this object.
+        unsigned       gpu         ; ///< The gpu to use for all operations.
+        BufferLevel    level       ; ///< The level of buffer.
 
         /** Default constructor.
          */
@@ -278,7 +285,6 @@ namespace kgl
         data().fence = fence ;
       }
 
-
       void CommandBuffer::submit( int buffer )
       {
         const ::kgl::vk::render::Context context ;
@@ -288,19 +294,27 @@ namespace kgl
 
         ::vk::SubmitInfo info  ;
         
-        if( data().level = BufferLevel::Primary )
+        if( data().level == BufferLevel::Primary )
         { 
           info.setWaitSemaphoreCount  ( data().wait_sems.size()                                          ) ;
           info.setPWaitSemaphores     ( data().wait_sems.data()                                          ) ;
           info.setCommandBufferCount  ( buffer == -1 ? data().buffers.size() : 1                         ) ;
           info.setPCommandBuffers     ( buffer == -1 ? data().buffers.data() : &data().buffers[ buffer ] ) ;
           info.setSignalSemaphoreCount( data().signal_sems.size()                                        ) ;
-          info.setPSignalSemaphores   ( &data().signal_sem                                               ) ;
+          info.setPSignalSemaphores   ( data().signal_sems.data()                                        ) ;
            
           queue.submit( 1, &info, data().fence ) ;
         }
       }
       
+      void CommandBuffer::clearSynchronization()
+      {
+        data().finish_sem .clear()   ;
+        data().signal_sems.clear()   ;
+        data().wait_sems  .clear()   ;
+        data().fence = ::vk::Fence() ;
+      }
+
       void CommandBuffer::submit( const CommandBuffer& buffer ) const
       {
         const unsigned buff_size  = data().buffers.size()           ;
@@ -389,6 +403,14 @@ namespace kgl
         
         device.allocateCommandBuffers( &info, data().buffers.data() ) ;
       }
+      
+      void CommandBuffer::clearSynchronization()
+      {
+        data().finish_sem .clear()   ;
+        data().signal_sems.clear()   ;
+        data().wait_sems  .clear()   ;
+        data().fence = ::vk::Fence() ;
+      }
 
       void CommandBuffer::record() const
       {
@@ -420,7 +442,23 @@ namespace kgl
 
       void CommandBuffer::submit() const
       {
-        
+        const ::kgl::vk::compute::Context context                       ;
+        const ::vk::Queue queue   = context.computeQueue ( data().gpu ) ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+
+        ::vk::SubmitInfo info  ;
+
+        if( data().level == BufferLevel::Primary )
+        { 
+          info.setWaitSemaphoreCount  ( data().wait_sems.size()   ) ;
+          info.setPWaitSemaphores     ( data().wait_sems.data()   ) ;
+          info.setCommandBufferCount  ( data().buffers.size()     ) ;
+          info.setPCommandBuffers     ( data().buffers.data()     ) ;
+          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
+          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
+           
+          queue.submit( 1, &info, data().fence ) ;
+        }
       }
 
       void CommandBuffer::submit( const CommandBuffer& buffer ) const
@@ -435,6 +473,21 @@ namespace kgl
           temp_buff = buffer.buffer( index ) ;
           data().buffers[ index ].executeCommands( 1, &temp_buff ) ;
         }
+      }
+
+      void CommandBuffer::waitOn( ::vk::Semaphore sem )
+      {
+        data().wait_sems.push_back( sem ) ;
+      }
+
+      void CommandBuffer::onFinish( ::vk::Semaphore sem )
+      {
+        data().signal_sems.push_back( sem ) ;
+      }
+
+      void CommandBuffer::attach( ::vk::Fence fence )
+      {
+        data().fence = fence ;
       }
 
       CmdBuffData& CommandBuffer::data()

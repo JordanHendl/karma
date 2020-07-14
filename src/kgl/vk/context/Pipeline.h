@@ -3,7 +3,8 @@
 
 namespace vk
 {
-  class Buffer ;
+  class Buffer     ;
+  class RenderPass ;
 }
 
 namespace kgl
@@ -20,7 +21,7 @@ namespace kgl
         public:
           Pipeline() ;
           ~Pipeline() ;
-          void initialize( const char* uwu_path, const char* window_name ) ;
+          void initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors, const ::vk::RenderPass pass ) ;
           void subscribe( unsigned channel ) ;
           void bind( const ::kgl::vk::render::CommandBuffer& buffer ) const ;
           void set( const Uniform& uniform ) ;
@@ -41,7 +42,7 @@ namespace kgl
         public:
           Pipeline() ;
           ~Pipeline() ;
-          void initialize( const char* uwu_path, unsigned gpu ) ;
+          void initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors ) ;
           void bind( const ::kgl::vk::compute::CommandBuffer& buffer ) const ;
           void subscribe( unsigned channel ) ;
           void set( const Uniform& uniform ) ;
