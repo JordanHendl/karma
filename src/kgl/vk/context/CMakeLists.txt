@@ -60,6 +60,7 @@ SET( KGL_VK_LIBRARIES
      ${Vulkan_LIBRARIES}
      data_bus
      glsl_compiler
+     kgl_vk_module
    )
 
 ADD_LIBRARY               ( kgl_vk_context SHARED   ${KGL_VK_SOURCES} ${KGL_VK_HEADERS} )

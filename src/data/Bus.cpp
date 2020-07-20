@@ -13,17 +13,17 @@
 **********************************************************************/
 #include "Bus.h"
 #include "Signal.h"
-#include <map>
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <map>
 
 namespace data
 {
   namespace module
   {
-    typedef std::map<std::string, Signal> SignalMap ;
-    typedef std::map<unsigned, SignalMap> BusPool   ;
+    typedef std::map<std::string, Signal*> SignalMap ;
+    typedef std::map<unsigned, SignalMap > BusPool   ;
     
     static BusPool pool ;
     
@@ -128,14 +128,22 @@ namespace data
     
     Signal& Bus::getBase( const char* key  )
     {
-//      std::cout << "KEY::::: " << key << std::endl ;
-      return pool[ this->identifier ][ key ] ;
+      if( pool[ this->identifier ].find( key ) == pool[ this->identifier ].end() )
+      {
+        pool[ this->identifier ].insert( { key, new Signal( key ) } ) ;
+      }
+
+      return *pool[ this->identifier ][ key ] ;
     }
 
     const Signal& Bus::getBase( const char* key ) const
     {
-//      std::cout << "CONST  KEY::::: " << key << std::endl ;
-      return pool[ this->identifier ][ key ] ;
+      if( pool[ this->identifier ].find( key ) == pool[ this->identifier ].end() )
+      {
+        pool[ this->identifier ].insert( { key, new Signal( key ) } ) ;
+      }
+
+      return *pool[ this->identifier ][ key ] ;
     }
 
     unsigned Bus::id()

@@ -250,7 +250,7 @@ namespace karma
 
       void ParserData::handleObject( std::string parent_key,  JSONFile& stream )
       {
-        char  next ;
+        char next ;
 
         while( ( next = getNextValidCharacter( stream ) ) != '}' && next != stream.eof() )
         {
@@ -277,12 +277,28 @@ namespace karma
         const std::string str  = getString( stream )                                    ;
         const std::string key  = parent_key.size() != 0 ? parent_key + "::" + str : str ;
         const char        next = getNextValidCharacter( stream )                        ;
+        const auto        iter = this->map.find( parent_key )                           ;
+
+        bool has_key ;
         
-        if( parent_key != "" && this->map.find( parent_key ) == this->map.end() )
+        has_key = false ;
+        if( iter != this->map.end() )
+        {
+          for( auto key : iter->second )
+          {
+            if( key == parent_key ) has_key = true ;
+          }
+        }
+        else
+        {
+          has_key = true ;
+        }
+        
+        if( parent_key != "" && ( iter == this->map.end() || !has_key ) )
         {
           this->map[ parent_key ].push_back( str ) ;
         }
-
+        
         switch( next )
         {
           // EXPECTED: We found key, want delimiter
@@ -421,6 +437,11 @@ namespace karma
 
         stream << json ;
         data().processFile( stream ) ;
+      }
+      
+      void Parser::clear()
+      {
+        data().map.clear() ;
       }
 
       ParserData& Parser::data()

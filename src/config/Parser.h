@@ -140,6 +140,10 @@ namespace karma
            * @return Token The token places at the key:value found in the mapping.
            */
           Token find( const char* key ) const ;
+          
+          /** Method to clear this object's internal data.
+           */
+          void clear() ;
 
           /** Returns a Token pointing to the beginning of this object's internal mapping.
            * @return A Token pointing at the beginning of this object's internal mapping.

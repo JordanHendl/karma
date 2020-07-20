@@ -85,7 +85,7 @@ namespace data
          * @param id The channel to associate with this event bus.
          */
         Bus( unsigned id = 0 ) ;
-
+        
         /** Operator overload to recieve a reference to a signal of the input key.
          * @param key The key to recieve a reference to a signal for.
          * @return Signal& Reference to the signal cooresponding to the input key.

@@ -18,25 +18,35 @@ namespace vk
 {
   class RenderPass ;
   class Framebuffer ;
+  class Sampler ;
+  class Image ;
+  class ImageView ;
 }
 
 namespace kgl
 {
   namespace vk
   {
-    class CommandBuffer ;
+    namespace render
+    {
+      class CommandBuffer ;
+    }
     
+    class Image           ;
+    class Synchronization ;
+
     class RenderPass
     {
       public:
         RenderPass() ;
         ~RenderPass() ;
-        void initialize( const char* window_name ) ;
+        void initialize( const char* window_name,unsigned gpu ) ;
         void subscribe( const char* name, unsigned id ) ;
         const ::vk::RenderPass pass() ;
         unsigned numBuffers() const ;
         const ::vk::Framebuffer buffer( unsigned id ) ;
-        void submit( const CommandBuffer& buffer ) ;
+        const ::kgl::vk::Image& image( unsigned id ) ;
+        void submit( const Synchronization& sync, const render::CommandBuffer& buffer ) ;
       private:
         struct RenderPassData *pass_data ;
         RenderPassData& data() ;

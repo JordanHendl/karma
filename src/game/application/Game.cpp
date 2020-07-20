@@ -28,17 +28,11 @@ namespace karma
 
   bool Game::run()
   {
-    ImageSubmition img ;
-    
-    img.setImageName    ( "possom"    ) ;
-    img.setSubmitionName( "test"      ) ;
-    img.addGraph        ( "2D_Screen" ) ;
-    img.setPosition     ( 0, 0, 0     ) ;
-    img.setSize         ( 1, 1, 1     ) ;
+
     
     data().interface.loadPack ( "/usr/local/karma/active/files/test.krender" ) ;
             
-    data().interface.drawImage( img ) ;
+//    data().interface.drawImage( img ) ;
     
     return 0 ;
   }

@@ -16,6 +16,8 @@ set( KGL_MANAGERS_INCLUDES
 set( KGL_MANAGERS_LIBRARIES
      configuration
      data_bus
+     kgl_vk_context
+     kgl_io
    )
 
 add_library               ( kgl_managers SHARED  ${KGL_MANAGERS_SOURCES}  ${KGL_MANAGERS_HEADERS} )

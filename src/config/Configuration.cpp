@@ -17,6 +17,7 @@
 #include <Signal.h>
 #include <fstream>
 #include <istream>
+#include <iostream>
 
 namespace karma
 {
@@ -66,7 +67,7 @@ namespace karma
       data().bus.setChannel( channel ) ;
 
       stream.open( path ) ;
-
+      data().parser.clear() ;
       if( stream )
       {
         // Copy stream's contents into string.
@@ -91,15 +92,17 @@ namespace karma
             for( unsigned index = 0; index < token.size(); index++ )
             {
               // TODO- Look for a better way than just emitting over all types.
-              data().bus( token.key() ).emit( index, token.string  () ) ;
-              data().bus( token.key() ).emit( index, token.number  () ) ;
-              data().bus( token.key() ).emit( index, token.boolean () ) ;
-              data().bus( token.key() ).emit( index, token.decimal () ) ;
+              data().bus( token.key() ).emit( index, token.string  ( index ) ) ;
+              data().bus( token.key() ).emit( index, token.number  ( index ) ) ;
+              data().bus( token.key() ).emit( index, token.boolean ( index ) ) ;
+              data().bus( token.key() ).emit( index, token.decimal ( index ) ) ;
 
-              data().bus( token.key() ).emit( token.string  () ) ;
-              data().bus( token.key() ).emit( token.number  () ) ;
-              data().bus( token.key() ).emit( token.boolean () ) ;
-              data().bus( token.key() ).emit( token.decimal () ) ;
+              data().bus( token.key() ).emit( token.string  ( index ) ) ;
+              data().bus( token.key() ).emit( token.number  ( index ) ) ;
+              data().bus( token.key() ).emit( token.boolean ( index ) ) ;
+              data().bus( token.key() ).emit( token.decimal ( index ) ) ;
+              
+              std::cout << "emitting Array: " << token.key() << " :-> " << token.string() << std::endl ;
             }
           }
           else
@@ -108,6 +111,8 @@ namespace karma
             data().bus( token.key() ).emit<unsigned   >( token.number  () ) ;
             data().bus( token.key() ).emit<bool       >( token.boolean () ) ;
             data().bus( token.key() ).emit<float      >( token.decimal () ) ;
+            
+            std::cout << "emitting: " << token.key() << " :-> " << token.string() << std::endl ;
           }
         }
       }

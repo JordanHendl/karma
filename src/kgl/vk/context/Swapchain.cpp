@@ -65,9 +65,9 @@ namespace kgl
       typedef std::vector<::vk::Framebuffer> FrameBuffers   ;
 
       FrameBuffers       buffers    ; ///< TODO
-      SwapChainSupport   details    ; ///< TODO
       SwapImages         images     ; ///< TODO
       SwapImageViews     views      ; ///< TODO
+      SwapChainSupport   details    ; ///< TODO
       unsigned           present    ; ///< TODO
       ::vk::SwapchainKHR chain      ; ///< TODO
       ::vk::Format       img_format ; ///< TODO
@@ -85,7 +85,7 @@ namespace kgl
       for( unsigned i = 0; i < data().views.size(); i++ )
       {
         attachments[0] = { data().views.at( i ) } ;
-
+        
         info.setRenderPass     ( render_pass          ) ;
         info.setAttachmentCount( 1                    ) ;
         info.setPAttachments   ( attachments          ) ;

@@ -22,6 +22,13 @@ namespace vk
 
 namespace kgl
 {
+  
+  namespace vk
+  {
+    class Image ;
+    class Model ;
+  }
+
   namespace man
   {
     class AssetManager
@@ -29,12 +36,8 @@ namespace kgl
       public:
         AssetManager() ;
         ~AssetManager() ;
-        void addImage( const char* path, const char* name ) ;
-        const ::vk::Buffer imageVertices( const char * name ) const ;
-        const ::vk::Buffer imageSampler( const char * name ) const ;
-        const ::vk::Buffer modelIndices( const char* name ) const ;
-        const ::vk::Buffer modelVertices( const char* name ) const ;
-        void addStaticModel( const char* path, const char* name ) ;
+        void addImage( const char* path, const char* name, unsigned gpu ) ;
+        const ::kgl::vk::Image& image( const char* name ) ;
         void addModel( const char* path, const char* name ) ;
         void addParticle( const char* image, const char* name ) ;
         bool contains( const char* name ) const ;

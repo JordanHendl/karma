@@ -26,7 +26,7 @@ namespace kgl
          * @param bus_id The channel of bus to subscribe inputs on.
          * @param gpu The gpu to use for all GPU operations.
          */
-        virtual void subscribe( unsigned bus_id ) ;
+        virtual void subscribe( const char* pipeline, unsigned id ) ;
 
         /** Method to shut down this object's operation.
          */
@@ -50,15 +50,31 @@ namespace kgl
          */
         bool stop() ;
         
-        /** Method to clear all commands allocated to this module.
+        /** Method to set the version of this module.
+         * @param version The version of this module.
          */
-        virtual void clear() = 0 ;
-        
+        void setVersion( unsigned version ) ;
+
         /** Method to set the name of this module.
          * @param name
          */
         void setName( const char* name ) ;
         
+        /** Method to set the type name of this module.
+         * @param type_name The name of the type of module this is.
+         */
+        void setTypeName( const char* name ) ;
+        
+        /** Method to retrieve the version of this module.
+         * @return The version of this module
+         */
+        unsigned version() const ;
+        
+        /**
+         * @return 
+         */
+        const char* type() const ;
+
         /** Method to retrieve the name of this module.
          * @return The name of this module.
          */

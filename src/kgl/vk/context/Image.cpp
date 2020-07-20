@@ -331,41 +331,6 @@ namespace kgl
       // TODO implement lmao
     }
 
-//    void Image::initialize( unsigned gpu, const char* img_path ) 
-//    {
-//      const ::kgl::vk::compute::Context context ;
-//      int              width  ;
-//      int              height ;
-//      int              chan   ;
-//      ::vk::DeviceSize size   ;
-//
-//      stbi_set_flip_vertically_on_load( true ) ;
-//      
-//      const unsigned char* pixels = stbi_load( img_path, &width, &height, &chan, STBI_rgb_alpha ) ;
-//      
-//      size          = width * height * 4           ;
-//      data().gpu    = gpu                          ;
-//      data().device = context.virtualDevice( gpu ) ;
-//      if( pixels )
-//      {
-//        data().gpu    = gpu    ;
-//        data().width  = width  ;
-//        data().height = height ;
-//        
-//        data().cmd_buffer.initialize( gpu, 1, ::kgl::vk::BufferLevel::Primary ) ;
-//
-//        data().generateVulkanImage() ;
-//        data().allocateVulkanImage() ;
-//        this->copy( pixels )         ;
-//        data().createImageView()     ;
-//        data().createSampler()       ;
-//      }
-//      else
-//      {
-//        // TODO Report error.
-//      }
-//    }
-    
     void Image::initialize( unsigned gpu, unsigned w, unsigned h ) 
     {
       data().gpu    = gpu ;

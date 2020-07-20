@@ -1,27 +1,50 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 
-/* 
- * File:   Loader.h
- * Author: jhendl
- *
- * Created on July 10, 2020, 6:04 AM
- */
+#ifndef KGL_VK_LOADER_H
+#define KGL_VK_LOADER_H
 
-#ifndef LOADER_H
-#define LOADER_H
+namespace kgl
+{
+  namespace vk
+  {
+    class Module ;
+    
+    class Descriptor
+    {
+      public:
+        Descriptor() ;
+        ~Descriptor() ;
+        Descriptor( const Descriptor& desc ) ;
+        void operator=( const Descriptor& desc ) ;
+        Module* create( unsigned version = 0 ) ;
+        void destroy( Module* module, unsigned version = 0 ) ;
+      private:
+        
+        friend class LoaderData ;
+        void initalize( const char* module_path ) ;
 
-class Loader {
-public:
-  Loader();
-  Loader(const Loader& orig);
-  virtual ~Loader();
-private:
+        struct DescriptorData* desc_data ;
+        DescriptorData& data() ;
+        const DescriptorData& data() const ;
+    };
 
-};
+    class Loader
+    {
+      public:
+        Loader() ;
+        ~Loader() ;
+        Loader( const Loader& loader ) ;
+        void operator=( const Loader& loader ) ;
+        void initialize( const char* module_path ) ;
+        const Descriptor& descriptor( const char* module_type ) const ;
+        bool hasDescriptor( const char* module_type ) const ;
+        void reset() ;
+      private:
+        struct LoaderData *loader_data ;
+        LoaderData& data() ;
+        const LoaderData& data() const ;
+    };
+  }
+}
 
 #endif /* LOADER_H */
 

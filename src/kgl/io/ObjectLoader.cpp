@@ -1,6 +1,6 @@
 #include "ObjectLoader.h"
 #include <map>
-#include <stdio.h>
+#include <iostream>
 
 #ifdef _WIN32
   #include <windows.h>
@@ -31,6 +31,12 @@
   {
     return dlerror() ;
   }
+  
+  static inline void releaseHandle( LibHandle handle )
+  {
+    dlclose( handle ) ;
+  }
+
 #endif
 
 
@@ -38,8 +44,6 @@ namespace kgl
 {
   namespace io
   {
-    
-    
     struct ObjectLoaderData
     {
       typedef std::map<std::string, ObjectLoader::DL_FUNC> FunctionMap ;
@@ -70,6 +74,8 @@ namespace kgl
       if( data().map.find( symbol_name ) == data().map.end() )
       {
         func = reinterpret_cast<ObjectLoader::DL_FUNC>( dlsym( data().handle, symbol_name ) ) ;
+        if( func ) data().map.insert( { symbol_name, func } ) ;
+        else       std::cout << "Symbol not found: " << symbol_name << std::endl ;
       }
 
       return data().map.at( symbol_name ) ;
@@ -81,8 +87,13 @@ namespace kgl
 
       if( data().handle == nullptr )
       {
-        printf(" Error loading shared object %s. Error: %s. ", lib_path, ::getError() ) ;
+        std::cout << "Error loading shared object " << lib_path << ". Error: " << ::getError() << std::endl  ;
       }
+    }
+    
+    void ObjectLoader::reset()
+    {
+      if( data().handle ) ::releaseHandle( data().handle ) ;
     }
 
     ObjectLoaderData& ObjectLoader::data()

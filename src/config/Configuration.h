@@ -11,8 +11,8 @@
  * Date created : 6/21/2020
  * Purpose      : Declaration for Configuration object to configure an entire program pipeline.
 **********************************************************************/
-#ifndef HZ_JSON_CONFIGURATION_H
-#define HZ_JSON_CONFIGURATION_H
+#ifndef KARMA_JSON_CONFIGURATION_H
+#define KARMA_JSON_CONFIGURATION_H
 
 namespace karma
 {

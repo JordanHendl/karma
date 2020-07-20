@@ -5,6 +5,7 @@
 #include "Library.h"
 #include "Semaphore.h"
 #include "Surface.h"
+#include "../node/Synchronization.h"
 #include <Bus.h>
 #include <Pool.h>
 #include <PoolData.h>
@@ -24,24 +25,6 @@ namespace kgl
     struct WindowInformation
     {
       
-    };
-    struct VulkanInfo
-    {
-      typedef std::vector<Semaphore>   Semaphores   ;
-      typedef std::vector<::vk::Fence> ImageFences  ;
-      typedef std::vector<::vk::Fence> FlightFences ;
-
-      ImageFences             img_fences    ;
-      FlightFences            fences        ;
-      Semaphores              image_sem     ;
-      Semaphores              finish_sem    ;
-      ::vk::Semaphore         wait_sem      ;
-      ::vk::Semaphore         signal_sem    ;
-      ::vk::PresentInfoKHR    present_info  ;
-      ::vk::ClearValue        clear_color   ;
-      ::vk::RenderPass        render_pass   ;
-      uint32_t                image         ;
-      unsigned                current_frame ;
     };
 
     struct WindowConf
@@ -64,22 +47,22 @@ namespace kgl
 
     struct WindowData
     {
-//      data::module::Bus         bus        ; ///< JHTODO
-//      data::module::Pool        pool       ;
-      SDL_Window*               window     ; ///< JHTODO
-      Surface                   surface    ;
-      Device                    device     ;
-      SwapChain                 chain      ;
-//      VulkanInfo                info       ;
-      WindowConf                conf       ;
-      bool                      shown      ; ///< JHTODO
-      bool                      borderless ; ///< JHTODO
-      bool                      focus      ; ///< JHTODO
-      std::string               title      ; ///< JHTODO
-      std::string               name       ; ///< JHTODO
-      unsigned                  width      ; ///< JHTODO
-      unsigned                  height     ; ///< JHTODO
-      bool                      fullscreen ; ///< JHTODO
+      SDL_Window*                window      ; ///< JHTODO
+      Surface                    surface     ;
+      ::vk::PresentInfoKHR       info        ;
+      ::kgl::vk::Synchronization sync        ;
+      Device                     device      ;
+      SwapChain                  chain       ;
+      WindowConf                 conf        ;
+      bool                       shown       ; ///< JHTODO
+      bool                       borderless  ; ///< JHTODO
+      bool                       focus       ; ///< JHTODO
+      std::string                title       ; ///< JHTODO
+      std::string                name        ; ///< JHTODO
+      unsigned                   width       ; ///< JHTODO
+      unsigned                   height      ; ///< JHTODO
+      unsigned                   current_img ;
+      bool                       fullscreen  ; ///< JHTODO
       
       WindowData() ;
 
@@ -98,54 +81,6 @@ namespace kgl
       this->width      = 1280  ;
       this->height     = 1024  ;
       this->fullscreen = false ;
-    }
-    
-    void WindowData::generateRenderPass()
-    {
-//      ::vk::AttachmentDescription desc         ;
-//      ::vk::SubpassDescription    subpass_desc ;
-//      ::vk::AttachmentReference   attach_ref   ;
-//      ::vk::RenderPassCreateInfo  info         ;
-//      ::vk::SubpassDependency     dependency   ;
-//
-//      desc.setFormat        (  static_cast<::vk::Format>( this->chain.format() ) ) ;
-//      desc.setSamples       ( ::vk::SampleCountFlagBits::e1                    ) ;
-//      desc.setLoadOp        ( ::vk::AttachmentLoadOp::eClear                   ) ;
-//      desc.setStoreOp       ( ::vk::AttachmentStoreOp::eStore                  ) ;
-//      desc.setStencilLoadOp ( ::vk::AttachmentLoadOp::eDontCare                ) ;
-//      desc.setStencilStoreOp( ::vk::AttachmentStoreOp::eDontCare               ) ;
-//      desc.setInitialLayout ( ::vk::ImageLayout::eUndefined                    ) ;
-//      desc.setFinalLayout   ( ::vk::ImageLayout::ePresentSrcKHR                ) ;
-//      
-//      dependency.setSrcSubpass   ( VK_SUBPASS_EXTERNAL                                 ) ;
-//      dependency.setDstSubpass   ( 0                                                   ) ;
-//      dependency.setSrcStageMask ( ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
-////      dependency.setSrcAccessMask( static_cast<::vk::AccessFlags>( 0 )                  ) ;
-//      dependency.setDstStageMask ( ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
-//      dependency.setDstAccessMask( ::vk::AccessFlagBits::eColorAttachmentWrite         ) ;
-//      
-//      attach_ref.setAttachment( 0                                          ) ;
-//      attach_ref.setLayout    ( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
-//      
-//      subpass_desc.setPipelineBindPoint   ( ::vk::PipelineBindPoint::eGraphics ) ;
-//      subpass_desc.setColorAttachmentCount( 1                                  ) ;
-//      subpass_desc.setPColorAttachments   ( &attach_ref                        ) ;
-//      
-//      info.setAttachmentCount( 1             ) ;
-//      info.setPAttachments   ( &desc         ) ;
-//      info.setSubpassCount   ( 1             ) ;
-//      info.setPSubpasses     ( &subpass_desc ) ;
-//      info.setDependencyCount( 1             ) ;
-//      info.setPDependencies  ( &dependency   ) ;
-//      info.setPNext          ( nullptr       ) ;
-//      
-//      
-//      this->device.device().createRenderPass( &info, nullptr, &this->info.render_pass ) ;
-    }
-
-    void WindowData::createFramebuffers()
-    {
-//       chain.createFrameBuffers( this->info.render_pass, device ) ;
     }
 
     Window::Window()
@@ -172,11 +107,18 @@ namespace kgl
   
     void Window::initialize( const char* name, unsigned gpu,  unsigned width, unsigned height )
     { 
+      ::data::module::Bus bus ;
+      
       data().window = SDL_CreateWindow( name, 500, 500, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN ) ;
   
       data().surface.initialize( *data().window                ) ;
       data().device .initialize( data().surface.surface(), gpu ) ;
       data().chain  .initialize( data().surface, data().device ) ;
+      
+      data().info.setWaitSemaphoreCount( 1 ) ;
+      data().info.setSwapchainCount    ( 1 ) ;
+      
+      bus( name, "::present" ).attach( this, &Window::present ) ;
     }
     
     bool Window::isInitialized() const
@@ -207,22 +149,6 @@ namespace kgl
       }
     }
 
-    void Window::present()
-    {
-//      const ::vk::Semaphore    sem   = data().info.signal_sem   ;
-//      const ::vk::Queue        queue = data().device.graphics() ;
-//      const ::vk::SwapchainKHR chain = data().chain.chain()     ;
-//
-//      data().info.present_info.setPWaitSemaphores   ( &sem                  ) ;
-//      data().info.present_info.setPSwapchains       ( &chain                ) ;
-//      data().info.present_info.setPImageIndices     ( &data().info.image    ) ;
-//      data().info.present_info.setSwapchainCount    ( 1                     ) ;
-//      data().info.present_info.setWaitSemaphoreCount( 1                     ) ;
-//      
-//      queue.presentKHR( &data().info.present_info ) ;
-//      queue.waitIdle() ;
-    }
-
     //void Window::setFullscreen( bool val )
     //{
     //  data().fullscreen = val ;
@@ -242,27 +168,53 @@ namespace kgl
     //{
     //  if( data().window ) SDL_DestroyWindow( data().window ) ;  
     //}
-    
-    const ::vk::RenderPass Window::renderPass() const
-    {
-//      return data().info.render_pass ;
-    }
 
     const ::vk::SurfaceKHR Window::surface() const
     {
       return data().surface.surface() ;
     }
-
-    //void Window::setName( const char* name )
-    //{
-    //  data().name = name ;
-    //}
     
-    //void Window::setBorderless( bool val )
-    //{
-    //  data().borderless = val ;
-    //  SDL_SetWindowBordered( data().window, val ? SDL_TRUE : SDL_FALSE ) ;
-    //}
+    unsigned Window::currentSwap() const
+    {
+      return data().current_img ;
+    }
+    
+    void Window::present( const Synchronization& sync )
+    {
+      const ::vk::Queue        queue = data().device.graphics() ;
+      const ::vk::SwapchainKHR chain = data().chain.chain()     ;
+      
+      // Swap the input signal sems into this object's wait sems.
+      data().sync.swap( sync ) ;
+
+      data().info.setPImageIndices     ( &data().current_img       ) ;
+      data().info.setSwapchainCount    ( 1                         ) ;
+      data().info.setPSwapchains       ( &chain                    ) ;
+      data().info.setWaitSemaphoreCount( data().sync.numWaitSems() ) ;
+      data().info.setPWaitSemaphores   ( data().sync.waitSems()    ) ;
+      
+      queue.presentKHR( &data().info ) ;
+      queue.waitIdle() ;
+    }
+    
+    void Window::clear()
+    {
+      ::vk::Fence fence ;
+
+      auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), UINT64_MAX, data().sync.signalSem( 0 ), fence ) ;
+      
+      data().current_img = result.value ;
+    }
+//    void Window::setName( const char* name )
+//    {
+//      data().name = name ;
+//    }
+    
+//    void Window::setBorderless( bool val )
+//    {
+//      data().borderless = val ;
+//      SDL_SetWindowBordered( data().window, val ? SDL_TRUE : SDL_FALSE ) ;
+//    }
     
     WindowData& Window::data()
     { 

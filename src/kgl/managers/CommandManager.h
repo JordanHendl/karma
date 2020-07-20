@@ -18,43 +18,20 @@ namespace kgl
 {
   namespace man
   {
-    class CommandManager ;
-
-    class CommandCreator
-    {
-      public:
-        
-        enum Type
-        {
-          MODEL,
-          IMAGE,
-          PARTICLE,
-          COMPUTE
-        };
-
-        CommandCreator() ;
-        ~CommandCreator() ;
-        
-        void setNameOfAsset( const char* name ) ;
-        void addGraph( const char* graph ) ;
-        void setType( Type type ) ;
-        
-      private:
-        struct CommandCreatorData* crt_data ;
-        CommandCreatorData& data() ;
-        const CommandCreatorData& data() const ;
-
-        friend class CommandManager ;
-    };
-
+    class ImageSubmition ;
     class CommandManager
     {
       public:
         CommandManager() ;
         ~CommandManager() ;
-        void insertCommand( CommandCreator& command ) ;
+        void initialize() ;
+        void insertCommand( const ImageSubmition& command ) ;
         void publish() ;
         void clear() ;
+      private:
+        struct CommandManagerData *man_data ;
+        CommandManagerData& data() ;
+        const CommandManagerData& data() const ;
     };
   }
 }

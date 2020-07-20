@@ -21,6 +21,8 @@ namespace kgl
       std::condition_variable variable   ; ///< TODO
       std::mutex              lock       ; ///< TODO
       std::string             name       ; ///< TODO
+      std::string             type       ; ///< TODO
+      unsigned                version    ; ///< TODO
       Flag                    running    ; ///< TODO
       Flag                    should_run ; ///< TODO
       ::data::module::Bus     bus        ; ///< TODO
@@ -52,9 +54,9 @@ namespace kgl
       data().variable.notify_all() ;
     }
     
-    void Module::subscribe( unsigned bus_id )
+    void Module::subscribe( const char* pipeline, unsigned id )
     {
-      data().bus.setChannel( bus_id ) ;
+      data().bus.setChannel( id ) ;
     }
             
     void Module::start()
@@ -87,6 +89,26 @@ namespace kgl
     void Module::setName( const char* name )
     {
       data().name = name ;
+    }
+    
+    void Module::setVersion( unsigned version )
+    {
+      data().version = version ;
+    }
+    
+    void Module::setTypeName( const char* name )
+    {
+      data().type = name ;
+    }
+    
+    const char* Module::type() const
+    {
+      return data().type.c_str() ;
+    }
+    
+    unsigned Module::version() const
+    {
+      return data().version ;
     }
 
     const char* Module::name() const

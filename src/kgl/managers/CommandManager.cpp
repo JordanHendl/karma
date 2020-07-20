@@ -1,60 +1,31 @@
 #include "CommandManager.h"
-
+#include <Bus.h>
+#include <Signal.h>
 namespace kgl
 {
   namespace man
   {
-    struct CommandCreatorData
+    struct CommandManagerData
     {
       
     };
-    
-    CommandCreator::CommandCreator()
-    {
-    
-    }
-
-    CommandCreator::~CommandCreator()
-    {
-    
-    }
-
-    void CommandCreator::setNameOfAsset( const char* name )
-    {
-    
-    }
-
-    void CommandCreator::addGraph( const char* graph )
-    {
-    
-    }
-
-    void CommandCreator::setType( Type type )
-    {
-    
-    }
-
-    CommandCreatorData& CommandCreator::data()
-    {
-    
-    }
-
-    const CommandCreatorData& CommandCreator::data() const
-    {
-    
-    }
 
     CommandManager::CommandManager()
     {
-    
+      this->man_data = new CommandManagerData() ;
     }
 
     CommandManager::~CommandManager()
     {
+      delete this->man_data ;
+    }
     
+    void CommandManager::initialize() 
+    {
+      
     }
 
-    void CommandManager::insertCommand( CommandCreator& command )
+    void CommandManager::insertCommand( const ImageSubmition& command )
     {
     
     }
@@ -68,6 +39,15 @@ namespace kgl
     {
     
     }
+    
+    CommandManagerData& CommandManager::data()
+    {
+      return *this->man_data ;
+    }
 
+    const CommandManagerData& CommandManager::data() const
+    {
+      return *this->man_data ;
+    }
   }
 }

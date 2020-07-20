@@ -52,6 +52,11 @@ namespace kgl
       data().fence      = device.createFence    ( fence_info, nullptr ) ;
     }
 
+    void Synchronization::swap( const Synchronization& sync )
+    {
+      this->data().wait_sem = sync.data().signal_sem ;
+    }
+
     unsigned Synchronization::numWaitSems() const
     {
       return 1 ;
@@ -80,6 +85,11 @@ namespace kgl
     const ::vk::Semaphore* Synchronization::signalSems() const
     {
       return &data().signal_sem ;
+    }
+    
+    const ::vk::Fence Synchronization::fence() const
+    {
+      return data().fence ;
     }
 
     void Synchronization::wait() const

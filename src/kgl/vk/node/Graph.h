@@ -11,17 +11,34 @@
  * Created on July 10, 2020, 6:04 AM
  */
 
-#ifndef GRAPH_H
-#define GRAPH_H
+#ifndef KGL_VK_GRAPH_H
+#define KGL_VK_GRAPH_H
 
-class Graph {
-public:
-  Graph();
-  Graph(const Graph& orig);
-  virtual ~Graph();
-private:
+namespace kgl
+{
+  namespace vk
+  { 
+    class Module ;
+    class Loader ;
+    class Graph
+    {
+      public:
+        Graph() ;
+        ~Graph() ;
+        void initialize( Loader* loader ) ;
+        void add( const char* name, Module* module ) ;
+        void subscribe( const char* name, unsigned id ) ;
+        void setName( const char* name ) ;
+        void kick() ;
+        void stop() ;
+        void reset() ;
+      private:
+        struct GraphData* graph_data ;
+        GraphData& data() ;
+        const GraphData& data() const ;
+    };
+  }
+}
 
-};
-
-#endif /* GRAPH_H */
+#endif
 

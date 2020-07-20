@@ -170,7 +170,37 @@ namespace kgl
         
         return dummy ;
       }
-
+      
+      unsigned Context::width( const char* window_name ) const
+      {
+        static const unsigned dummy = 0 ;
+        auto iter = ::kgl::vk::vk_context.window_map.find( window_name ) ;
+        
+        if( iter != ::kgl::vk::vk_context.window_map.end() ) return iter->second->chain().width() ;
+        
+        return dummy ;
+      }
+      
+      unsigned Context::height( const char* window_name ) const
+      {
+        static const unsigned dummy = 0 ;
+        auto iter = ::kgl::vk::vk_context.window_map.find( window_name ) ;
+        
+        if( iter != ::kgl::vk::vk_context.window_map.end() ) return iter->second->chain().height() ;
+        
+        return dummy ;
+      }
+      
+      unsigned Context::currentSwap( const char* window_name ) const
+      {
+        static const unsigned dummy = 0 ;
+        auto iter = ::kgl::vk::vk_context.window_map.find( window_name ) ;
+        
+        if( iter != ::kgl::vk::vk_context.window_map.end() ) return iter->second->currentSwap() ;
+        
+        return dummy ;
+      }
+      
       const ::vk::Queue Context::presentQueue( unsigned gpu ) const
       {
         static const ::vk::Queue dummy ;

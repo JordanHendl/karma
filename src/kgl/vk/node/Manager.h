@@ -23,8 +23,10 @@ namespace kgl
       public:
         Manager() ;
         ~Manager() ;
-        void initialize( const char* configuration_path ) ;
+        void initialize( const char* mod_path, const char* configuration_path ) ;
         void start() ;
+        void stop() ;
+        void shutdown() ;
       private:
         struct ManagerData* man_data ;
         ManagerData& data() ;

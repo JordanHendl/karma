@@ -2,8 +2,8 @@
 #include "Setup.h"
 #include "managers/AssetManager.h"
 #include "managers/CommandManager.h"
-#include "vk/context/Context.h"
 #include "vk/node/Manager.h"
+#include "vk/context/Context.h"
 #include "Configuration.h"
 #include <Parser.h>
 #include <string>
@@ -12,134 +12,24 @@
 struct KGL_InterfaceData
 {
   ::kgl::vk::render::Context     context       ; ///< The vulkan context for rendering.
+  ::kgl::vk::Manager             mod_manager   ; ///< The Render Graph module manager.
   ::kgl::man::AssetManager       asset_manager ; ///< The asset manager.
   ::kgl::man::CommandManager     cmd_manager   ; ///< The GPU command manager.
-  ::kgl::vk::Manager             mod_manager   ; ///< The Render Graph module manager.
   ::karma::config::Configuration config        ; ///< The Configuration to initialize the graphics library with.
   ::kgl::Setup                   setup         ;
+  
+  void fixString( std::string& str ) ;
 };
 
-struct ModelSubmitionData
+void KGL_InterfaceData::fixString( std::string& str )
 {
-  typedef std::vector<std::string> NameList ;
-  struct vec3
+  const char c = str.back() ;
+
+  if( c == '\\' || c == '/' )
   {
-    float x, y, z ;
-  };
-  std::string model  ;
-  std::string cmd    ;
-  std::string anim   ;
-  vec3        pos    ;
-  vec3        rot    ;
-  vec3        size   ;
-  NameList    graphs ;
-};
-
-struct ImageSubmitionData
-{
-  
-};
-
-ModelSubmition::ModelSubmition()
-{
-  this->sub_data = new ModelSubmitionData() ;
+    str.pop_back() ;
+  }
 }
-
-ModelSubmition::~ModelSubmition()
-{
-  delete this->sub_data ;
-}
-
-void ModelSubmition::setModelName( const char* name )
-{
-  
-}
-
-void ModelSubmition::setSubmitionName( const char* name )
-{
-  
-}
-
-void ModelSubmition::setPosition( float x, float y, float z )
-{
-  
-}
-
-void ModelSubmition::setSize( float x, float y, float z )
-{
-  
-}
-
-void ModelSubmition::setRotationEuler( float x, float y, float z )
-{
-  
-}
-
-void ModelSubmition::setAnimation( const char* animation_name )
-{
-  
-}
-
-ModelSubmitionData& ModelSubmition::data()
-{
-  return *this->sub_data ;
-}
-
-const ModelSubmitionData& ModelSubmition::data() const
-{
-  return *this->sub_data ;
-}
-
-ImageSubmition::ImageSubmition()
-{
-  this->sub_data = new ImageSubmitionData() ;
-}
-
-ImageSubmition::~ImageSubmition()
-{
-  delete this->sub_data ;
-}
-
-void ImageSubmition::setImageName( const char* name )
-{
-  
-}
-
-void ImageSubmition::addGraph( const char* graph )
-{
-  
-}
-
-void ImageSubmition::setSubmitionName( const char* name )
-{
-  
-}
-
-void ImageSubmition::setPosition( float x, float y, float z )
-{
-  
-}
-
-void ImageSubmition::setSize( float x, float y, float z )
-{
-  
-}
-
-void ImageSubmition::setRotationEuler( float x, float y, float z )
-{
-  
-}
-
-ImageSubmitionData& ImageSubmition::data()
-{
-  return *this->sub_data ;
-}
-
-const ImageSubmitionData& ImageSubmition::data() const
-{
-  return *this->sub_data ;
-}
-
 
 KGL_Interface::KGL_Interface()
 {
@@ -151,12 +41,25 @@ KGL_Interface::~KGL_Interface()
   delete this->kgl_data ;
 }
 
+void KGL_Interface::shutdown()
+{
+  data().mod_manager.shutdown() ;
+}
+
 void KGL_Interface::initialize( const char* base_path )
 {
-  std::string path ;
+  std::string path            ;
+  std::string kgl_config_path ;
+  std::string mod_path        ;
+  std::string mod_config_path ;
   
   path = base_path ;
-  path += "/setup.json" ; 
+  
+  data().fixString( path ) ;
+  
+  kgl_config_path = path + "/setup.json"             ;
+  mod_path        = path + "/build/modules/"         ;
+  mod_config_path = path + "/kgl_configuration.json" ;
   
   if( !::kgl::vk::isInitialized() )
   {
@@ -165,8 +68,10 @@ void KGL_Interface::initialize( const char* base_path )
 
     data().setup.subscribe( 0 ) ;
     
-    data().config.initialize( path.c_str(), 0 ) ;
-    data().setup.initialize() ;
+    data().config     .initialize( kgl_config_path.c_str(), 0                ) ;
+    data().setup      .initialize(                                           ) ;
+    data().mod_manager.initialize( mod_path.c_str(), mod_config_path.c_str() ) ;
+    data().mod_manager.start() ;
   }
 }
 
@@ -182,22 +87,7 @@ void KGL_Interface::loadPack( const char* path )
 
 void KGL_Interface::unloadPack()
 {
-  
-}
-
-void KGL_Interface::drawModel( const ModelSubmition& submit )
-{
-  
-}
-
-void KGL_Interface::drawImage( const ImageSubmition& submit )
-{
-  
-}
-
-void KGL_Interface::drawParticle( const char* name, float cx, float cy, unsigned amount )
-{
-  
+  data().asset_manager.clear() ;
 }
 
 KGL_InterfaceData& KGL_Interface::data()

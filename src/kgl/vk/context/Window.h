@@ -9,6 +9,7 @@ namespace vk
   class SurfaceKHR    ;
   class RenderPass    ;
   class CommandBuffer ;
+  class Semaphore     ;
 }
 
 namespace kgl
@@ -19,8 +20,10 @@ namespace kgl
     {
       class CommandBuffer ;
     }
-    class Device        ;
-    class SwapChain     ;
+    class Device          ;
+    class SwapChain       ;
+    class Synchronization ;
+
     class Window 
     {
       public:
@@ -31,10 +34,11 @@ namespace kgl
         void initialize( const char* name, unsigned gpu, unsigned width, unsigned height ) ;
         const Device& device() const ;
         const SwapChain& chain() const ;
-        const ::vk::RenderPass renderPass() const ;
+        void present( const Synchronization& sync ) ;
+        void clear() ;
+        unsigned currentSwap() const ;
         const ::vk::SurfaceKHR surface() const ;
         bool isInitialized() const ;
-        void present() ;
         void pollEvents() ;
       private:
         struct WindowData* win_data ;

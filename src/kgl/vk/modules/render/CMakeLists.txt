@@ -14,8 +14,9 @@ set( KGL_VK_RENDER_MODULE_MODULE_INCLUDE_DIRS
 set( KGL_VK_RENDER_MODULE_MODULE_LIBRARIES
      data_bus
      kgl_vk_module
+     kgl
    )
 
-add_library               ( render2D_module SHARED   ${KGL_VK_RENDER_MODULE_MODULE_SOURCES} ${KGL_VK_RENDER_MODULE_MODULE_HEADERS} )
-target_include_directories( render2D_module PRIVATE  ${KGL_VK_RENDER_MODULE_MODULE_INCLUDE_DIRS}                                   )
-target_link_libraries     ( render2D_module PRIVATE  ${KGL_VK_RENDER_MODULE_MODULE_LIBRARIES}                                      )
+add_library               ( render2D SHARED   ${KGL_VK_RENDER_MODULE_MODULE_SOURCES} ${KGL_VK_RENDER_MODULE_MODULE_HEADERS} )
+target_include_directories( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_MODULE_INCLUDE_DIRS}                                   )
+target_link_libraries     ( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_MODULE_LIBRARIES}                                      )

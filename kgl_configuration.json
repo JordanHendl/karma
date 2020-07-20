@@ -1,0 +1,28 @@
+{
+  "Graphs":
+  {
+    "graph1":
+    {
+      "gpu"   : 0     ,
+      "window": "Main",
+      
+      "Modules" : 
+      {
+        "render2d" :
+        {
+          "version" : 0,
+          "type"    : "Render2D",
+          "input"   : "clear",
+          "output"  : "2d_image"
+        },
+        
+        "present" :
+        {
+          "version" : 0,
+          "type"    : "Present"
+          "input"   : "2d_image"
+        }
+      }
+    }
+  }
+}

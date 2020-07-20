@@ -130,7 +130,7 @@ namespace data
     class Signal
     {
       public:
-        Signal() ;
+        Signal( const char* key ) ;
         ~Signal() ;
         
         template<class T>
@@ -163,6 +163,12 @@ namespace data
         template<class C, class T>
         void attach( C* object, void (C::*method)( unsigned, const T& ) ) ;
         
+        template<class C, class T>
+        void addDependancy( C* object, void( C::*method_to_call )( T ), const char* dependancy_name ) ;
+        
+        template<class C>
+        void onCompletion( const char* dependancy_name, C* object, void( C::*method_to_call )( void ) ) ;
+
         template<class T>
         void emit( const T& val ) ;
         
@@ -170,6 +176,16 @@ namespace data
         void emit( unsigned id, const T& val ) ;
         
       private:
+        
+        
+
+        class DependancyCallback
+        {
+          public:
+            virtual ~DependancyCallback() {} 
+            
+            virtual void execute() = 0 ;
+        };
 
         class Callback
         {
@@ -187,6 +203,35 @@ namespace data
             virtual void execute( unsigned idx, const void* pointer ) = 0 ;
         };
         
+        template<class C>
+        class MethodDependancy : public DependancyCallback
+        {
+          public:
+            typedef void (C::*Callback)( void ) ;
+            
+            MethodDependancy( C* obj, Callback method ) ;
+            
+            virtual void execute() ;
+            
+          private:
+            C*       object ;
+            Callback method ;
+        };
+        
+        template<class T = int>
+        class FunctionDependancy : public DependancyCallback
+        {
+          public:
+            typedef void (*Callback)( void ) ;
+            
+            FunctionDependancy( Callback method ) ;
+            
+            virtual void execute() ;
+            
+          private:
+            Callback method ;
+        };
+
         template<class T>
         class Method : public Callback
         {
@@ -288,16 +333,18 @@ namespace data
             C*       object ;
         } ;
         
+        struct Dependancy ;
         struct SignalData* signal_data ;
         
         Signal( const Signal& cpy ) ;
         Signal& operator=( const Signal& cpy ) ;
         
+        void addDependancyBase( unsigned type, Callback* callback, const char* dependancy ) ;
+        void addDependancyCallbackBase( DependancyCallback* callback, const char* dependancy ) ;
         void attachBase( unsigned type, Callback* callback ) ;
         void attachBase( unsigned type, IndexedCallback* callback ) ;
         void emitBase( unsigned type, const void* ptr ) ;
         void emitBase( unsigned type, unsigned idx, const void* ptr ) ;
-        
         SignalData& data() ;
         const SignalData& data() const ;
         
@@ -452,13 +499,38 @@ namespace data
       ( this->method )( idx, *static_cast<const T*>( p ) ) ;
     }
     
+    template<class C>
+    Signal::MethodDependancy<C>::MethodDependancy( C* obj, Callback method )
+    {
+      this->method = method ;
+      this->object = obj    ;
+    }
+    
+    template<class C>
+    void Signal::MethodDependancy<C>::execute()
+    {
+      ( ( this->object )->*( this->method ) )() ;
+    }
+    
+    template<class T>
+    Signal::FunctionDependancy<T>::FunctionDependancy( Callback method )
+    {
+      this->method = method ;
+    }
+    
+    template<class T>
+    void Signal::FunctionDependancy<T>::execute()
+    {
+      ( this->method )() ;
+    }
+
     template <class C, class T>
     Signal::ObjectReferencedMethod<C, T>::ObjectReferencedMethod( C* object, Callback method )
     {
       this->method = method ;
       this->object = object ;
     }
-    
+        
     template <class C, class T>
     void Signal::ObjectReferencedMethod<C, T>::execute( const void* p )
     {
@@ -491,6 +563,24 @@ namespace data
       ( ( this->object )->*( this->method ) )( *static_cast<const T*>( p ) ) ;
     }
     
+    template<class C, class T>
+    void Signal::addDependancy( C* object, void( C::*method )( T ), const char* dependancy_name )
+    {
+      typedef Signal::Callback           Callback       ;
+      typedef Signal::ObjectMethod<C, T> CallbackMethod ;
+
+      addDependancyBase( hash<T>(), dynamic_cast<Callback*>( new CallbackMethod( object, method ) ), dependancy_name ) ;
+    }
+
+    template<class C>
+    void Signal::onCompletion( const char* dependancy_name, C* object, void( C::*method_to_call )( void ) )
+    {
+      typedef Signal::DependancyCallback  Callback       ;
+      typedef Signal::MethodDependancy<C> CallbackMethod ;
+
+      addDependancyCallbackBase( dynamic_cast<Callback*>( new CallbackMethod( object, method_to_call ) ), dependancy_name ) ;
+    }
+
     template<class T>
     SignalType signalType()
     {
@@ -499,5 +589,5 @@ namespace data
   }
 }
 
-#endif /* CASPER_SIGNAL_H */
+#endif
 

@@ -1,26 +1,27 @@
-
-#ifndef KGL_RENDER_MODULE_H
-#define KGL_RENDER_MODULE_H
+#ifndef KGL_PRESENT_MODULE_H
+#define KGL_PRESENT_MODULE_H
 
 #include <Module.h>
+
+const unsigned VERSION = 1 ;
 
 namespace kgl
 {
   namespace vk
   {
-    class Render2D : public ::kgl::vk::Module
+    class Present : public ::kgl::vk::Module
     {
       public:
-        Render2D() ;
-        ~Render2D() ;
+        Present() ;
+        ~Present() ;
         void initialize() final ;
         void shutdown() final ;
         void subscribe( const char* pipeline, unsigned id ) final ;
         void execute() final ;
       private:
-        struct Render2DData *data_2d ;
-        Render2DData& data() ;
-        const Render2DData& data() const ;
+        struct PresentData *data_2d ;
+        PresentData& data() ;
+        const PresentData& data() const ;
     };
   }
 }
@@ -30,7 +31,7 @@ namespace kgl
  */
 extern "C" const char* name()
 {
-  return "Render2D" ;
+  return "Present" ;
 }
 
 /**
@@ -38,15 +39,15 @@ extern "C" const char* name()
  */
 extern "C" unsigned version()
 {
-  return 1 ;
+  return VERSION ;
 }
 
 /**
  * @return 
  */
-extern "C" ::kgl::vk::Module* make( unsigned version )
+extern "C" ::kgl::vk::Module* make()
 {
-  return new ::kgl::vk::Render2D() ;
+  return new ::kgl::vk::Present() ;
 }
 
 /**
@@ -54,11 +55,10 @@ extern "C" ::kgl::vk::Module* make( unsigned version )
  */
 extern "C" void destroy( ::kgl::vk::Module* module )
 {
-  ::kgl::vk::Render2D* mod ;
+  ::kgl::vk::Present* mod ;
   
-  mod = dynamic_cast<::kgl::vk::Render2D*>( module ) ;
+  mod = dynamic_cast<::kgl::vk::Present*>( module ) ;
   delete mod ;
 }
 
-#endif /* RENDER_H */
-
+#endif

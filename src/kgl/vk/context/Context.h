@@ -126,6 +126,24 @@ namespace kgl
            * @param window_name
            * @return 
            */
+          unsigned width( const char* window_name ) const ;
+          
+          /**
+           * @param window_name
+           * @return 
+           */
+          unsigned height( const char* window_name ) const ;
+          
+          /**
+           * @param window_name
+           * @return 
+           */
+          unsigned currentSwap( const char* window_name ) const ;
+
+          /**
+           * @param window_name
+           * @return 
+           */
           unsigned numFrameBuffers( const char* window_name ) const ;
           
           /**
