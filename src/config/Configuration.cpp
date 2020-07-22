@@ -101,8 +101,6 @@ namespace karma
               data().bus( token.key() ).emit( token.number  ( index ) ) ;
               data().bus( token.key() ).emit( token.boolean ( index ) ) ;
               data().bus( token.key() ).emit( token.decimal ( index ) ) ;
-              
-              std::cout << "emitting Array: " << token.key() << " :-> " << token.string() << std::endl ;
             }
           }
           else
@@ -111,8 +109,6 @@ namespace karma
             data().bus( token.key() ).emit<unsigned   >( token.number  () ) ;
             data().bus( token.key() ).emit<bool       >( token.boolean () ) ;
             data().bus( token.key() ).emit<float      >( token.decimal () ) ;
-            
-            std::cout << "emitting: " << token.key() << " :-> " << token.string() << std::endl ;
           }
         }
       }

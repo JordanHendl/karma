@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include <thread>
+#include <iostream>
 
 namespace kgl
 {
@@ -13,44 +14,76 @@ namespace kgl
   { 
     struct NodeLoader
     {
-      ::data::module::Bus         bus        ;
-      std::map<std::string, bool> loaded_map ;
-      std::string                 pipeline   ;
-      std::string                 type       ;
-      std::string                 name       ;
-      unsigned                    version    ;
-      bool                        set_deps   ;
+      struct NodeInfo
+      {
+        typedef std::map<std::string, Module*> ModuleGraph ;
+        std::string  name     ;
+        std::string  type     ;
+        std::string  pipeline ;
+        unsigned     version  ;
+        unsigned     id       ;
+        ModuleGraph* graph    ;
+        Loader*      loader   ;
+        
+        void setVersion( unsigned version )
+        {
+          this->version = version ;
+        }
+
+        void setType( const char* type )
+        {
+            this->type = type ;
+        }
+        
+        void create()
+        {
+          if( this->graph->find( this->name ) == this->graph->end() )
+          {
+            auto descriptor = loader->descriptor( this->type.c_str() ) ;  
+            auto module     = descriptor.create ( this->version      ) ;
+
+            if( module )
+            {
+              module->setName    ( this->name.c_str()               ) ;
+              module->setVersion ( this->version                    ) ;
+              module->subscribe  ( this->pipeline.c_str(), this->id ) ;
+              this->graph->insert( { this->name, module }           ) ;
+            }
+          }
+        }
+      };
+
+      typedef std::map<std::string, Module*> ModuleGraph ;
+      
+      ModuleGraph*                    graph      ;
+      Loader*                         loader     ;
+      ::data::module::Bus             bus        ;
+      std::map<std::string, NodeInfo> loaded_map ;
+      std::string                     pipeline   ;
       
       NodeLoader()
       {
-        this->set_deps = false ;
       }
 
       void setName( const char* name )
       {
         std::string dependency ;
         
-        dependency = this->pipeline + "::add" ;
+        dependency = this->pipeline + name ;
         
-        this->name = name ;
+        
         if( this->loaded_map.find( name ) == this->loaded_map.end() )
         {
-          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::version" ).attach( this, &NodeLoader::setVersion                            ) ;
-          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).attach( this, &NodeLoader::setType                               ) ;
-          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).addDependancy( this, &NodeLoader::setType   , dependency.c_str() ) ;
-          
-          this->loaded_map.insert( { name, true } ) ;
-        }
-      }
+          this->bus("").onCompletion( dependency.c_str(), &this->loaded_map[ name ], &NodeInfo::create ) ;
 
-      void setVersion( unsigned version )
-      {
-        this->version = version ;
-      }
-      
-      void setType( const char* type )
-      {
-        this->type = type ;
+          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::version" ).attach( &this->loaded_map[ name ], &NodeInfo::setVersion                         ) ;
+          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).attach( &this->loaded_map[ name ], &NodeInfo::setType                            ) ;
+          this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).addDependancy( &this->loaded_map[ name ], &NodeInfo::setType, dependency.c_str() ) ;
+          this->loaded_map[ name ].graph  = this->graph  ;
+          this->loaded_map[ name ].loader = this->loader ;
+          this->loaded_map[ name ].name   = name         ;
+
+        }
       }
     };
 
@@ -66,7 +99,6 @@ namespace kgl
 
       void stop  ( const char* name ) ;
       void remove( const char* name ) ;
-      void add() ;
       void setName( const char* name ) ;
     };
 
@@ -76,34 +108,15 @@ namespace kgl
        
       dependency = std::string( name ) + "::add" ;
 
-      this->node_loader.pipeline = name ;
-      this->node_loader.bus.setChannel( this->bus_id ) ;
+      this->node_loader.pipeline = name         ;
 
       this->bus( name, "::remove" ).attach( this, &GraphData::remove ) ;
       this->bus( name, "::stop"   ).attach( this, &GraphData::stop   ) ;
       
       this->bus( "Graphs::", name, "::Modules" ).attach( &node_loader, &NodeLoader::setName ) ;
       
-      this->bus("").onCompletion( dependency.c_str(), this, &GraphData::add ) ;
-    }
-
-    void GraphData::add()
-    {
-      if( this->graph.find( this->node_loader.name ) == this->graph.end() )
-      {
-        auto descriptor = loader->descriptor( this->node_loader.type.c_str() ) ;  
-        auto module     = descriptor.create( this->node_loader.version )      ;
-        
-        if( module )
-        {
-          module->setName   ( this->node_loader.name.c_str()                   ) ;
-          module->setVersion( this->node_loader.version                        ) ;
-          module->subscribe ( this->node_loader.pipeline.c_str(), this->bus_id ) ;
-          this->graph.insert( { this->node_loader.name, module }               ) ;
-        }
-        
-        this->node_loader.version = 0 ;
-      }
+      
+      this->bus( name, "::stop" ).addDependancy( &this->node_loader, &NodeLoader::setName, dependency.c_str() ) ;
     }
 
     void GraphData::stop  ( const char* name )
@@ -140,6 +153,10 @@ namespace kgl
      void Graph::initialize( Loader* loader )
     {
       data().loader = loader ; //todo remove this
+
+      data().node_loader.loader   =  data().loader ;
+      data().node_loader.graph    = &data().graph ;
+      data().node_loader.bus.setChannel( data().bus_id ) ;
     }
 
     void Graph::add( const char* name, Module* module )
@@ -160,6 +177,7 @@ namespace kgl
       ::data::module::Bus bus ;
       
       bus.setChannel( id ) ;
+      data().node_loader.graph = &data().graph ;
       
     }
 

@@ -46,11 +46,11 @@ namespace kgl
       
       SubpassDependencyConf()
       {
-        this->src_subpass = VK_SUBPASS_EXTERNAL                                    ;
-        this->dst_subpass = 0                                                      ;
-        this->src_access_mask = ::vk::AccessFlagBits::eShaderRead                  ;
-        this->dst_access_mask = ::vk::AccessFlagBits::eColorAttachmentWrite        ;
-        this->src_stage_mask = ::vk::PipelineStageFlagBits::eColorAttachmentOutput ;
+        this->src_subpass     = VK_SUBPASS_EXTERNAL                                 ;
+        this->dst_subpass     = 0                                                   ;
+        this->src_access_mask = ::vk::AccessFlagBits::eShaderRead                   ;
+        this->dst_access_mask = ::vk::AccessFlagBits::eColorAttachmentWrite         ;
+        this->src_stage_mask  = ::vk::PipelineStageFlagBits::eColorAttachmentOutput ;
       }
     };
 
