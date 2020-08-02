@@ -100,6 +100,8 @@ namespace kgl
     {
       this->family   = data.family   ;
       this->g_queue  = data.g_queue  ;
+      this->c_queue  = data.c_queue  ;
+      this->p_queue  = data.p_queue  ;
       this->name     = data.name     ;
       this->p_device = data.p_device ;
       this->v_device = data.v_device ;
@@ -123,9 +125,8 @@ namespace kgl
       for (const auto& queueFamily : list ) 
       {
         this->p_device.getSurfaceSupportKHR( id, surface, &support ) ;
-//        HANDLE_ERROR( :GetPhysicalDeviceSurfaceSupportKHR( this->p_device, id, surface.surface(), &support ) ) ;
 
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+        if ( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT )
         {
           this->family.graphics = id ;
         }
@@ -169,7 +170,7 @@ namespace kgl
       id = 0 ;
       for (const auto& queueFamily : list ) 
       {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+        if ( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT ) 
         {
           this->family.graphics = id ;
         }
@@ -213,7 +214,7 @@ namespace kgl
       
       features.setSamplerAnisotropy( true ) ;
       
-      dev_info.setQueueCreateInfoCount   ( 1                          ) ;
+      dev_info.setQueueCreateInfoCount   ( infos.size()               ) ;
       dev_info.setPQueueCreateInfos      ( infos.data()               ) ;
       dev_info.setEnabledExtensionCount  ( required_extensions.size() ) ;
       dev_info.setPpEnabledExtensionNames( required_extensions.data() ) ;
@@ -225,6 +226,7 @@ namespace kgl
         dev_info.ppEnabledLayerNames = layers.names() ;
       }
       
+
       this->p_device.createDevice( &dev_info, nullptr, &this->v_device ) ;
       
       this->g_queue = this->v_device.getQueue( this->family.graphics, 0 ) ;

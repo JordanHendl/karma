@@ -32,6 +32,7 @@ set( KGL_LIBRARIES
      kgl_vk_context
      kgl_vk_module
      kgl_managers
+     kgl_database
      configuration
     )
 

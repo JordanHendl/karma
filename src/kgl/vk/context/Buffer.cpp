@@ -161,7 +161,8 @@ namespace kgl
 
       fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
       size = sz ;
-      data().fence = this->data().device.createFence( fence_info, nullptr ) ;
+      data().device = context.virtualDevice( device )                        ;
+      data().fence  = this->data().device.createFence( fence_info, nullptr ) ;
       
       this->data().count      = count                             ;
       this->data().type       = static_cast<Buffer::Type>( type ) ; 

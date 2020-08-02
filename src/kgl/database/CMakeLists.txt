@@ -14,6 +14,7 @@ set( KGL_DATABASE_INCLUDES
 
 set( KGL_DATABASE_LIBRARIES
      configuration
+     kgl_managers
      data_bus
    )
 

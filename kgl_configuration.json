@@ -3,8 +3,8 @@
   {
     "graph1":
     {
-      "gpu"   : 0     ,
-      "window": "Main",
+      "gpu"    : 0     ,
+      "window" : "Main",
       
       "Modules" : 
       {
@@ -13,7 +13,7 @@
           "version" : 0,
           "type"    : "Render2D",
           "input"   : "clear",
-          "output"  : "2d_image"
+          "output"  : "2d_image",
         },
         
         "present" :

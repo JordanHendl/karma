@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/wksp/int/KGLRefactor/karma/src/data/Bus.h
+
+/wksp/int/KGLRefactor/karma/src/data/Signal.h
+
+/wksp/int/KGLRefactor/karma/src/game/application/Game.cpp
+Game.h
+/wksp/int/KGLRefactor/karma/src/game/application/Game.h
+../../kgl/KGL_Interface.h
+/wksp/int/KGLRefactor/karma/src/kgl/KGL_Interface.h
+../../kgl/io/Event.h
+/wksp/int/KGLRefactor/karma/src/kgl/io/Event.h
+../../data/Bus.h
+/wksp/int/KGLRefactor/karma/src/data/Bus.h
+../../data/Signal.h
+/wksp/int/KGLRefactor/karma/src/data/Signal.h
+string
+-
+
+/wksp/int/KGLRefactor/karma/src/game/application/Game.h
+
+/wksp/int/KGLRefactor/karma/src/kgl/KGL_Interface.h
+
+/wksp/int/KGLRefactor/karma/src/kgl/io/Event.h
+

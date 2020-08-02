@@ -30,16 +30,20 @@ namespace kgl
         /**
          */
         ~Database() ;
-
+        
+        /**
+         * @param name
+         */
+        void loadImage( const char* name ) ;
+        
         /**
          * @param id 
          */
-        void subscribe( unsigned id ) ;
+        void subscribe( const char* base_path, unsigned id ) ;
 
         /**
          */
         void initialize() ;
-
 
       private:
 

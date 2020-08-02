@@ -10,7 +10,12 @@ namespace kgl
       public:
         Input() ;
         ~Input() ;
-        void subscribe( const char* window_name ) ;
+        void initialize() ;
+        void poll() ; 
+      private:
+        struct InputData *input_data ;
+        InputData& data() ;
+        const InputData& data() const ;
     };
   }
 }

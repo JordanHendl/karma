@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -std=c++17 -lstdc++fs -fPIC    CMakeFiles/config_test.dir/test.cpp.o  -o ../../bin/config_test -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../lib/libconfiguration.so 

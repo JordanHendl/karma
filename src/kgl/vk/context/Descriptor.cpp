@@ -35,7 +35,7 @@ namespace kgl
 
     void DescriptorSet::operator=( const DescriptorSet& set )
     {
-    
+      *this->set_data = *set.set_data ;
     }
 
     void DescriptorSet::set( const Uniform& uniform )
@@ -75,7 +75,9 @@ namespace kgl
 
     DescriptorSet DescriptorPool::makeDescriptorSet( unsigned count )
     {
-    
+      DescriptorSet set ;
+      
+      return set ;
     }
 
     void DescriptorPool::initialize( unsigned gpu, unsigned max_amt, const Shader& shader )

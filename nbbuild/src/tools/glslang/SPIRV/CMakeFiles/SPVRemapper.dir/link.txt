@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../../../lib/libSPVRemapper.a  CMakeFiles/SPVRemapper.dir/SPVRemapper.cpp.o CMakeFiles/SPVRemapper.dir/doc.cpp.o
+/usr/bin/ranlib ../../../../lib/libSPVRemapper.a

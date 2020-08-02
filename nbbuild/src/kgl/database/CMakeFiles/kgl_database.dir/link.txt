@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libkgl_database.so -o ../../../lib/libkgl_database.so CMakeFiles/kgl_database.dir/Database.cpp.o -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../../lib/libconfiguration.so ../../../lib/libkgl_managers.so ../../../lib/libdata_bus.so 

@@ -11,7 +11,9 @@ class KGL_Interface
     void setCurrentWindow( const char* name ) ;
     void loadPack( const char* path ) ;
     void unloadPack() ;
+    void present() ;
     void clear() ;
+    void pollEvents() ;
 //    void present() ;
   private:
     struct KGL_InterfaceData* kgl_data ;

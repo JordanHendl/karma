@@ -169,6 +169,7 @@ namespace kgl
         {
           data().name = uwu_path ;
           data().pass = pass     ;
+          data().gpu  = gpu      ;
           data().shader .load( gpu, uwu_path )                             ;
           data().pool   .initialize( gpu, num_descriptors, data().shader ) ;
           data().config .initialize( 1280, 1024                          ) ;
@@ -176,6 +177,11 @@ namespace kgl
           data().createLayout()                                            ;
           data().createPipeline()                                          ;
         }
+      }
+      
+      void Pipeline::subscribe( const char* name, unsigned channel )
+      {
+        data().config.subscribe( name, channel ) ;
       }
 
       void Pipeline::bind( const ::kgl::vk::render::CommandBuffer& buffer ) const

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,render2D.so -o ../../../../../modules/render2D.so CMakeFiles/render2D.dir/Render2D.cpp.o -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../../../../lib/libdata_bus.so ../../../../../lib/libkgl_vk_module.so ../../../../../lib/libkgl.so 

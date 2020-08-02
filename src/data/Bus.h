@@ -128,14 +128,6 @@ namespace data
         /** The identifier for this object.
          */
         unsigned identifier ;
-
-        /** Copying is disallowed.
-         */
-        Bus( const Bus& cpy ) ;
-
-        /** Copying is disallowed.
-         */
-        Bus& operator=( const Bus& cpy ) ;
     };
     
     template<typename T, typename... KEYS>

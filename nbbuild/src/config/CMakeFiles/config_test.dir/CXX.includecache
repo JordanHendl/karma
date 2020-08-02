@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/wksp/int/KGLRefactor/karma/src/config/Configuration.h
+
+/wksp/int/KGLRefactor/karma/src/config/Parser.h
+
+/wksp/int/KGLRefactor/karma/src/config/test.cpp
+Configuration.h
+/wksp/int/KGLRefactor/karma/src/config/Configuration.h
+Parser.h
+/wksp/int/KGLRefactor/karma/src/config/Parser.h
+iostream
+-
+

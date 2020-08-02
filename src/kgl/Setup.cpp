@@ -1,5 +1,6 @@
 #include "Setup.h"
 #include <vk/context/Context.h>
+#include <managers/AssetManager.h>
 #include <string>
 #include <vector>
 #include <Bus.h>
@@ -7,7 +8,7 @@
 #include <map>
 
 namespace kgl
-{
+{   
   struct WindowSetup
   {
     std::string name        ;
@@ -25,22 +26,27 @@ namespace kgl
   
   struct SetupData
   {
-    typedef std::map<std::string, WindowSetup> WindowSets ;
-    
-    WindowSets  window_sets      ;
-    std::string database_dir     ;
-    std::string module_dir       ;
-    std::string graph_config_dir ;
-    unsigned    bus_channel      ;
-    
+    typedef std::map<std::string, WindowSetup> WindowSets  ;
+
+    WindowSets        window_sets      ;
+    std::string       database_dir     ;
+    std::string       module_dir       ;
+    std::string       graph_config_dir ;
+    unsigned          bus_channel      ;
+    data::module::Bus bus              ;
+
     SetupData() ;
     void makeWindow( const char* name ) ;
     void makeWindowIndexed( unsigned id, const char* name ) ;
     void setModuleDir( const char* name ) ;
     void setGraphConfigDir( const char* path ) ;
     void setDatabase( const char* name ) ;
+    void imageName( const char* name ) ;
+    void modelName( const char* name ) ;
   };
   
+
+
   WindowSetup::WindowSetup()
   {
     
@@ -108,6 +114,7 @@ namespace kgl
   {
     this->graph_config_dir = path ;
   }
+
 
   Setup::Setup()
   {

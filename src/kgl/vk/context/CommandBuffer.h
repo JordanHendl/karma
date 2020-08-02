@@ -13,8 +13,8 @@ namespace kgl
 {
   namespace vk
   {
-    class Window ;
-    
+    class Window     ;
+    class RenderPass ;
     namespace gpu
     {
       class Command ;
@@ -68,7 +68,7 @@ namespace kgl
           
           /**
            */
-          void record() const ;
+          void record( ::kgl::vk::RenderPass& pass ) const ;
           
           /**
            * @param command

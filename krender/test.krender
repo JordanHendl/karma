@@ -1,0 +1,13 @@
+{
+  "required_images":
+  [
+    "test",
+    "stuff"
+  ],
+  
+  "required_models"
+  [
+    "player",
+    "thing"
+  ]
+}

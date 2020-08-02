@@ -190,7 +190,7 @@ namespace kgl
 
     unsigned SwapChain::numBuffers() const
     {
-      return data().buffers.size() ;
+      return data().images.size() ;
     }
 
     void SwapChain::findImageViews( const Device& device, const Surface& surface ) 

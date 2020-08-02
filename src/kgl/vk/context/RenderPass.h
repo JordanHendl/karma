@@ -21,6 +21,7 @@ namespace vk
   class Sampler ;
   class Image ;
   class ImageView ;
+  class Rect2D ;
 }
 
 namespace kgl
@@ -42,8 +43,11 @@ namespace kgl
         ~RenderPass() ;
         void initialize( const char* window_name,unsigned gpu ) ;
         void subscribe( const char* name, unsigned id ) ;
+        void begin() ;
+        void end() ;
         const ::vk::RenderPass pass() ;
         unsigned numBuffers() const ;
+        const ::vk::Rect2D area() const ;
         const ::vk::Framebuffer buffer( unsigned id ) ;
         const ::kgl::vk::Image& image( unsigned id ) ;
         void submit( const Synchronization& sync, const render::CommandBuffer& buffer ) ;

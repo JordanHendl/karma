@@ -3,10 +3,12 @@
 #include "Context.h"
 #include "Command.h"
 #include "Swapchain.h"
+#include "RenderPass.h"
 #include <vulkan/vulkan.hpp>
 #include <algorithm>
 #include <string>
 #include <map>
+#include <array>
 #include <limits.h>
 
 namespace kgl
@@ -177,6 +179,7 @@ namespace kgl
         qFamily            = context.graphicsFamily( gpu )          ;
         device             = context.virtualDevice( gpu )           ;
         
+        data().buffers.resize( count ) ;
         if( !::kgl::vk::poolCreated( gpu, qFamily ) )
         {
           ::kgl::vk::render::createPool( gpu, qFamily, static_cast<unsigned>( pool_flags ) ) ;
@@ -191,15 +194,26 @@ namespace kgl
         device.allocateCommandBuffers( &info, data().buffers.data() ) ;
       }
 
-      void CommandBuffer::record() const
+      void CommandBuffer::record(::kgl::vk::RenderPass& pass ) const
       {
-        const auto render_flags = ::vk::SubpassContents::eInline ;
-        ::vk::CommandBufferBeginInfo info ;
+        const std::array<float, 4> clear_colors = { 0.0f, 0.0f, 0.0f, 1.0f }    ;
+        const auto                render_flags = ::vk::SubpassContents::eInline ;
 
+        ::vk::ClearValue             clear            ;
+        ::vk::RenderPassBeginInfo    render_pass_info ;
+        ::vk::CommandBufferBeginInfo info             ;
+        
+        clear.setColor( ::vk::ClearColorValue( clear_colors ) ) ;
+        render_pass_info.setRenderPass     ( pass.pass() ) ;
+        render_pass_info.setRenderArea     ( pass.area() ) ;
+        render_pass_info.setClearValueCount( 1           ) ;
+        render_pass_info.setPClearValues   ( &clear      ) ;
+        
         for( unsigned index = 0; index < data().buffers.size(); index++ )
         {
-          data().buffers[ index ].begin          ( &info                                       ) ;
-          data().buffers[ index ].beginRenderPass( &data().render_infos[ index ], render_flags ) ;
+          render_pass_info.setFramebuffer( pass.buffer( index ) ) ;
+          data().buffers[ index ].begin( &info ) ;
+          data().buffers[ index ].beginRenderPass( &render_pass_info, render_flags ) ;
         }
       }
 
@@ -381,14 +395,13 @@ namespace kgl
         ::vk::CommandPool               pool             ;
         ::vk::Device                    device           ;
         unsigned                        qFamily          ;
-        unsigned                        num_framebuffers ;
 
         data().gpu   = gpu                          ;
         data().level = level                        ;
         qFamily      = context.computeFamily( gpu ) ;
         device       = context.virtualDevice( gpu ) ;
         
-        data().buffers.resize( num_framebuffers ) ;
+        data().buffers.resize( count ) ;
         
         if( !::kgl::vk::poolCreated( gpu, qFamily ) )
         {

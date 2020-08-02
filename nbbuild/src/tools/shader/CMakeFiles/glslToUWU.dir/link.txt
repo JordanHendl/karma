@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -std=c++17 -lstdc++fs -fPIC    CMakeFiles/glslToUWU.dir/main.cpp.o CMakeFiles/glslToUWU.dir/ArgumentParser.cpp.o CMakeFiles/glslToUWU.dir/UWUShader.cpp.o  -o ../../../bin/glslToUWU ../../../lib/libglslang.a ../../../lib/libSPIRV.a -lstdc++fs ../../../lib/libglslang.a ../../../lib/libOGLCompiler.a ../../../lib/libOSDependent.a -pthread ../../../lib/libHLSL.a 

@@ -22,7 +22,7 @@ namespace kgl
           Pipeline() ;
           ~Pipeline() ;
           void initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors, const ::vk::RenderPass pass ) ;
-          void subscribe( unsigned channel ) ;
+          void subscribe( const char* name, unsigned channel ) ;
           void bind( const ::kgl::vk::render::CommandBuffer& buffer ) const ;
           void set( const Uniform& uniform ) ;
           const char* name() const ;

@@ -110,6 +110,7 @@ namespace karma
             data().bus( token.key() ).emit<bool       >( token.boolean () ) ;
             data().bus( token.key() ).emit<float      >( token.decimal () ) ;
           }
+//          std::cout << token.key() << " : " << token.string() << std::endl ;
         }
       }
     }

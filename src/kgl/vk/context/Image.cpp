@@ -141,6 +141,8 @@ namespace kgl
 
     void ImageData::transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout )
     {
+      const ::kgl::vk::compute::Context context ;
+      const ::vk::Queue queue = context.computeQueue( this->gpu ) ;
       ::vk::ImageMemoryBarrier    barrier ;
       ::vk::ImageSubresourceRange range   ;
       ::vk::PipelineStageFlags    src     ;
@@ -183,10 +185,13 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).pipelineBarrier( src, dest, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
+      queue.waitIdle() ;
     }
 
     void ImageData::copyBufferToImage( ::vk::Buffer buffer )
     {
+      const ::kgl::vk::compute::Context context ;
+      const ::vk::Queue queue = context.computeQueue( this->gpu ) ;
       ::vk::BufferImageCopy        region      ;
       ::vk::ImageSubresourceLayers subresource ;
       ::vk::Extent3D               extent      ;
@@ -217,6 +222,7 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).copyBufferToImage( buffer, this->img, ::vk::ImageLayout::eTransferDstOptimal, 1, &region ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
+      queue.waitIdle() ;
     }
 
     void ImageData::createBuffer( ::vk::DeviceSize size, ::vk::BufferUsageFlags usage, ::vk::MemoryPropertyFlags properties, ::vk::Buffer& buffer, ::vk::DeviceMemory& mem )
@@ -232,8 +238,8 @@ namespace kgl
       
       buffer = this->device.createBuffer               ( info, nullptr ) ;
       req    = this->device.getBufferMemoryRequirements( buffer        ) ;
+      offset = 0                                                         ;
       
-
       alloc_info.setAllocationSize ( req.size                                                           ) ;
       alloc_info.setMemoryTypeIndex( ::kgl::vk::memoryType( req.memoryTypeBits, properties, this->gpu ) ) ;
       
@@ -257,7 +263,7 @@ namespace kgl
 
     void ImageData::generateVulkanImage()
     {
-      auto usage =  ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled ;
+      auto usage =  ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled | ::vk::ImageUsageFlagBits::eColorAttachment ;
 
       ::vk::ImageCreateInfo info   ;
       ::vk::Extent3D        extent ;
@@ -274,7 +280,8 @@ namespace kgl
       info.setInitialLayout( ::vk::ImageLayout::eUndefined ) ;
       info.setSharingMode  ( ::vk::SharingMode::eExclusive ) ;
       info.setSamples      ( ::vk::SampleCountFlagBits::e1 ) ;
-              
+      info.setMipLevels    ( 1                             ) ;
+      info.setArrayLayers  ( 1                             ) ;
       
       this->img = this->device.createImage( info, nullptr ) ;
     }
@@ -333,12 +340,13 @@ namespace kgl
 
     void Image::initialize( unsigned gpu, unsigned w, unsigned h ) 
     {
-      data().gpu    = gpu ;
-      data().width  = w   ;
-      data().height = h   ;
+      const ::kgl::vk::compute::Context context ;
+      data().gpu    = gpu                          ;
+      data().width  = w                            ;
+      data().height = h                            ;
+      data().device = context.virtualDevice( gpu ) ;
       
       data().cmd_buffer.initialize( gpu, 1, ::kgl::vk::BufferLevel::Primary ) ;
-
       data().generateVulkanImage() ;
       data().allocateVulkanImage() ;
       data().createImageView()     ;

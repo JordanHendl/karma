@@ -3,8 +3,7 @@
   {
     "test":
     {
-      "name" : "test_texture",
-      "path" : "data/img/test.bim"
+      "path" : "/data/images/test.jpeg"
     }
   },
   "models": 

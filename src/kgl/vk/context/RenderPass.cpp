@@ -32,6 +32,7 @@ namespace kgl
         this->stencil_storeop = ::vk::AttachmentStoreOp::eDontCare         ;
         this->init_layout     = ::vk::ImageLayout::eUndefined              ;
         this->final_layout    = ::vk::ImageLayout::eColorAttachmentOptimal ;
+        this->format          = ::vk::Format::eR8G8B8A8Srgb                ;
       }
     };
     
@@ -70,6 +71,7 @@ namespace kgl
       ::kgl::vk::render::Context context      ;
       ::vk::Device               device       ;
       ::vk::RenderPass           render_pass  ;
+      ::vk::Rect2D               area         ;
       unsigned                   gpu          ;
       std::string                window       ;
      
@@ -89,12 +91,15 @@ namespace kgl
       const unsigned num_framebuffers = this->context.numFrameBuffers( this->window.c_str() ) ;
       const unsigned width            = this->context.width          ( this->window.c_str() ) ;
       const unsigned height           = this->context.height         ( this->window.c_str() ) ;
-
+      
       ::vk::FramebufferCreateInfo info           ;
       ::vk::ImageView             attachments[1] ;
       
       this->images      .resize( num_framebuffers ) ;
       this->framebuffers.resize( num_framebuffers ) ;
+      this->area.setExtent( { width, height } ) ;
+      this->area.setOffset( { 0    , 0      } ) ;
+
       for( auto &image : this->images )
       {
         image.initialize( this->gpu, width, height ) ;
@@ -169,6 +174,9 @@ namespace kgl
       data().window = window_name                         ;
       data().device = data().context.virtualDevice( gpu ) ;
       data().gpu    = gpu                                 ;
+      
+      data().createRenderPass  () ;
+      data().createFramebuffers() ;
     }
 
     void RenderPass::subscribe( const char* name, unsigned id )
@@ -176,6 +184,11 @@ namespace kgl
       ::data::module::Bus bus ;
       
       // subscribe for inputs here.
+    }
+
+    const ::vk::Rect2D RenderPass::area() const
+    {
+      return data().area ;
     }
 
     const ::vk::RenderPass RenderPass::pass()

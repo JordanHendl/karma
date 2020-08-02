@@ -22,7 +22,7 @@ namespace data
 
         Dependancy()
         {
-          this->count     = 0 ;
+          this->count = 0 ;
         }
         
         void clear()

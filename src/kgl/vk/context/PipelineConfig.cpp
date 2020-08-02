@@ -133,27 +133,50 @@ namespace kgl
      */
     struct ViewportConfiguration
     {
-      ::vk::Viewport viewport ;
+      struct ViewportRatios
+      {
+        float width_ratio   = 1.0f ;
+        float height_ratio  = 1.0f ;
+      };
+
+      typedef std::vector<::vk::Viewport> Viewports ;
+      typedef std::vector<ViewportRatios> Ratios    ;
+      
+      
+      Viewports viewports ;
+      Ratios    ratios    ;
+
+      /**
+       * @param param
+       */
+      void setViewportX( unsigned id, float param ) ;
       
       /**
        * @param param
        */
-      void setViewportX( float param ) ;
+      void setViewportY( unsigned id, float param ) ;
+      
+      /**
+       * @param id
+       * @param param
+       */
+      void setViewportWidth ( unsigned id, float param ) ;
+      
+      /**
+       * @param id
+       * @param param
+       */
+      void setViewportHeight( unsigned id, float param ) ;
+
+      /**
+       * @param param
+       */
+      void setViewportMinDepth( unsigned id, float param ) ;
       
       /**
        * @param param
        */
-      void setViewportY( float param ) ;
-      
-      /**
-       * @param param
-       */
-      void setViewportMinDepth( float param ) ;
-      
-      /**
-       * @param param
-       */
-      void setViewportMaxDepth( float param ) ;
+      void setViewportMaxDepth( unsigned id, float param ) ;
     };
     
     /**
@@ -247,14 +270,14 @@ namespace kgl
 
     struct PipelineConfigurationData
     {
-      ColorBlendAttachmentConfiguration     color_blend_attachment ; ///< TODO
-      ColorBlendCreateInfoConfiguration     color_blend_info       ; ///< TODO
-      RasterizerConfiguration               rasterization          ; ///< TODO
-      MultisamplerConfiguration             multisampler           ; ///< TODO
-      ViewportConfiguration                 viewport               ; ///< TODO
-      AssemblyConfiguration                 assembly               ; ///< TODO
-      ScissorConfiguration                  scissor                ; ///< TODO
-      ::vk::PipelineViewportStateCreateInfo viewport_info          ;
+      ColorBlendAttachmentConfiguration             color_blend_attachment ; ///< TODO
+      ColorBlendCreateInfoConfiguration             color_blend_info       ; ///< TODO
+      RasterizerConfiguration                       rasterization          ; ///< TODO
+      MultisamplerConfiguration                     multisampler           ; ///< TODO
+      mutable ViewportConfiguration                 viewport               ; ///< TODO
+      AssemblyConfiguration                         assembly               ; ///< TODO
+      ScissorConfiguration                          scissor                ; ///< TODO
+      mutable ::vk::PipelineViewportStateCreateInfo viewport_info          ;
       
       std::string                       name             ; ///< TODO
       unsigned                          image_width      ; ///< TODO
@@ -421,24 +444,52 @@ namespace kgl
       this->scissor.offset.y = param ;
     }
 
-    void ViewportConfiguration::setViewportX( float param )
+    void ViewportConfiguration::setViewportX( unsigned id, float param )
     {
-      this->viewport.x = param ;
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->viewports[ id ].x = param ;
+    }
+    
+    void ViewportConfiguration::setViewportY( unsigned id, float param )
+    {
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->viewports[ id ].y = param ;
     }
 
-    void ViewportConfiguration::setViewportY( float param )
+    void ViewportConfiguration::setViewportWidth( unsigned id, float param )
     {
-      this->viewport.y = param ;
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->ratios[ id ].width_ratio = param ;
     }
 
-    void ViewportConfiguration::setViewportMinDepth( float param )
+    void ViewportConfiguration::setViewportHeight( unsigned id, float param )
     {
-      this->viewport.minDepth = param ;
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->ratios[ id ].height_ratio = param ;
     }
 
-    void ViewportConfiguration::setViewportMaxDepth( float param )
+    void ViewportConfiguration::setViewportMinDepth( unsigned id, float param )
     {
-      this->viewport.maxDepth = param ;
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->viewports[ id ].minDepth = param ;
+    }
+
+    void ViewportConfiguration::setViewportMaxDepth( unsigned id, float param )
+    {
+      const unsigned sz = id + 1 ;
+      if( sz > this->viewports.size() ) { this->viewports.resize( sz ) ; this->ratios.resize( sz ) ; }
+      
+      this->viewports[ id ].maxDepth = param ;
     }
 
     void MultisamplerConfiguration::setSamplerShadingEnable( bool param )
@@ -559,10 +610,10 @@ namespace kgl
 
     void PipelineConfigurationData::makeViewport()
     {
-      this->viewport.viewport.setX       ( 0.0f ) ;
-      this->viewport.viewport.setY       ( 0.0f ) ;
-      this->viewport.viewport.setMinDepth( 0.0f ) ;
-      this->viewport.viewport.setMaxDepth( 1.0f ) ;
+//      this->viewport.viewport.setX       ( 0.0f ) ;
+//      this->viewport.viewport.setY       ( 0.0f ) ;
+//      this->viewport.viewport.setMinDepth( 0.0f ) ;
+//      this->viewport.viewport.setMaxDepth( 1.0f ) ;
     }
 
     void PipelineConfigurationData::makeScissor()
@@ -577,8 +628,10 @@ namespace kgl
 
     void PipelineConfigurationData::makeColorInfo()
     {
-      this->color_blend_info.color_blend.setLogicOpEnable    ( false                ) ;
-      this->color_blend_info.color_blend.setLogicOp          ( ::vk::LogicOp::eCopy ) ;
+      this->color_blend_info.color_blend.setLogicOpEnable    ( false                                     ) ;
+      this->color_blend_info.color_blend.setLogicOp          ( ::vk::LogicOp::eCopy                      ) ;
+      this->color_blend_info.color_blend.setAttachmentCount  ( 1                                         ) ;
+      this->color_blend_info.color_blend.setPAttachments     ( &this->color_blend_attachment.color_blend ) ;
     }
 
     void PipelineConfigurationData::makeColorAttachInfo()
@@ -617,8 +670,11 @@ namespace kgl
 
       data().scissor.setScissorExtentX( width                        ) ;
       data().scissor.setScissorExtentY( height                       ) ;
-      data().viewport.setViewportX    ( static_cast<float>( width  ) ) ;
-      data().viewport.setViewportY    ( static_cast<float>( height ) ) ;
+      
+      data().viewport_info.setPScissors    ( &data().scissor.scissor          ) ;
+      data().viewport_info.setScissorCount ( 1                                ) ;
+      data().viewport_info.setViewportCount( data().viewport.viewports.size() ) ;
+      data().viewport_info.setPViewports   ( data().viewport.viewports.data() ) ;
     }
 
     void PipelineConfiguration::subscribe( const char* name, unsigned channel )
@@ -650,6 +706,8 @@ namespace kgl
       
       data().bus( name, "::ViewportX"        ).attach( &data().viewport, &ViewportConfiguration::setViewportX        ) ;
       data().bus( name, "::ViewportY"        ).attach( &data().viewport, &ViewportConfiguration::setViewportY        ) ;
+      data().bus( name, "::ViewportWidth"    ).attach( &data().viewport, &ViewportConfiguration::setViewportWidth    ) ;
+      data().bus( name, "::ViewportHeight"   ).attach( &data().viewport, &ViewportConfiguration::setViewportHeight   ) ;
       data().bus( name, "::ViewportMinDepth" ).attach( &data().viewport, &ViewportConfiguration::setViewportMinDepth ) ;
       data().bus( name, "::ViewportMaxDepth" ).attach( &data().viewport, &ViewportConfiguration::setViewportMaxDepth ) ;
       
@@ -673,11 +731,23 @@ namespace kgl
 
     const ::vk::Viewport PipelineConfiguration::viewport() const
     {
-      return data().viewport.viewport ;
+      return ::vk::Viewport() ; //TODO FIX 
+//      return data().viewport.viewport ;
     }
 
     const ::vk::PipelineViewportStateCreateInfo PipelineConfiguration::viewportCreateInfo() const
     {
+      for( unsigned index = 0; index < data().viewport.viewports.size(); index++ )
+      {
+        data().viewport.viewports[ index ].setWidth ( data().image_width  * data().viewport.ratios[ index ].width_ratio  ) ;
+        data().viewport.viewports[ index ].setHeight( data().image_height * data().viewport.ratios[ index ].height_ratio ) ;
+      }
+
+      data().viewport_info.setPScissors    ( &data().scissor.scissor          ) ;
+      data().viewport_info.setScissorCount ( 1                                ) ;
+      data().viewport_info.setViewportCount( data().viewport.viewports.size() ) ;
+      data().viewport_info.setPViewports   ( data().viewport.viewports.data() ) ;
+
       return data().viewport_info ;
     }
 

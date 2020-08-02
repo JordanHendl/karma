@@ -243,7 +243,7 @@ namespace kgl
       {
         info.setCodeSize( shader.spirvSize() * sizeof( unsigned ) ) ;
         info.setPCode   ( shader.spirv()                          ) ;
-  
+
         mod = this->gpu.createShaderModule( info, nullptr ) ;
         this->modules.insert( { shader.stage(), mod } ) ;
       }
@@ -262,7 +262,7 @@ namespace kgl
         info.setModule( this->modules.at( it.stage()   ) ) ;
         info.setPName ( "main"                           ) ;
         
-        this->stage_infos[ iter++ ] ;
+        this->stage_infos[ iter++ ] = info ;
       }
     }
 

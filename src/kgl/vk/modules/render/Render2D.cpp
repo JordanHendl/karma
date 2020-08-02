@@ -12,6 +12,9 @@
 #include <vulkan/vulkan.hpp>
 #include <string>
 
+#include <sstream>
+#include <iostream>
+
 namespace kgl
 {
   namespace vk
@@ -142,8 +145,9 @@ namespace kgl
 
     void Render2DData::setInputName( const char* name )
     {
+      // We now know what input we're getting. Subscribe & add as a dependancy.
       this->bus( name ).attach       ( this, &Render2DData::input                     ) ;
-      this->bus( name ).addDependancy( this, &Render2DData::input, this->name.c_str() ) ;
+//      this->bus( name ).addDependancy( this, &Render2DData::input, this->name.c_str() ) ;
     }
 
     void Render2DData::setOutputName( const char* name )
@@ -167,7 +171,7 @@ namespace kgl
       std::string pipeline_path ;
       
       pipeline_path = data().install_path + path ;
-
+      
       // Initialize vulkan objects.
       data().sync    .initialize( data().gpu                                                                             ) ;
       data().uniform .initialize( data().gpu                                                                             ) ;
@@ -191,39 +195,47 @@ namespace kgl
 
     void Render2D::subscribe( const char* pipeline, unsigned id )
     {
+      const std::string json_path = std::string( "Graphs::" ) + std::string( pipeline ) + std::string( "::Modules::" ) + std::string( this->name() ) ;
       data().name = this->name() ;
       data().pass.subscribe( this->name(), id ) ;
       data().install_path = ::kgl::vk::basePath() ;
       
-      data().bus( "Graphs", pipeline, "Modules", this->name(), "::", "intput_name" ).attach( this->data_2d, &Render2DData::setInputName  ) ;
-      data().bus( "Graphs", pipeline, "Modules", this->name(), "::", "output_name" ).attach( this->data_2d, &Render2DData::setOutputName ) ;
-      data().bus( "Graphs", pipeline, "::", "window"      ).attach( this->data_2d, &Render2DData::setWindowName ) ;
-      
-      data().bus( pipeline    , "::", "gpu"         ).attach( this->data_2d, &Render2DData::setGPU        ) ;
-      data().bus( pipeline    , "::", "image"       ).attach( this->data_2d, &Render2DData::setImageName  ) ;
-      data().bus( pipeline    , "::", "xpos"        ).attach( this->data_2d, &Render2DData::setXPos       ) ;
-      data().bus( pipeline    , "::", "ypos"        ).attach( this->data_2d, &Render2DData::setYPos       ) ;
-      data().bus( "" ).onCompletion( this->name(), dynamic_cast<Module*>( this ), &Render2D::kick ) ;
+      data().pipeline.subscribe( json_path.c_str(), id ) ;
 
-      data().bus( pipeline, "::", "image" ).addDependancy( this->data_2d, &Render2DData::setImageName, this->name() ) ;
-      data().bus( pipeline, "::", "xpos"  ).addDependancy( this->data_2d, &Render2DData::setXPos     , this->name() ) ;
-      data().bus( pipeline, "::", "ypos"  ).addDependancy( this->data_2d, &Render2DData::setYPos     , this->name() ) ;
+      data().bus( json_path.c_str(), "::input"     ).attach( this->data_2d, &Render2DData::setInputName  ) ;
+      data().bus( json_path.c_str(), "::output"    ).attach( this->data_2d, &Render2DData::setOutputName ) ;
+      data().bus( "Graphs::", pipeline, "::window" ).attach( this->data_2d, &Render2DData::setWindowName ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &Render2DData::setGPU        ) ;
+      data().bus( pipeline, "::image"              ).attach( this->data_2d, &Render2DData::setImageName  ) ;
+      data().bus( pipeline, "::xpos"               ).attach( this->data_2d, &Render2DData::setXPos       ) ;
+      data().bus( pipeline, "::ypos"               ).attach( this->data_2d, &Render2DData::setYPos       ) ;
+      
+      // Add dependancies for this module's operation.
+      data().bus( "" ).onCompletion( this->name(), dynamic_cast<Module*>( this ), &Render2D::kick ) ;
+      data().bus( pipeline, "::image"  ).addDependancy( this->data_2d, &Render2DData::setImageName, this->name() ) ;
+      data().bus( pipeline, "::xpos"   ).addDependancy( this->data_2d, &Render2DData::setXPos     , this->name() ) ;
+      data().bus( pipeline, "::ypos"   ).addDependancy( this->data_2d, &Render2DData::setYPos     , this->name() ) ;
+      
+      data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
+      data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
+      data().bus( json_path.c_str(), "::ViewportMinDepth" ).emit( 0, 0.f ) ;
+      data().bus( json_path.c_str(), "::ViewportMaxDepth" ).emit( 0, 1.f ) ;
     }
 
     void Render2D::execute()
     {
-      data().buffer.record() ;
-      
+      data().buffer.record( data().pass ) ;
+
       // Set image & other uniforms.
-      data().pipeline.bind( data().buffer  ) ;
+      /*data().pipeline.bind( data().buffer  ) ;
       data().pipeline.set ( data().uniform ) ;
       
       //Draw with buffer.
-      data().buffer.drawIndexed( sizeof( data().index_data ), data().indices.buffer(), data().vertices.buffer() ) ;
+      data().buffer.drawIndexed( sizeof( data().index_data ), data().indices.buffer(), data().vertices.buffer() ) ;*/
       data().buffer.stop() ;
       
       // Submit to render pass with synchronization data.
-      data().pass.submit( data().sync, data().buffer ) ;
+      //data().pass.submit( data().sync, data().buffer ) ;
       
       data().output() ;
     }

@@ -79,9 +79,10 @@ namespace kgl
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::version" ).attach( &this->loaded_map[ name ], &NodeInfo::setVersion                         ) ;
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).attach( &this->loaded_map[ name ], &NodeInfo::setType                            ) ;
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).addDependancy( &this->loaded_map[ name ], &NodeInfo::setType, dependency.c_str() ) ;
-          this->loaded_map[ name ].graph  = this->graph  ;
-          this->loaded_map[ name ].loader = this->loader ;
-          this->loaded_map[ name ].name   = name         ;
+          this->loaded_map[ name ].graph    = this->graph    ;
+          this->loaded_map[ name ].loader   = this->loader   ;
+          this->loaded_map[ name ].name     = name           ;
+          this->loaded_map[ name ].pipeline = this->pipeline ;
 
         }
       }
@@ -108,7 +109,7 @@ namespace kgl
        
       dependency = std::string( name ) + "::add" ;
 
-      this->node_loader.pipeline = name         ;
+      this->node_loader.pipeline = name ;
 
       this->bus( name, "::remove" ).attach( this, &GraphData::remove ) ;
       this->bus( name, "::stop"   ).attach( this, &GraphData::stop   ) ;
@@ -185,6 +186,7 @@ namespace kgl
     {
       for( auto module : data().graph )
       {
+        module.second->initialize() ;
         std::thread( &Module::start, module.second ).detach() ;
       }
     }

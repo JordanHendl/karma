@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libconfiguration.so -o ../../lib/libconfiguration.so CMakeFiles/configuration.dir/Configuration.cpp.o CMakeFiles/configuration.dir/Parser.cpp.o -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../lib/libdata_bus.so 
