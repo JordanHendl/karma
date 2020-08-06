@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <string>
+#include <array>
 
 namespace kgl
 {
@@ -27,7 +28,7 @@ namespace kgl
       {
         this->samples         = ::vk::SampleCountFlagBits::e1              ;
         this->loadop          = ::vk::AttachmentLoadOp::eClear             ;
-        this->storeop         = ::vk::AttachmentStoreOp::eDontCare         ;
+        this->storeop         = ::vk::AttachmentStoreOp::eStore            ;
         this->stencil_loadop  = ::vk::AttachmentLoadOp::eDontCare          ;
         this->stencil_storeop = ::vk::AttachmentStoreOp::eDontCare         ;
         this->init_layout     = ::vk::ImageLayout::eUndefined              ;
@@ -68,6 +69,7 @@ namespace kgl
       Framebuffers               framebuffers ;
       Images                     images       ;
       PassAttachments            attachments  ;
+      ::vk::ImageLayout          image_layout ;
       ::kgl::vk::render::Context context      ;
       ::vk::Device               device       ;
       ::vk::RenderPass           render_pass  ;
@@ -83,7 +85,7 @@ namespace kgl
     
     RenderPassData::RenderPassData()
     {
-    
+      this->image_layout = ::vk::ImageLayout::eColorAttachmentOptimal ;
     }
     
     void RenderPassData::createFramebuffers()
@@ -103,6 +105,7 @@ namespace kgl
       for( auto &image : this->images )
       {
         image.initialize( this->gpu, width, height ) ;
+        image.setLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
       }
       
       for( unsigned i = 0; i < num_framebuffers; i++ )
@@ -169,14 +172,24 @@ namespace kgl
       delete this->pass_data ;
     }
 
-    void RenderPass::initialize( const char* window_name, unsigned gpu )
+    void RenderPass::initialize( const char* window_name, unsigned gpu, bool build_framebuffers )
     {
       data().window = window_name                         ;
       data().device = data().context.virtualDevice( gpu ) ;
       data().gpu    = gpu                                 ;
       
       data().createRenderPass  () ;
-      data().createFramebuffers() ;
+      if( build_framebuffers ) data().createFramebuffers() ;
+    }
+    
+    void RenderPass::setFormat( const ::vk::Format& format )
+    {
+      data().attach_desc_conf.format = format ;
+    }
+
+    void RenderPass::setImageFinalLayout( const ::vk::ImageLayout& layout )
+    {
+      data().attach_desc_conf.final_layout = layout ;
     }
 
     void RenderPass::subscribe( const char* name, unsigned id )
@@ -198,29 +211,53 @@ namespace kgl
 
     unsigned RenderPass::numBuffers() const
     {
-      return data().images.size() ;
+      return data().framebuffers.size() ;
     }
 
     const ::vk::Framebuffer RenderPass::buffer( unsigned id )
     {
       return id < data().framebuffers.size() ? data().framebuffers[ id ] : ::vk::Framebuffer() ;
     }
-
-    void RenderPass::submit( const Synchronization& sync, const render::CommandBuffer& buffer )
+    
+    void RenderPass::setFramebuffers( ::vk::Framebuffer* buffers, unsigned count )
     {
-      const ::vk::Queue         queue          = data().context.graphicsQueue( data().gpu            ) ;
-      const unsigned            current_image  = data().context.currentSwap  ( data().window.c_str() ) ;
-      const ::vk::CommandBuffer cmd            = buffer.buffer               ( current_image         ) ;
+      data().framebuffers = std::vector<::vk::Framebuffer>( buffers, buffers + count ) ;
+    }
+    
+    void RenderPass::setArea( unsigned offx, unsigned offy, unsigned width, unsigned height )
+    {
+      data().area.extent.width  = width  ;
+      data().area.extent.height = height ;
+      data().area.offset.x      = offx   ;
+      data().area.offset.y      = offy   ;
+    }
+    
+    static constexpr auto flags()
+    {
+    }
+
+    void RenderPass::submit( Synchronization& sync, const render::CommandBuffer& buffer )
+    {
+      static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
+
+      const ::vk::Queue              queue          = data().context.graphicsQueue( data().gpu            ) ;
+      const unsigned                 current_image  = data().context.currentSwap  ( data().window.c_str() ) ;
+      const ::vk::CommandBuffer      cmd            = buffer.buffer               ( current_image         ) ;
+      const ::vk::Fence              fence          = sync.fence() ;
       ::vk::SubmitInfo  info  ;
+      
       
       info.setWaitSemaphoreCount  ( sync.numWaitSems()   ) ;
       info.setPWaitSemaphores     ( sync.waitSems()      ) ;
       info.setSignalSemaphoreCount( sync.numSignalSems() ) ;
       info.setPSignalSemaphores   ( sync.signalSems()    ) ;
+      info.setPWaitDstStageMask   (  flags.data()        ) ;
       
+
       info.setCommandBufferCount  ( 1    ) ;
       info.setPCommandBuffers     ( &cmd ) ;
-      
+
+      data().device.resetFences( 1, &fence ) ;
       queue.submit( 1, &info, sync.fence() ) ;
     }
 

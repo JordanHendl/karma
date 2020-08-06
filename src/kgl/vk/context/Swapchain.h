@@ -14,8 +14,9 @@ namespace kgl
 {
   namespace vk
   {
-    class Device  ;
-    class Surface ;
+    class Device     ;
+    class Surface    ;
+    class RenderPass ;
 
     class SwapChain
     {
@@ -27,7 +28,7 @@ namespace kgl
         unsigned numBuffers() const ;
         void initialize( const Surface& surface, const Device& device ) ;
         const ::vk::SwapchainKHR chain() const ;
-        void createFrameBuffers( const ::vk::RenderPass render_pass, const Device& device ) ;
+        void createFrameBuffers( ::kgl::vk::RenderPass& render_pass ) ;
         int format() const ;
         unsigned width() const ;
         unsigned height() const ;

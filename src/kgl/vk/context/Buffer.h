@@ -55,6 +55,10 @@ namespace kgl
         template<typename T>
         void copyToDevice( T* const data, unsigned offset = 0 ) ;
         Type type() const ;
+        
+        void copy( const Buffer& buffer ) ;
+        
+        void reset() ;
         unsigned byteSize() const ;
         unsigned elementSize() const ;
       private:
@@ -76,7 +80,7 @@ namespace kgl
     template<typename T>
     void Buffer::copyToDevice( T* const data, unsigned offset )
     {
-      this->impl.copyToDevice( static_cast<const void*>( &data ), offset ) ;
+      this->impl.copyToDevice( static_cast<const void*>( data ), offset ) ;
     }
   }
 }

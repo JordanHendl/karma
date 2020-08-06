@@ -43,7 +43,7 @@ namespace kgl
         data.images.insert( { name,  new ::kgl::vk::Image() } ) ;
 
         data.images.at( name )->initialize( gpu, loader.width(), loader.height() ) ;
-        data.images.at( name )->copy( loader.pixels() ) ;
+        data.images.at( name )->copy( loader.pixels(), loader.channels() ) ;
       }
     }
 

@@ -118,9 +118,9 @@ void KGL_Interface::present()
   
 }
 
-void KGL_Interface::clear()
+void KGL_Interface::start()
 {
-  
+  data().context.start( data().window.c_str() ) ;
 }
 
 void KGL_Interface::loadPack( const char* path )

@@ -50,6 +50,11 @@ namespace kgl
         {
           None,
           Escape,
+          Left,
+          Right,
+          Up,
+          Down,
+          Z,
           Enter,
           Zero,
         };

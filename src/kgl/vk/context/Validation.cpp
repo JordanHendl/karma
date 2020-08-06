@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <iostream>
 
 namespace kgl
 {
@@ -47,28 +48,12 @@ namespace kgl
       data().available_layers.clear() ;
       data().available_layers = ::vk::enumerateInstanceLayerProperties() ;
 
-      for ( const char* name : validation_layers )
+      for ( const auto& prop : data().available_layers ) 
       {
-        data().layer_found = false ;
-        
-        for ( const auto& prop : data().available_layers ) 
-        {
-          if ( strcmp( name, prop.layerName ) == 0 )
-          {
-            data().layers.push_back( prop.layerName ) ;
-            data().layer_found = true;
-            break;
-          }
-        }
-  
-        if (!data().layer_found) 
-        {
-          printf(" Failed to find validation layer: %s\n", name ) ;
-          return false;
-        }
+        data().layers.push_back( prop.layerName ) ;
+        std::cout << " Enabling layer:: " << prop.layerName << std::endl ;
       }
-      
-    return true;
+      return true;
     }
     
     const char** Validation::names()

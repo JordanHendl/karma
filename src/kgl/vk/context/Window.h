@@ -33,9 +33,9 @@ namespace kgl
         void operator=( const Window& window ) ;
         void initialize( const char* name, unsigned gpu, unsigned width, unsigned height ) ;
         const Device& device() const ;
-        const SwapChain& chain() const ;
+        SwapChain& chain() ;
         void present( const Synchronization& sync ) ;
-        void clear() ;
+        void start() ;
         unsigned currentSwap() const ;
         const ::vk::SurfaceKHR surface() const ;
         bool isInitialized() const ;

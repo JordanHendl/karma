@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "Library.h"
 #include "Surface.h"
+#include "RenderPass.h"
 #include <vulkan/vulkan.hpp>
 #include <stdexcept>
 #include <vector>
@@ -73,9 +74,10 @@ namespace kgl
       ::vk::Format       img_format ; ///< TODO
       ::vk::Queue        presentQ   ; ///< TODO
       ::vk::Extent2D     extent     ; ///< TODO
+      ::vk::Device       device     ; ///< TODO
     };
 
-    void SwapChain::createFrameBuffers( const ::vk::RenderPass render_pass, const Device& device )
+    void SwapChain::createFrameBuffers( ::kgl::vk::RenderPass& render_pass )
     {
       ::vk::FramebufferCreateInfo info           ;
       ::vk::ImageView             attachments[1] ;
@@ -86,15 +88,17 @@ namespace kgl
       {
         attachments[0] = { data().views.at( i ) } ;
         
-        info.setRenderPass     ( render_pass          ) ;
+        info.setRenderPass     ( render_pass.pass()   ) ;
         info.setAttachmentCount( 1                    ) ;
         info.setPAttachments   ( attachments          ) ;
         info.setWidth          ( data().extent.width  ) ;
         info.setHeight         ( data().extent.height ) ;
         info.setLayers         ( 1                    ) ;
         
-        device.device().createFramebuffer( &info, nullptr, &data().buffers[ i ] ) ;
+        data().device.createFramebuffer( &info, nullptr, &data().buffers[ i ] ) ;
       }
+      render_pass.setArea( 0, 0, data().extent.width, data().extent.height ) ;
+      render_pass.setFramebuffers( data().buffers.data(), data().buffers.size() ) ;
     }
 
     void SwapChain::findProperties( const Device& device, const Surface& surface )
@@ -147,6 +151,7 @@ namespace kgl
       info.setPreTransform    ( data().details.capabilities.currentTransform       ) ;
       info.setCompositeAlpha  ( ::vk::CompositeAlphaFlagBitsKHR::eOpaque           ) ;
       info.setPresentMode     ( data().details.mode( ::vk::PresentModeKHR::eFifo ) ) ;
+      
 
       if( device.graphicsFamily() != present )
       {
@@ -168,6 +173,7 @@ namespace kgl
       data().img_format = format.format                                 ;
       data().extent     = data().details.chooseExtent( width, height )  ;
       data().chain      = chain                                         ;
+      data().device     = device.device()                               ;
 
       this->findImageViews( device, surface ) ;
     }

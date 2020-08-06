@@ -18,6 +18,7 @@ namespace kgl
         void shutdown() final ;
         void subscribe( const char* pipeline, unsigned id ) final ;
         void execute() final ;
+        void resize() final ;
       private:
         struct PresentData *data_2d ;
         PresentData& data() ;

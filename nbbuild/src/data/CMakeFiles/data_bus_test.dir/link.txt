@@ -1,1 +1,0 @@
-/usr/bin/c++  -g -std=c++17 -lstdc++fs -fPIC    CMakeFiles/data_bus_test.dir/main.cpp.o  -o ../../bin/data_bus_test -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../lib/libdata_bus.so 

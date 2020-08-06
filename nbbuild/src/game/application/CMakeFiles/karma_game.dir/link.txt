@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libkarma_game.so -o ../../../lib/libkarma_game.so CMakeFiles/karma_game.dir/Game.cpp.o -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../../lib/libkgl.so ../../../lib/libdata_bus.so 

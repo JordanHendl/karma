@@ -11,7 +11,9 @@ namespace kgl
 {
   namespace vk
   {
-    class Uniform ;
+    class Uniform       ;
+    class DescriptorSet ;
+    class Shader        ;
     namespace render
     {
       class CommandBuffer ;
@@ -21,10 +23,10 @@ namespace kgl
         public:
           Pipeline() ;
           ~Pipeline() ;
-          void initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors, const ::vk::RenderPass pass ) ;
+          void initialize( const char* uwu_path, unsigned gpu, unsigned width, unsigned height, const ::vk::RenderPass pass ) ;
+          const Shader& shader() const ;
           void subscribe( const char* name, unsigned channel ) ;
-          void bind( const ::kgl::vk::render::CommandBuffer& buffer ) const ;
-          void set( const Uniform& uniform ) ;
+          void bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
           const char* name() const ;
         private:
           struct PipelineData *pipe_data ;
@@ -42,11 +44,9 @@ namespace kgl
         public:
           Pipeline() ;
           ~Pipeline() ;
-          void initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors ) ;
-          void bind( const ::kgl::vk::compute::CommandBuffer& buffer ) const ;
+          void initialize( const char* uwu_path, unsigned gpu ) ;
+          void bind( const ::kgl::vk::compute::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
           void subscribe( unsigned channel ) ;
-          void set( const Uniform& uniform ) ;
-          void set( const char* key, ::vk::Buffer ssbo ) ;
           const char* name() const ;
         private:
           struct PipelineData *pipe_data ;

@@ -4,6 +4,7 @@
 #include "Surface.h"
 #include "Instance.h"
 #include "Swapchain.h"
+#include "RenderPass.h"
 #include "CommandBuffer.h"
 #include <vulkan/vulkan.hpp>
 #include <string>
@@ -149,7 +150,7 @@ namespace kgl
         return dummy ;
       }
   
-      unsigned Context::graphicsFamily( unsigned gpu )
+      unsigned Context::graphicsFamily( unsigned gpu ) const
       {
         static const unsigned dummy = 0;
         
@@ -181,6 +182,23 @@ namespace kgl
         return dummy ;
       }
       
+      ::kgl::vk::Window& Context::window( const char* window_name )
+      {
+        static ::kgl::vk::Window dummy ;
+        auto iter = ::kgl::vk::vk_context.window_map.find( window_name ) ;
+        
+        if( iter != ::kgl::vk::vk_context.window_map.end() ) return *iter->second ;
+        
+        return dummy ;
+      }
+      
+      void Context::start( const char* window_name ) const
+      {
+        auto iter = ::kgl::vk::vk_context.window_map.find( window_name ) ;
+        
+        if( iter != ::kgl::vk::vk_context.window_map.end() ) return iter->second->start() ;
+      }
+
       unsigned Context::height( const char* window_name ) const
       {
         static const unsigned dummy = 0 ;

@@ -2,8 +2,8 @@
 #include "Semaphore.h"
 #include "Context.h"
 #include "Command.h"
-#include "Swapchain.h"
 #include "RenderPass.h"
+#include "../node/Synchronization.h"
 #include <vulkan/vulkan.hpp>
 #include <algorithm>
 #include <string>
@@ -54,7 +54,7 @@ namespace kgl
         typedef std::vector<::vk::Fence>               FlightFences    ;
         const unsigned max_frames_in_flight = 5 ;
         
-        
+        mutable ::kgl::vk::Synchronization sync ;
         Semaphores       wait_sems     ;
         Semaphores       signal_sems   ;
         Semaphores       image_sem     ; ///< TODO
@@ -99,7 +99,7 @@ namespace kgl
         typedef std::vector<::vk::Semaphore>     Semaphores     ;
         typedef std::vector<::vk::Fence>         Fences         ;
         
-        
+        mutable ::kgl::vk::Synchronization sync ;
         Semaphores     wait_sems   ;
         Semaphores     signal_sems ;
         Semaphores     finish_sem  ; ///< TODO
@@ -179,6 +179,7 @@ namespace kgl
         qFamily            = context.graphicsFamily( gpu )          ;
         device             = context.virtualDevice( gpu )           ;
         
+        data().sync.initialize( gpu ) ;
         data().buffers.resize( count ) ;
         if( !::kgl::vk::poolCreated( gpu, qFamily ) )
         {
@@ -194,21 +195,31 @@ namespace kgl
         device.allocateCommandBuffers( &info, data().buffers.data() ) ;
       }
 
+      void CommandBuffer::record() const
+      {
+        ::vk::CommandBufferBeginInfo info             ;
+        
+        for( unsigned index = 0; index < data().buffers.size(); index++ )
+        {
+          data().buffers[ index ].begin( &info ) ;
+        }
+      }
+
       void CommandBuffer::record(::kgl::vk::RenderPass& pass ) const
       {
-        const std::array<float, 4> clear_colors = { 0.0f, 0.0f, 0.0f, 1.0f }    ;
+        const std::array<float, 4> clear_colors = { 0.0f, 0.0f, 0.0f, 0.0f } ;
         const auto                render_flags = ::vk::SubpassContents::eInline ;
 
-        ::vk::ClearValue             clear            ;
+        ::vk::ClearValue             clear_val        ;
         ::vk::RenderPassBeginInfo    render_pass_info ;
         ::vk::CommandBufferBeginInfo info             ;
         
-        clear.setColor( ::vk::ClearColorValue( clear_colors ) ) ;
-        render_pass_info.setRenderPass     ( pass.pass() ) ;
-        render_pass_info.setRenderArea     ( pass.area() ) ;
-        render_pass_info.setClearValueCount( 1           ) ;
-        render_pass_info.setPClearValues   ( &clear      ) ;
-        
+        clear_val.setColor( ::vk::ClearColorValue( clear_colors ) ) ;
+
+        render_pass_info.setRenderPass       ( pass.pass()    ) ;
+        render_pass_info.setRenderArea       ( pass.area()    ) ;
+        render_pass_info.setClearValueCount  ( 1              ) ;
+        render_pass_info.setPClearValues     ( &clear_val     ) ;
         for( unsigned index = 0; index < data().buffers.size(); index++ )
         {
           render_pass_info.setFramebuffer( pass.buffer( index ) ) ;
@@ -261,11 +272,11 @@ namespace kgl
         }
       }
       
-      void CommandBuffer::stop() const
+      void CommandBuffer::stop( bool pass ) const
       {
         for( auto buff : data().buffers )
         {
-          buff.endRenderPass() ;
+          if( pass ) buff.endRenderPass() ;
           buff.end()           ;
         }
       }
@@ -297,6 +308,28 @@ namespace kgl
       void CommandBuffer::attach( ::vk::Fence fence )
       {
         data().fence = fence ;
+      }
+
+      void CommandBuffer::submit() const
+      {
+        const ::kgl::vk::render::Context context                        ;
+        const ::vk::Queue queue   = context.graphicsQueue( data().gpu ) ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+
+        ::vk::SubmitInfo info  ;
+        
+        data().sync.resetFence() ;
+        if( data().level == BufferLevel::Primary )
+        { 
+          info.setWaitSemaphoreCount  ( data().wait_sems.size()   ) ;
+          info.setPWaitSemaphores     ( data().wait_sems.data()   ) ;
+          info.setCommandBufferCount  ( data().buffers.size()     ) ;
+          info.setPCommandBuffers     ( data().buffers.data()     ) ;
+          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
+          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
+           
+          queue.submit( 1, &info, data().sync.fence() ) ;
+        }
       }
 
       void CommandBuffer::submit( int buffer )
@@ -401,6 +434,7 @@ namespace kgl
         qFamily      = context.computeFamily( gpu ) ;
         device       = context.virtualDevice( gpu ) ;
         
+        data().sync.initialize( gpu ) ;
         data().buffers.resize( count ) ;
         
         if( !::kgl::vk::poolCreated( gpu, qFamily ) )
@@ -444,6 +478,11 @@ namespace kgl
       {
         return data().buffers.size() ;
       }
+      
+      void CommandBuffer::swap( Synchronization& sync )
+      {
+        data().sync.copy( sync ) ;
+      }
 
       void CommandBuffer::stop() const
       {
@@ -458,19 +497,22 @@ namespace kgl
         const ::kgl::vk::compute::Context context                       ;
         const ::vk::Queue queue   = context.computeQueue ( data().gpu ) ;
         const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        ::vk::PipelineStageFlags flag = ::vk::PipelineStageFlagBits::eColorAttachmentOutput ;
 
         ::vk::SubmitInfo info  ;
-
+        
+        data().sync.resetFence() ;
         if( data().level == BufferLevel::Primary )
         { 
-          info.setWaitSemaphoreCount  ( data().wait_sems.size()   ) ;
-          info.setPWaitSemaphores     ( data().wait_sems.data()   ) ;
-          info.setCommandBufferCount  ( data().buffers.size()     ) ;
-          info.setPCommandBuffers     ( data().buffers.data()     ) ;
-          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
-          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
-           
-          queue.submit( 1, &info, data().fence ) ;
+          info.setWaitSemaphoreCount  ( 0 ) ; //data().sync.numWaitSems()   ) ;
+          info.setPWaitSemaphores     ( data().sync.waitSems()      ) ;
+          info.setCommandBufferCount  ( data().buffers.size()       ) ;
+          info.setPCommandBuffers     ( data().buffers.data()       ) ;
+          info.setSignalSemaphoreCount( 0 ) ; //data().sync.numSignalSems() ) ;
+          info.setPSignalSemaphores   ( data().sync.signalSems()    ) ;
+
+          queue.submit( 1, &info, data().sync.fence() ) ;
+          queue.waitIdle() ;
         }
       }
 

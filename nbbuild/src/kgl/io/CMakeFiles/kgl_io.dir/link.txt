@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libkgl_io.so -o ../../../lib/libkgl_io.so CMakeFiles/kgl_io.dir/ObjectLoader.cpp.o CMakeFiles/kgl_io.dir/Input.cpp.o CMakeFiles/kgl_io.dir/Event.cpp.o CMakeFiles/kgl_io.dir/ImageLoader.cpp.o CMakeFiles/kgl_io.dir/stb_image.cpp.o 

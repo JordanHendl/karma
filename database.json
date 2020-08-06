@@ -3,6 +3,11 @@
   {
     "test":
     {
+      "path" : "/data/images/chris.jpg"
+    },
+
+    "test_2":
+    {
       "path" : "/data/images/test.jpeg"
     }
   },

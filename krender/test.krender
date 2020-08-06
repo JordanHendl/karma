@@ -2,7 +2,7 @@
   "required_images":
   [
     "test",
-    "stuff"
+    "test_2"
   ],
   
   "required_models"

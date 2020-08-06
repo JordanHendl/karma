@@ -6,6 +6,7 @@ namespace vk
 {
   class Semaphore ;
   class Fence     ;
+  class Device    ;
 }
 
 namespace kgl
@@ -28,14 +29,48 @@ namespace kgl
         ~Synchronization() ;
         
         /**
-         * @param gpu
+         * @param sync
          */
-        void initialize( unsigned gpu ) ;
+        void operator=( const Synchronization& sync ) ;
         
         /**
          * @param sync
          */
-        void swap( const Synchronization& sync ) ;
+        Synchronization( const Synchronization& sync ) ;
+
+        /**
+         * @param gpu
+         */
+        void initialize( unsigned gpu ) ;
+
+        /**
+         * @param gpu
+         */
+        void initialize( unsigned gpu, unsigned count ) ;
+
+        /**
+         * @param gpu
+         */
+        void initialize( ::vk::Device device ) ;
+        
+        /**
+         * @param sync
+         */
+        void swap() ;
+
+        /**
+         * @param sync
+         */
+        void copy( const Synchronization& sync ) ;
+        
+        /**
+         * @return 
+         */
+        void copyWaits( const Synchronization& sync ) ;
+
+        /**
+         */
+        void resetFence() ;
 
         /**
          * @return 
@@ -77,7 +112,6 @@ namespace kgl
          * @return 
          */
         const ::vk::Fence fence() const ;
-
       private:
         
         /**

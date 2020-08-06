@@ -1,4 +1,3 @@
-#include "../kgl/KGL_Interface.h"
 #include "application/Game.h"
 #include <iostream>
 

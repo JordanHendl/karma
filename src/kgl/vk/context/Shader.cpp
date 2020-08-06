@@ -288,6 +288,9 @@ namespace kgl
       
       data().compiler.load( path ) ;
       
+      data().begin = data().compiler.begin() ;
+      data().end   = data().compiler.end()   ;
+
       data().generateVulkanLayer()        ; 
       data().generateShaderModules()      ;
       data().generateAttributeInfo()      ;

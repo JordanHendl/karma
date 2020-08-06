@@ -42,6 +42,11 @@ namespace kgl
         /**
          * @return 
          */
+        unsigned channels() const ;
+
+        /**
+         * @return 
+         */
         const unsigned char* pixels() const ;
       private:
         

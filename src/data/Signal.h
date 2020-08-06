@@ -149,10 +149,10 @@ namespace data
         void attach( void (*method)( unsigned, T ) ) ;
 
         template<class T>
-        void attach( void (*method)( unsigned, const T& ) ) ;
+        void attach( void (*method)( unsigned, T const& ) ) ;
         
         template<class C, class T>
-        void attach( C* object, void (C::*method)( const T& ) ) ;
+        void attach( C* object, void (C::*method)( T const& ) ) ;
         
         template<class C, class T>
         void attach( C* object, void (C::*method)( T ) ) ;
@@ -161,8 +161,11 @@ namespace data
         void attach( C* object, void (C::*method)( unsigned, T ) ) ;
         
         template<class C, class T>
-        void attach( C* object, void (C::*method)( unsigned, const T& ) ) ;
+        void attach( C* object, void (C::*method)( unsigned, T const& ) ) ;
         
+        template<class C, class T>
+        void addDependancy( C* object, void( C::*method_to_call )( T const& ), const char* dependancy_name ) ;
+
         template<class C, class T>
         void addDependancy( C* object, void( C::*method_to_call )( T ), const char* dependancy_name ) ;
         
@@ -170,10 +173,10 @@ namespace data
         void onCompletion( const char* dependancy_name, C* object, void( C::*method_to_call )( void ) ) ;
 
         template<class T>
-        void emit( const T& val ) ;
+        void emit( T const& val ) ;
         
         template<class T>
-        void emit( unsigned id, const T& val ) ;
+        void emit( unsigned id, T const& val ) ;
         
       private:
         
@@ -373,7 +376,7 @@ namespace data
     }
     
     template<class T>
-    void Signal::attach( void (*method)( const T& ) )
+    void Signal::attach( void (*method)( T const& ) )
     {
       typedef Signal::Callback           Callback       ;
       typedef Signal::ReferenceMethod<T> CallbackMethod ;
@@ -382,7 +385,7 @@ namespace data
     }
     
     template<class T>
-    void Signal::attach( void (*method)( unsigned, const T& ) )
+    void Signal::attach( void (*method)( unsigned, T const& ) )
     {
       typedef Signal::IndexedCallback           Callback       ;
       typedef Signal::IndexedReferenceMethod<T> CallbackMethod ;
@@ -391,7 +394,7 @@ namespace data
     }
     
     template<class C, class T>
-    void Signal::attach( C* object, void (C::*method)( const T& ) )
+    void Signal::attach( C* object, void (C::*method)( T const& ) )
     {
       typedef Signal::Callback                     Callback       ;
       typedef Signal::ObjectReferencedMethod<C, T> CallbackMethod ;
@@ -400,7 +403,7 @@ namespace data
     }
     
     template<class C, class T>
-    void Signal::attach( C* object, void (C::*method)( unsigned, const T& ) )
+    void Signal::attach( C* object, void (C::*method)( unsigned, T const& ) )
     {
       typedef Signal::IndexedCallback                     Callback       ;
       typedef Signal::IndexedObjectReferencedMethod<C, T> CallbackMethod ;
@@ -427,13 +430,13 @@ namespace data
     }
     
     template<class T>
-    void Signal::emit( const T& val )
+    void Signal::emit( T const& val )
     {
       emitBase( hash<T>(), static_cast<const void*>( &val ) ) ;
     }
     
     template<class T>
-    void Signal::emit( unsigned idx, const T& val )
+    void Signal::emit( unsigned idx, T const& val )
     {
       emitBase( hash<T>(), idx, static_cast<const void*>( &val ) ) ;
     }
@@ -568,6 +571,15 @@ namespace data
     {
       typedef Signal::Callback           Callback       ;
       typedef Signal::ObjectMethod<C, T> CallbackMethod ;
+
+      addDependancyBase( hash<T>(), dynamic_cast<Callback*>( new CallbackMethod( object, method ) ), dependancy_name ) ;
+    }
+
+    template<class C, class T>
+    void Signal::addDependancy( C* object, void( C::*method )( T const& ), const char* dependancy_name )
+    {
+      typedef Signal::Callback                     Callback       ;
+      typedef Signal::ObjectReferencedMethod<C, T> CallbackMethod ;
 
       addDependancyBase( hash<T>(), dynamic_cast<Callback*>( new CallbackMethod( object, method ) ), dependancy_name ) ;
     }

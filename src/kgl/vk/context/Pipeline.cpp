@@ -21,8 +21,6 @@ namespace kgl
       struct PipelineData
       {
         ::kgl::vk::PipelineConfiguration config   ; ///< 
-        ::kgl::vk::DescriptorPool        pool     ; ///< 
-        ::kgl::vk::DescriptorSet         set      ; ///< 
         ::kgl::vk::Shader                shader   ; ///< 
         ::vk::Pipeline                   pipeline ; ///< 
         ::vk::PipelineLayout             layout   ; ///< 
@@ -46,7 +44,7 @@ namespace kgl
         
         /**
          */
-        void bind( const ::kgl::vk::render::CommandBuffer& buffer ) const ;
+        void bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
       };
     }
     
@@ -55,13 +53,10 @@ namespace kgl
       struct PipelineData
       {
         ::kgl::vk::PipelineConfiguration config   ; ///< 
-        ::kgl::vk::DescriptorPool        pool     ; ///< 
-        ::kgl::vk::DescriptorSet         set      ; ///< 
         ::kgl::vk::Shader                shader   ; ///< 
         ::vk::Pipeline                   pipeline ; ///< 
         ::vk::PipelineLayout             layout   ; ///< 
         std::string                      name     ; ///<
-        unsigned                         num_desc ; ///<
         unsigned                         gpu      ; ///<
 
         /**
@@ -80,7 +75,7 @@ namespace kgl
         /**
          * @param buffer
          */
-        void bind( const ::kgl::vk::compute::CommandBuffer& buffer ) const ;
+        void bind( const ::kgl::vk::compute::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
       };
     }
 
@@ -135,19 +130,19 @@ namespace kgl
         this->pipeline = device.createGraphicsPipeline( ::vk::PipelineCache(), info ) ;
       }
 
-      void PipelineData::bind( const ::kgl::vk::render::CommandBuffer& buffer ) const
+      void PipelineData::bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const
       {
         const auto bind_point = ::vk::PipelineBindPoint::eGraphics ;
         
-        ::vk::CommandBuffer cmd ;
-        ::vk::DescriptorSet set ;
+        ::vk::CommandBuffer cmd  ;
+        ::vk::DescriptorSet desc ;
         for( unsigned index = 0; index < buffer.count(); index++ )
         {
-          cmd = buffer.buffer       ( index ) ;
-          set = this->set.descriptor( index ) ;
+          cmd  = buffer.buffer ( index ) ;
+          desc = set.descriptor( index ) ;
           
-          cmd.bindDescriptorSets( bind_point, this->layout, 0, 1, &set, 0, nullptr ) ;
-          cmd.bindPipeline      ( bind_point, this->pipeline                       ) ;
+          cmd.bindDescriptorSets( bind_point, this->layout, 0, 1, &desc, 0, nullptr ) ;
+          cmd.bindPipeline      ( bind_point, this->pipeline                        ) ;
         }
       }
 
@@ -161,22 +156,25 @@ namespace kgl
         delete this->pipe_data ;
       }
 
-      void Pipeline::initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors, const ::vk::RenderPass pass )
+      void Pipeline::initialize( const char* uwu_path, unsigned gpu, unsigned width, unsigned height, const ::vk::RenderPass pass )
       {
-        data().num_desc = num_descriptors ;
-        
         if( uwu_path ) 
         {
-          data().name = uwu_path ;
-          data().pass = pass     ;
-          data().gpu  = gpu      ;
-          data().shader .load( gpu, uwu_path )                             ;
-          data().pool   .initialize( gpu, num_descriptors, data().shader ) ;
-          data().config .initialize( 1280, 1024                          ) ;
-          data().set = data().pool.makeDescriptorSet( num_descriptors )    ;
-          data().createLayout()                                            ;
-          data().createPipeline()                                          ;
+          data().name = uwu_path                     ;
+          data().pass = pass                         ;
+          data().gpu  = gpu                          ;
+          data().shader .load( gpu, uwu_path )       ;
+          data().config .initialize( width, height ) ;
+          data().createLayout()                      ;
+          data().createPipeline()                    ;
         }
+      }
+      
+      
+      
+      const Shader& Pipeline::shader() const
+      {
+        return data().shader ;
       }
       
       void Pipeline::subscribe( const char* name, unsigned channel )
@@ -184,14 +182,9 @@ namespace kgl
         data().config.subscribe( name, channel ) ;
       }
 
-      void Pipeline::bind( const ::kgl::vk::render::CommandBuffer& buffer ) const
+      void Pipeline::bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const
       {
-        data().bind( buffer ) ;
-      }
-
-      void Pipeline::set( const ::kgl::vk::Uniform& uniform )
-      {
-        data().set.set( uniform ) ;
+        data().bind( buffer, set ) ;
       }
 
       const char* Pipeline::name() const
@@ -242,19 +235,19 @@ namespace kgl
         this->pipeline = device.createComputePipeline( ::vk::PipelineCache(), info ) ;
       }
 
-      void PipelineData::bind( const ::kgl::vk::compute::CommandBuffer& buffer ) const
+      void PipelineData::bind( const ::kgl::vk::compute::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const
       {
         const auto bind_point = ::vk::PipelineBindPoint::eCompute ;
         
-        ::vk::CommandBuffer cmd ;
-        ::vk::DescriptorSet set ;
+        ::vk::CommandBuffer cmd  ;
+        ::vk::DescriptorSet desc ;
         for( unsigned index = 0; index < buffer.count(); index++ )
         {
-          cmd = buffer.buffer       ( index ) ;
-          set = this->set.descriptor( index ) ;
+          cmd  = buffer.buffer ( index ) ;
+          desc = set.descriptor( index ) ;
           
-          cmd.bindDescriptorSets( bind_point, this->layout, 0, 1, &set, 0, nullptr ) ;
-          cmd.bindPipeline      ( bind_point, this->pipeline                       ) ;
+          cmd.bindDescriptorSets( bind_point, this->layout, 0, 1, &desc, 0, nullptr ) ;
+          cmd.bindPipeline      ( bind_point, this->pipeline                        ) ;
         }
       }
 
@@ -268,36 +261,22 @@ namespace kgl
         delete this->pipe_data ;
       }
 
-      void Pipeline::initialize( const char* uwu_path, unsigned gpu, unsigned num_descriptors )
+      void Pipeline::initialize( const char* uwu_path, unsigned gpu )
       {
-        data().num_desc = num_descriptors ;
-        
         if( uwu_path ) 
         {
           data().name = uwu_path ;
 
-          data().shader .load( gpu, uwu_path )                             ;
-          data().pool   .initialize( gpu, num_descriptors, data().shader ) ;
-          data().config .initialize( 1280, 1024                          ) ;
-          data().set = data().pool.makeDescriptorSet( num_descriptors )    ;
-          data().createLayout()                                            ;
-          data().createPipeline()                                          ;
+          data().shader .load( gpu, uwu_path ) ;
+          data().config .initialize( 0, 0 )    ;
+          data().createLayout()                ;
+          data().createPipeline()              ;
         }
       }
 
-      void Pipeline::bind( const ::kgl::vk::compute::CommandBuffer& buffer ) const
+      void Pipeline::bind( const ::kgl::vk::compute::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const
       {
-        this->data().bind( buffer ) ;
-      }
-
-      void Pipeline::set( const ::kgl::vk::Uniform& uniform )
-      {
-        data().set.set( uniform ) ;
-      }
-
-      void Pipeline::set( const char* key, ::vk::Buffer ssbo )
-      {
-      
+        this->data().bind( buffer, set ) ;
       }
 
       const char* Pipeline::name() const

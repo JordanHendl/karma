@@ -35,13 +35,13 @@ namespace kgl
       int width  ;
       int height ;
       int chan   ;
-
       const unsigned char* pixels = stbi_load( path, &width, &height, &chan, 4 ) ;
       
+//      stbi_set_flip_vertically_on_load( true ) ;  
       data().width    = static_cast<unsigned>( width  ) ;
       data().height   = static_cast<unsigned>( height ) ;
-      data().channels = static_cast<unsigned>( chan   ) ;
-      data().pixels.assign( pixels, pixels + ( width * height * chan ) ) ;
+      data().channels = static_cast<unsigned>( 4      ) ;
+      data().pixels.assign( pixels, pixels + ( width * height * 4 ) ) ;
     }
     
     unsigned ImageLoader::width() const
@@ -52,6 +52,11 @@ namespace kgl
     unsigned ImageLoader::height() const
     {
       return data().height ;
+    }
+
+    unsigned ImageLoader::channels() const
+    {
+      return data().channels ;
     }
     
     const unsigned char* ImageLoader::pixels() const

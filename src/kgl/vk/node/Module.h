@@ -35,6 +35,10 @@ namespace kgl
         /** Method to execute a single instance of this module's operation.
          */
         virtual void execute() = 0 ;
+        
+        /** Method to resize the module to accomodate a swap chain resize.
+         */
+        virtual void resize() = 0 ;
 
         /** Method to kick off operation of this module.
          */

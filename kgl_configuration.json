@@ -10,17 +10,19 @@
       {
         "render2d" :
         {
-          "version" : 0,
-          "type"    : "Render2D",
-          "input"   : "clear",
-          "output"  : "2d_image",
+          "version"      : 0,
+          "type"         : "Render2D",
+          "input"        : "start",
+          "output_image" : "present",
+          "output"       : "2d_render",
         },
         
         "present" :
         {
-          "version" : 0,
-          "type"    : "Present"
-          "input"   : "2d_image"
+          "version"     : 0,
+          "type"        : "Present",
+          "input_image" : "present",
+          "input"       : "2d_render"
         }
       }
     }

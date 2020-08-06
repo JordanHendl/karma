@@ -17,6 +17,7 @@ namespace kgl
         void shutdown() final ;
         void subscribe( const char* pipeline, unsigned id ) final ;
         void execute() final ;
+        void resize() final ;
       private:
         struct Render2DData *data_2d ;
         Render2DData& data() ;

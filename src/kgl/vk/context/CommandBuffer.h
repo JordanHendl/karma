@@ -13,8 +13,9 @@ namespace kgl
 {
   namespace vk
   {
-    class Window     ;
-    class RenderPass ;
+    class Window          ;
+    class RenderPass      ;
+    class Synchronization ;
     namespace gpu
     {
       class Command ;
@@ -68,6 +69,10 @@ namespace kgl
           
           /**
            */
+          void record() const ;
+
+          /**
+           */
           void record( ::kgl::vk::RenderPass& pass ) const ;
           
           /**
@@ -89,8 +94,13 @@ namespace kgl
           
           /** Method to stop recording of this command buffer.
            */
-          void stop() const ;
+          void stop( bool pass = true ) const ;
           
+          /** Submits this command buffer to the Window to be pushed to the graphics queue.
+           * @note This is to be done once per frame. Synchronizes with the swapchain's framebuffers.
+           */
+          void submit() const ;
+
           /** Submits this command buffer to the Window to be pushed to the graphics queue.
            * @note This is to be done once per frame. Synchronizes with the swapchain's framebuffers.
            */
@@ -188,6 +198,11 @@ namespace kgl
            * @return 
            */
           unsigned count() const ;
+          
+          /**
+           * @param sync
+           */
+          void swap( Synchronization& sync ) ;
 
           /**
            * @param sem

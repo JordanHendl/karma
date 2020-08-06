@@ -6,15 +6,17 @@ layout ( location = 1 ) out vec2 tex_coords ; ///< Texture coordinate output of 
 
 layout ( binding = 1, std140 ) uniform model
 {
-  vec2 position ; ///< Position in screen space. 0-0 is bottom left.
-  vec2 rotation ; ///< Euler-Rotation of the image.
+  mat4 model_mat ; ///< Matrix to transform this object.
+};
+
+layout ( binding = 2, std140 ) uniform projection
+{
+  mat4 proj  ; ///< Projection matrix.
 };
 
 void main()
 {
   tex_coords   = vertex.zw ;
   
-  // TODO: apply rotation.
-
-  gl_Position = vec4( vertex.xy + position, 0.0, 1.0 ) ;
+  gl_Position = proj * model_mat * vec4( vertex.xy, 0.0, 1.0 ) ;
 }

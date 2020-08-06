@@ -39,12 +39,14 @@ namespace kgl
         const DescriptorSetData& data() const ;
         friend class DescriptorPool ;
     };
+
     class DescriptorPool
     {
       public:
         DescriptorPool() ;
         ~DescriptorPool() ;
         const ::vk::DescriptorPool pool() const ;
+        void reset() const ;
         DescriptorSet makeDescriptorSet( unsigned count ) ;
         void initialize( unsigned gpu, unsigned max_amt, const Shader& shader ) ;
       private:

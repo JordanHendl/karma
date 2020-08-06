@@ -11,7 +11,9 @@ namespace kgl
   namespace vk
   {
     class Uniform ;
-
+    class Image   ;
+    class Buffer  ;
+    class Synchronization ;
     class UniformIterator
     {
       public:
@@ -20,9 +22,12 @@ namespace kgl
         ~UniformIterator() ;
         const char* name() const ;
         unsigned type() const ;
-        const ::vk::Buffer buffer() const ;
+        bool isImage() const ;
+        const ::kgl::vk::Buffer& buffer() const ;
+        const ::kgl::vk::Image&  image() const ;
         void operator++() ;
         bool operator==( const UniformIterator& iter ) ;
+        bool operator!=( const UniformIterator& iter ) ;
         void operator=( const UniformIterator& iter ) ;
       private:
         friend class Uniform ;
@@ -43,13 +48,14 @@ namespace kgl
         };
         
         Uniform() ;
+        Uniform( const Uniform& uniform ) ;
+        Uniform& operator=( const Uniform& uniform ) ;
         ~Uniform() ;
         void initialize( unsigned gpu ) ;
         UniformIterator begin() const ;
         UniformIterator end() const ;
-
-        template<typename T>
-        void add( const char* name, Type type, T val ) ;
+        
+        void addImage( const char* name, const ::kgl::vk::Image& image ) ;
         
         template<typename T>
         void add( const char* name, Type type, const T& val ) ;
@@ -62,6 +68,18 @@ namespace kgl
         UniformData& data() ;
         const UniformData& data() const ;
     };
+
+    template<typename T>
+    void Uniform::add( const char* name, Type type, const T& val )
+    {
+      this->addBase( name, type, static_cast<const void*>( &val ), sizeof( val ), 1 ) ;
+    }
+
+    template<typename T>
+    void Uniform::add( const char* name, Type type, T* const val, unsigned count )
+    {
+      this->addBase( name, type, static_cast<const void*>( &val ), sizeof( val ), count ) ;
+    }
   }
 }
 #endif

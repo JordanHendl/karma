@@ -12,7 +12,7 @@ class KGL_Interface
     void loadPack( const char* path ) ;
     void unloadPack() ;
     void present() ;
-    void clear() ;
+    void start() ;
     void pollEvents() ;
 //    void present() ;
   private:

@@ -590,7 +590,7 @@ namespace kgl
       this->rasterization.rasterizer_info.setRasterizerDiscardEnable( false                         ) ;
       this->rasterization.rasterizer_info.setPolygonMode            ( ::vk::PolygonMode::eFill      ) ;
       this->rasterization.rasterizer_info.setLineWidth              ( 1.0f                          ) ;
-      this->rasterization.rasterizer_info.setCullMode               ( ::vk::CullModeFlagBits::eBack ) ;
+      this->rasterization.rasterizer_info.setCullMode               ( ::vk::CullModeFlagBits::eNone ) ;
       this->rasterization.rasterizer_info.setFrontFace              ( ::vk::FrontFace::eClockwise   ) ;
       this->rasterization.rasterizer_info.setDepthBiasEnable        ( false                         ) ;
       this->rasterization.rasterizer_info.setDepthBiasConstantFactor( 0.0f                          ) ;

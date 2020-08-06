@@ -9,11 +9,13 @@ find_package( SDL2 REQUIRED      )
 
 set( KGL_SOURCES 
      KGL_Interface.cpp
+     DrawCommand.cpp
      Setup.cpp
    )
       
 set( KGL_HEADERS
      KGL_Interface.h
+     DrawCommand.h
      Setup.h
    )
 

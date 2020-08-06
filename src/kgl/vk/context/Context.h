@@ -20,6 +20,9 @@ namespace kgl
 {
   namespace vk
   {
+    
+    class Window ;
+
     /** Function to initialize the rendering library
      */ 
     void initialize() ;
@@ -69,6 +72,12 @@ namespace kgl
           void addWindow( const char* name, unsigned gpu, unsigned width, unsigned height ) ;
           
           /**
+           * @param name
+           * @return 
+           */
+          ::kgl::vk::Window& window( const char* name ) ;
+
+          /**
            * @param gpu
            * @return 
            */
@@ -96,7 +105,7 @@ namespace kgl
            * @param gpu
            * @return 
            */
-          unsigned graphicsFamily( unsigned gpu ) ;
+          unsigned graphicsFamily( unsigned gpu ) const ;
           
           /**
            * @param gpu
@@ -134,6 +143,11 @@ namespace kgl
            */
           unsigned height( const char* window_name ) const ;
           
+          /**
+           * @param window_name
+           */
+          void start( const char* window_name) const ;
+
           /**
            * @param window_name
            * @return 

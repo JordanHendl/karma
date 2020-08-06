@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libdata_bus.so -o ../../lib/libdata_bus.so CMakeFiles/data_bus.dir/Bus.cpp.o CMakeFiles/data_bus.dir/Signal.cpp.o CMakeFiles/data_bus.dir/Pool.cpp.o CMakeFiles/data_bus.dir/PoolData.cpp.o 

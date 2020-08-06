@@ -2,12 +2,13 @@
 #include <memory>
 #include <map>
 #include <vector>
-
+#include <mutex>
 namespace data
 {
   namespace module
   {
 
+    static std::mutex mutex ;
 
     struct SignalData
     {
@@ -39,19 +40,25 @@ namespace data
         {
           this->callback->execute() ;
           
+          mutex.lock() ;
           this->clear() ;
+          mutex.unlock() ;
         };
 
         bool callbackExecuted( Signal::Callback* callback )
         {
+          mutex.lock() ;
           return this->callbacks.find( callback ) != this->callbacks.end() ;
+          mutex.unlock() ;
         }
         
         void called( Signal::Callback* callback )
         {
+          mutex.lock() ;
           auto iter = this->callbacks.find( callback ) ;
           
           if( iter == this->callbacks.end() ) this->callbacks.insert( { callback, true } ) ;
+          mutex.unlock() ;
         }
       };
 

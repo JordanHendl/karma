@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,present.so -o ../../../../../modules/present.so CMakeFiles/present.dir/Present.cpp.o -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../../../../lib/libdata_bus.so ../../../../../lib/libkgl_vk_module.so ../../../../../lib/libkgl.so 

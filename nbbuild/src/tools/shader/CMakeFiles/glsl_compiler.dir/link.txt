@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -std=c++17 -lstdc++fs -fPIC   -shared -Wl,-soname,libglsl_compiler.so -o ../../../lib/libglsl_compiler.so CMakeFiles/glsl_compiler.dir/UWUShader.cpp.o ../../../lib/libglslang.a ../../../lib/libSPIRV.a -lstdc++fs ../../../lib/libglslang.a ../../../lib/libOGLCompiler.a ../../../lib/libOSDependent.a -pthread ../../../lib/libHLSL.a 

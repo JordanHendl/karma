@@ -1,1 +1,0 @@
-/usr/bin/c++  -g -std=c++17 -lstdc++fs -fPIC    CMakeFiles/game_driver.dir/main.cpp.o  -o ../../bin/game_driver -Wl,-rpath,/wksp/int/KGLRefactor/karma/nbbuild/lib ../../lib/libkarma_game.so 
