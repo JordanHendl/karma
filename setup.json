@@ -1,0 +1,14 @@
+{
+  "kgl_windows":
+  {
+    "Main":
+    {
+      "width"  : 1280,
+      "height" : 1024,
+      "gpu"    : 0
+    },
+  },
+  "database_path"     : "database.json",
+  "graph_config_path" : "graph.json",
+  "module_path"       : "nbbuild/modules"
+}

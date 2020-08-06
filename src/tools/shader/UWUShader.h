@@ -38,7 +38,9 @@ namespace tools
     {
       None,
       UBO,
-      SAMPLER
+      SAMPLER,
+      IMAGE,
+      SSBO
     };
 
     /**
@@ -209,12 +211,12 @@ namespace tools
         /**
          * @return ShaderIterator 
          */
-        ShaderIterator begin() ;
+        ShaderIterator begin() const ;
 
         /**
          * @return ShaderIterator 
          */
-        ShaderIterator end() ;
+        ShaderIterator end() const ;
 
         /**
          * @return unsigned 

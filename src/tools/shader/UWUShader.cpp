@@ -21,15 +21,11 @@
 #include <fstream>
 #include <ostream>
 #include <istream>
+#include <iostream>
 #include <vector>
 #include <cerrno>
-#include <string> 
-#include <iostream>
 #include <memory>
 #include <algorithm>
-#include <iostream>
-#include <sstream>
-#include <variant>
 #include <ctype.h>
 #include <map>
 #include <limits.h>
@@ -217,7 +213,7 @@ namespace tools
      */
     struct ShaderIteratorData
     {
-      ShaderMap::iterator it ;
+      ShaderMap::const_iterator it ;
     };
   
     /**
@@ -342,7 +338,9 @@ namespace tools
       
       std::vector<std::string> history    ;
       std::stringstream        file_data  ;
+      std::stringstream        line_data  ;
       std::string              token      ;
+      std::string              line       ;
       Attribute                attr       ;
       unsigned                 position   ;
       unsigned                 location   ;
@@ -352,65 +350,83 @@ namespace tools
       history.resize( 3 ) ;
       if( shader != this->map.end() )
       {
-        file_data << data ;
-      
-        while( !file_data.eof() )
+        // Push all input into stream.
+        line_data << data ;
+        
+        // While theres data to be parsed.
+        while( std::getline( line_data, line ) )
         {
-          file_data >> token ; // Get Type.
           
-          if( token == "in"  )
+          // Push a single line of code into the stream.
+//          file_data << line_data.getline() ;
+          
+          file_data.str("") ;
+          file_data.clear() ;
+          file_data << line ;
+          
+          // Look for inputs.
+          while( !file_data.eof() )
           {
-            for( unsigned i = 0; i < history.size(); i++ )
+            token = "" ;
+            file_data >> token ; // Get Type.
+            
+            // If we're a comment then just break.
+            if( token.find( "//") != std::string::npos ) break ;
+
+            if( token == "in"  )
             {
-              auto found = history[ i ].find( "location" ) ;
-              
-              if( history[ i ] == "=" )
+              for( unsigned i = 0; i < history.size(); i++ )
               {
-                location = i + 1 == history.size() ? std::atoi( history[ 0 ].c_str() ) : std::atoi( history[ i + 1 ].c_str() ) ;
+                auto found = history[ i ].find( "location" ) ;
+                
+                if( history[ i ] == "=" )
+                {
+                  location = i + 1 == history.size() ? std::atoi( history[ 0 ].c_str() ) : std::atoi( history[ i + 1 ].c_str() ) ;
+                }
+                if( ( found ) != std::string::npos ) valid = true ;
               }
-              if( ( found ) != std::string::npos ) valid = true ;
-            }
-
-            /// Get type information.
-            file_data >> token                                     ;
-            attr.type     = token                                  ; 
-            attr.size     = ::tools::shader::sizeFromType( token ) ;
-            attr.input    = true                                   ;
-            attr.location = location                               ;
-            
-            file_data >> token ;
-            attr.name  = token ;
-            
-            shader->second.attributes.push_back( attr ) ;
-          }
-          else if( token == "out" )
-          {            
-            for( unsigned i = 0; i < history.size(); i++ )
-            {
-              auto found = history[ i ].find( "location" ) ;
               
-              if( history[ i ] == "=" ) 
-              {
-                location = i + 1 == history.size() ? std::atoi( history[ 0 ].c_str() ) : std::atoi( history[ i + 1 ].c_str() ) ;
-              }
-              if( ( found ) != std::string::npos ) valid = true ;
+              /// Get type information.
+              file_data >> token                                     ;
+              attr.type     = token                                  ; 
+              attr.size     = ::tools::shader::sizeFromType( token ) ;
+              attr.input    = true                                   ;
+              attr.location = location                               ;
+              
+              file_data >> token ;
+              attr.name  = token ;
+              
+              shader->second.attributes.push_back( attr ) ;
             }
-
-            /// Get type information.
-            file_data >> token                                     ;
-            attr.type     = token                                  ; 
-            attr.size     = ::tools::shader::sizeFromType( token ) ;
-            attr.input    = false                                  ;
-            attr.location = location                               ;
-
-            file_data >> token ;
-            attr.name  = token ;
-            
-            shader->second.attributes.push_back( attr ) ;
+            else if( token == "out" )
+            {            
+              for( unsigned i = 0; i < history.size(); i++ )
+              {
+                auto found = history[ i ].find( "location" ) ;
+                
+                if( history[ i ] == "=" ) 
+                {
+                  location = i + 1 == history.size() ? std::atoi( history[ 0 ].c_str() ) : std::atoi( history[ i + 1 ].c_str() ) ;
+                }
+                if( ( found ) != std::string::npos ) valid = true ;
+              }
+              line = "" ;
+              /// Get type information.
+              file_data >> token                                     ;
+              attr.type     = token                                  ; 
+              attr.size     = ::tools::shader::sizeFromType( token ) ;
+              attr.input    = false                                  ;
+              attr.location = location                               ;
+  
+              file_data >> token ;
+              attr.name  = token ;
+              
+              shader->second.attributes.push_back( attr ) ;
+            }
+            valid               = false ;
+            history[ position ] = token ;
+            position = ( position + 1 ) % history.size() ;
           }
-          valid               = false ;
-          history[ position ] = token ;
-          position = ( position + 1 ) % history.size() ;
         }
       }
     }
@@ -506,17 +522,29 @@ namespace tools
   
           shader.uniforms.push_back( uniform ) ;
         }
+
+        if( name.find( "image") != std::string::npos )
+        {
+          uniform.name    = program.getUniformName( i )    ;
+          uniform.binding = program.getUniformBinding( i ) ;
+          uniform.size    = 1                              ;
+          uniform.type    = UniformType::IMAGE             ;
+  
+          shader.uniforms.push_back( uniform ) ;
+        }
       }
   
       for( unsigned i = 0; i < program.getNumUniformBlocks(); i++ )
       {
+        std::string complete_string = program.getUniformBlock( i ).getType()->getCompleteString().c_str() ;
+
         sz   = program.getUniformArraySize( i ) ;
         name = program.getUniformBlockName( i ) ;
-  
-        uniform.name    = name                                ;
-        uniform.binding = program.getUniformBlockBinding( i ) ;
-        uniform.size    = program.getUniformArraySize( i )    ;
-        uniform.type    = UniformType::UBO                    ;
+        
+        uniform.name    = name                                                                                           ;
+        uniform.binding = program.getUniformBlockBinding( i )                                                            ;
+        uniform.size    = complete_string.find( " buffer " ) != std::string::npos ? 1 : program.getUniformArraySize( i ) ;
+        uniform.type    = complete_string.find( " buffer " ) != std::string::npos ? UniformType::SSBO : UniformType::UBO ;
   
         shader.uniforms.push_back( uniform ) ;
       }
@@ -836,7 +864,7 @@ namespace tools
       data().include_directory = include_directory ;
     }
 
-    ShaderIterator UWUShader::begin()
+    ShaderIterator UWUShader::begin() const
     {
       ShaderIterator it ;
       it.data().it = data().map.begin() ;
@@ -844,7 +872,7 @@ namespace tools
       return it ;
     }
 
-    ShaderIterator UWUShader::end()
+    ShaderIterator UWUShader::end() const 
     {
       ShaderIterator it ;
       it.data().it = data().map.end() ;
@@ -859,8 +887,8 @@ namespace tools
 
     void UWUShader::compile( ShaderStage stage, const char* shader_data )
     {
-      this->data().loadShader     ( shader_data, stage ) ;
-      this->data().parseAttributes( shader_data, stage ) ;
+      this->data().loadShader                                         ( shader_data, stage ) ;
+      if( stage != ShaderStage::COMPUTE ) this->data().parseAttributes( shader_data, stage ) ;
     }
   
     UWUShaderData& UWUShader::data()

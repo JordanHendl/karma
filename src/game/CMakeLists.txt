@@ -1,6 +1,19 @@
-set( KARMA_MANAGER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/manager )
-set( KARMA_GRAPHICS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/graphics )
-set( KARMA_IO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/io )
-set( KARMA_CONFIG_GLSLANG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/config )
+set( DRIVER_SOURCES
+     main.cpp
+   )
+     
+set( DRIVER_HEADERS
+   )
 
-add_subdirectory( database ) 
+set( DRIVER_INCLUDE_DIRS
+
+   )
+
+set( DRIVER_LIBRARIES
+     karma_game
+   )
+
+add_subdirectory( application ) 
+add_executable            ( game_driver ${DRIVER_SOURCES} ${DRIVER_HEADERS} )
+target_include_directories( game_driver PRIVATE  ${DRIVER_INCLUDE_DIRS}     )
+target_link_libraries     ( game_driver PRIVATE  ${DRIVER_LIBRARIES}        )

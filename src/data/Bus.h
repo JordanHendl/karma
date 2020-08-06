@@ -22,7 +22,48 @@ namespace data
     /** Forward Declared class to handle data transfer.
      */
     class Signal ;
+    class String ;
 
+    void operator<<( String& first, const char* second ) ;
+    void operator<<( String& first, unsigned    second ) ;
+    void operator<<( String& first, float       second ) ;
+    void operator<<( String& first, const String& second ) ;
+
+    class String
+    {
+      public:
+        String() ;
+        String( const String& string ) ;
+        void operator=( const String& string ) ;
+        ~String() ;
+        void setStr( const char* str ) ;
+        const char* str() const ;
+      private:
+        struct StringData* string_data ;
+        StringData& data() ;
+        const StringData& data() const ;
+    };
+
+    template<typename T>
+    String concatenate( T type )
+    {
+      String str ;
+      
+      str << type ;
+      return str ;
+    }
+
+    template<typename T, typename... TYPES>
+    String concatenate( T first, TYPES... types )
+    {
+      String str ;
+      
+      str << first ;
+      str << concatenate( types... ) ;
+      return str ;
+    }
+
+   
     /** Class to handle data transfer between modules.
      * @note This object hashes the type information, which can have collisions.
      * 
@@ -44,30 +85,20 @@ namespace data
          * @param id The channel to associate with this event bus.
          */
         Bus( unsigned id = 0 ) ;
-
+        
         /** Operator overload to recieve a reference to a signal of the input key.
          * @param key The key to recieve a reference to a signal for.
          * @return Signal& Reference to the signal cooresponding to the input key.
          */
-        Signal& operator[]( const char* key ) ;
+        template< typename T, typename ... KEYS>
+        Signal& operator()( T first, KEYS... args ) ;
 
         /** Operator overload to recieve a const-reference to a signal of the input key.
          * @param key The key to recieve a const-reference to a signal for.
          * @return Signal& Const-Reference to the signal cooresponding to the input key.
          */
-        const Signal& operator[]( const char* key ) const ;
-
-        /** Method to recieve a reference to a signal of the input key.
-         * @param key The key to recieve a reference to a signal for.
-         * @return Signal& Reference to the signal cooresponding to the input key.
-         */
-        Signal& get( const char* key ) ;
-
-        /** Method to recieve a const-reference to a signal of the input key.
-         * @param key The key to recieve a const-reference to a signal for.
-         * @return Signal& Const-Reference to the signal cooresponding to the input key.
-         */
-        const Signal& get( const char* key ) const ;
+        template< typename T, typename ... KEYS>
+        const Signal& operator()( T first, KEYS... args ) const ;
 
         /** Method to recieve the channel this Bus is on.
          * @return unsigned The channel this bus is sending data on.
@@ -78,22 +109,40 @@ namespace data
          * @note All objects subscribed to this channel can interact with others ONLY in the same channel.
          * @param id The channel to use for data transfer.
          */
-        void setId( unsigned id ) ;
+        void setChannel( unsigned id ) ;
         
       private:
         
+        /**
+         * @param key
+         * @return 
+         */
+        const Signal& getBase( const char* key ) const ;
+        
+        /**
+         * @param key
+         * @return 
+         */
+        Signal& getBase( const char* key ) ;
+
         /** The identifier for this object.
          */
         unsigned identifier ;
-
-        /** Copying is disallowed.
-         */
-        Bus( const Bus& cpy ) ;
-
-        /** Copying is disallowed.
-         */
-        Bus& operator=( const Bus& cpy ) ;
     };
+    
+    template<typename T, typename... KEYS>
+    Signal& Bus::operator()( T first, KEYS... args )
+    {
+      String key = ::data::module::concatenate( first, args... ) ;
+      return this->getBase( key.str() ) ;
+    }
+
+    template<typename T, typename... KEYS>
+    const Signal& Bus::operator()( T first, KEYS... args ) const
+    {
+      String key = ::data::module::concatenate( first, args... ) ;
+      return this->getBase( key.str() ) ;
+    }
   }
 }
 

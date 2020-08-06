@@ -165,7 +165,7 @@ namespace karma
         char val ;
 
         // While not eof, not whitespace, and not a line break.
-        while( ( val = json_stream.get() ) != json_stream.eof() && ( val == ' ' || val == '\n') ) { }
+        while( ( val = json_stream.get() ) != json_stream.eof() && ( val == ' ' || val == '\n' || val == '\r' ) ) { }
 
         return val ;
       }
@@ -197,7 +197,8 @@ namespace karma
       void ParserData::handleColon( std::string parent_key, JSONFile& stream )
       {
         const char next = getNextValidCharacter ( stream ) ; 
-
+        
+        
         if     ( isdigit( next ) || next  == '.' ) { stream.putback( next ) ; handleNumValue ( parent_key, stream ) ; }
         else if( next == 't' || next == 'f'      ) { stream.putback( next ) ; handleBoolValue( parent_key, stream ) ; }
         else
@@ -276,6 +277,11 @@ namespace karma
         const std::string str  = getString( stream )                                    ;
         const std::string key  = parent_key.size() != 0 ? parent_key + "::" + str : str ;
         const char        next = getNextValidCharacter( stream )                        ;
+        
+//        if( parent_key != "" && this->map.find( parent_key ) == this->map.end() )
+        {
+          this->map[ parent_key ].push_back( str ) ;
+        }
 
         switch( next )
         {
@@ -305,9 +311,9 @@ namespace karma
           case '[': /* Start of an array.  */ handleArray ( parent_key, stream ) ; break ;
           case ',': /* Continuing a list.  */ handleComma ( parent_key, stream ) ; break ;
           case ':': /* Key:Value delimiter.*/ handleColon ( parent_key, stream ) ; break ;
-          case ' ': /* White space. Skip.  */ stream.putback( value ) ; break ;
-          case '}': /* End of an object.   */ stream.putback( value ) ; break ;
-          case ']': /* End of an array.    */ stream.putback( value ) ; break ;
+          case ' ': /* White space. Skip.  */ break ;
+          case '}': /* End of an object.   */ break ;
+          case ']': /* End of an array.    */ break ;
           default : /* Error               */ break ;
         }
       }
@@ -415,6 +421,11 @@ namespace karma
 
         stream << json ;
         data().processFile( stream ) ;
+      }
+      
+      void Parser::clear()
+      {
+        data().map.clear() ;
       }
 
       ParserData& Parser::data()

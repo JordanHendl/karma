@@ -107,7 +107,14 @@ namespace tools
     
     const char* ArgumentParser::output() const
     {
-      return ( data().output_path + ".uwu" ).c_str() ;
+      std::string extention ;
+      
+      extention = ".uwu" ;
+      for( auto path : data().shaders_paths )
+      {
+        if( path.find( ".comp" ) != std::string::npos ) extention = ".uwuc" ;
+      }
+      return ( data().output_path + extention ).c_str() ;
     }
 
     const char* ArgumentParser::recursionDirectory() const
