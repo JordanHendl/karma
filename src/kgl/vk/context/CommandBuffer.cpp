@@ -131,9 +131,6 @@ namespace kgl
       
       ::vk::CommandPool createPool( GPU device, QueueFamily family, unsigned flags )
       {
-        const auto gpu_iter    = ::kgl::vk::pool_map.find( device ) ;
-        const auto family_iter = gpu_iter != ::kgl::vk::pool_map.end() ? gpu_iter->second.find( family ) : QueuePoolMap::const_iterator() ;
-        
         ::vk::CommandPoolCreateInfo info     ;
         ::vk::CommandPool           cmd_pool ;
         ::kgl::vk::render::Context  context  ;
@@ -238,6 +235,14 @@ namespace kgl
         return data().buffers.size() ;
       }
 
+      void CommandBuffer::pushConstantBase( void* val, ::vk::PipelineLayout layout, unsigned stage_flags, unsigned count, unsigned element_size )
+      {
+        for( auto buff : data().buffers )
+        {
+          buff.pushConstants( layout, static_cast<::vk::ShaderStageFlags>( stage_flags ), 0, count * element_size, val ) ;
+        }
+      }
+
       void CommandBuffer::draw( const ::vk::Buffer vertices, unsigned element_size ) // TODO::: write instanced drawing.
       {
         ::vk::DeviceSize offset ;
@@ -314,7 +319,6 @@ namespace kgl
       {
         const ::kgl::vk::render::Context context                        ;
         const ::vk::Queue queue   = context.graphicsQueue( data().gpu ) ;
-        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
 
         ::vk::SubmitInfo info  ;
         
@@ -336,8 +340,6 @@ namespace kgl
       {
         const ::kgl::vk::render::Context context ;
         const              ::vk::Queue   queue  = context.graphicsQueue( data().gpu )                 ;
-        const auto                       flags  = ::vk::PipelineStageFlagBits::eColorAttachmentOutput ;
-        const ::vk::Device               device = context.virtualDevice( data().gpu )                 ;
 
         ::vk::SubmitInfo info  ;
         
@@ -473,6 +475,14 @@ namespace kgl
       {
         return id < data().buffers.size() ? data().buffers[ id ] : data().buffers[ 0 ] ;
       }
+      
+      void CommandBuffer::pushConstantBase( void* val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count, unsigned element_size )
+      {
+        for( auto &buff : data().buffers )
+        {
+          buff.pushConstants( layout, static_cast<::vk::ShaderStageFlags>( stage_flags ), 0, count * element_size, val ) ;
+        }
+      }
 
       unsigned CommandBuffer::count() const
       {
@@ -496,8 +506,6 @@ namespace kgl
       {
         const ::kgl::vk::compute::Context context                       ;
         const ::vk::Queue queue   = context.computeQueue ( data().gpu ) ;
-        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
-        ::vk::PipelineStageFlags flag = ::vk::PipelineStageFlagBits::eColorAttachmentOutput ;
 
         ::vk::SubmitInfo info  ;
         
@@ -512,8 +520,16 @@ namespace kgl
           info.setPSignalSemaphores   ( data().sync.signalSems()    ) ;
 
           queue.submit( 1, &info, data().sync.fence() ) ;
-          queue.waitIdle() ;
         }
+      }
+      
+      void CommandBuffer::wait() const
+      {
+        const ::kgl::vk::compute::Context context                        ;
+        const ::vk::Device device = context.virtualDevice( data().gpu )  ;
+        
+        auto fence = data().sync.fence() ;
+        device.waitForFences( 1, &fence, true, UINT64_MAX ) ;
       }
 
       void CommandBuffer::submit( const CommandBuffer& buffer ) const
@@ -538,6 +554,17 @@ namespace kgl
       void CommandBuffer::onFinish( ::vk::Semaphore sem )
       {
         data().signal_sems.push_back( sem ) ;
+      }
+      
+      void CommandBuffer::reset()
+      {
+        const ::kgl::vk::compute::Context context                                ;
+        const ::vk::Device device = context.virtualDevice( data().gpu )          ;
+        const auto qFamily        = context.computeFamily( data().gpu )          ;
+        const auto pool           = ::kgl::vk::pool_map[ data().gpu ][ qFamily ] ;
+        
+        device.freeCommandBuffers( pool, data().buffers.size(), data().buffers.data() ) ;
+        data().buffers.clear() ;
       }
 
       void CommandBuffer::attach( ::vk::Fence fence )

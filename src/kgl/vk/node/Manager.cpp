@@ -101,8 +101,6 @@ namespace kgl
       {
         graph.second->reset() ;
       }
-      
-      
     }
 
     ManagerData& Manager::data()

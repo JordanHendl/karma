@@ -218,7 +218,7 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).pipelineBarrier( src, dest, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
-      
+      this->cmd_buffer.wait() ;
       this->layout = new_layout ;
       queue.waitIdle() ;
     }
@@ -436,9 +436,7 @@ namespace kgl
     
     void Image::copy( const Image& img )
     {
-      const auto usage      = ::vk::BufferUsageFlagBits::eTransferSrc ;
-      const auto old_layout = img.data().layout                       ;
-      void*                stage_data         ;
+      const auto old_layout = img.data().layout ;
 
 
       if( data().width != img.data().width || data().height != img.data().height )
@@ -458,8 +456,7 @@ namespace kgl
 
     void Image::copy( const Image& img, Synchronization& sync )
     {
-      const auto usage      = ::vk::BufferUsageFlagBits::eTransferSrc ;
-      const auto old_layout = img.data().layout                       ;
+      const auto old_layout = img.data().layout ;
 
       if( data().width != img.data().width || data().height != img.data().height )
       {

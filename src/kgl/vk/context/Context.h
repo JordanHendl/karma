@@ -178,6 +178,8 @@ namespace kgl
         public:
           Context()  = default ;
           ~Context() = default  ;
+          const unsigned deviceCount() const ;
+          const bool validDevice( unsigned gpu ) ;
           const  unsigned computeFamily( unsigned gpu ) const ;
           const ::vk::Device virtualDevice( unsigned gpu ) const ;
           const ::vk::PhysicalDevice physicalDevice( unsigned gpu ) const ;

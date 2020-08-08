@@ -319,6 +319,16 @@ namespace kgl
         
         return dummy ;
       }
+      
+      const unsigned Context::deviceCount() const
+      {
+        return 1 ;
+      }
+      
+      const bool Context::validDevice( unsigned gpu )
+      {
+        return true ;
+      }
 
       const void Context::submit( const CommandBuffer& buffer )
       {

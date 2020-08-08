@@ -13,7 +13,6 @@ namespace kgl
 {
   namespace vk
   {
-    #pragma region // Static Function Declarations
 
     static const std::vector<const char*> required_extensions = 
     {
@@ -23,10 +22,6 @@ namespace kgl
     static std::vector<::vk::PhysicalDevice> physical_devices ;
 
     static void createDevice( ::vk::Instance instance ) ;
-
-    #pragma endregion // Static Function Declarations
-
-    #pragma region // Data structure Declarations
 
     struct DeviceSignup
     {
@@ -75,14 +70,9 @@ namespace kgl
       void genVirtualDevice() ;
     };
 
-    #pragma endregion // Data structure Declarations
-    
-    #pragma region // Static Function Definitions
-
     void createDevice( ::vk::Instance instance )
     {
       ::vk::PhysicalDevice device ;
-      unsigned             count  ;
 
       if( physical_devices.size() == 0 )
       {
@@ -91,10 +81,6 @@ namespace kgl
         if( physical_devices.size() == 0 ) ; // TODO error, no devices found.
       }
     }
-
-    #pragma endregion // Static Function Definitions
-
-    #pragma region // DeviceData Function Definitions
 
     void DeviceData::operator=( const DeviceData data )
     {
@@ -161,7 +147,6 @@ namespace kgl
       FamilyPropList list    ;
       uint32_t       count   ;
       uint32_t       id      ;
-      VkBool32       support ;
 
       vkGetPhysicalDeviceQueueFamilyProperties( this->p_device, &count, nullptr ) ;
       list.resize( count ) ;
@@ -234,10 +219,6 @@ namespace kgl
       this->c_queue = this->v_device.getQueue( this->family.compute , 0 ) ;
     }
 
-    #pragma endregion // DeviceData Function Definitions
-
-    #pragma region // QueueFamily Function Definitions
-
     bool QueueFamily::isComplete()
     {
       return graphics != UINT32_MAX && compute != UINT32_MAX && present != UINT32_MAX ;
@@ -247,10 +228,6 @@ namespace kgl
     {
       return this->num_families ;
     } ;
-
-    #pragma endregion // QueueFamily Function Definitions
-
-    #pragma region // Device Function Definitions
 
     Device::Device()
     {
@@ -364,7 +341,5 @@ namespace kgl
     {
       return *this->device_data ;
     }
-
-    #pragma endregion // Device Function Definitions
   }
 }

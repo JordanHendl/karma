@@ -1,3 +1,5 @@
+set( MODULE_NAME Render2D ) 
+
 set( KGL_VK_RENDER_MODULE_MODULE_SOURCES 
      Render2D.cpp
    )

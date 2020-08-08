@@ -25,16 +25,23 @@ struct KGL_InterfaceData
   ::kgl::database::Database      database      ; ///< The database that contains all asset metadata.
   ::kgl::Setup                   setup         ; ///< The object to handle setup of kgl.
   std::string                    window        ; ///< The name of the current active window.
-  
+  std::string                    module_path   ; ///< The path to the modules on the filesystem.
+
   void fixString( std::string& str ) ;
   void addImage( const char* img_name ) ;
   void addModel( const char* model_name ) ;
+  void setModulePath( const char* path ) ;
 };
 
 
 void KGL_InterfaceData::addImage( const char* img_name )
 {
   this->database.loadImage( img_name ) ;
+}
+
+void KGL_InterfaceData::setModulePath( const char* path )
+{
+  this->module_path = path ;
 }
 
 void KGL_InterfaceData::addModel( const char* model_name )
@@ -79,10 +86,6 @@ void KGL_Interface::initialize( const char* base_path )
   
   data().fixString( path ) ;
   
-  kgl_config_path = path + "/setup.json"             ;
-  mod_path        = path + "/nbbuild/modules/"       ;
-  mod_config_path = path + "/kgl_configuration.json" ;
-  database_path   = path + "/database.json"          ;
   
   if( !::kgl::vk::isInitialized() )
   {
@@ -92,11 +95,19 @@ void KGL_Interface::initialize( const char* base_path )
     data().database.subscribe( base_path, 0 ) ;
     data().setup   .subscribe( 0            ) ;
     
-    data().bus( "required_images" ).attach( this->kgl_data, &KGL_InterfaceData::addImage ) ;
-    data().bus( "required_models" ).attach( this->kgl_data, &KGL_InterfaceData::addImage ) ;
+    data().bus( "required_images"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage      ) ;
+    data().bus( "required_models"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage      ) ;
+    data().bus( "modules_directory" ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath ) ;
+
+    kgl_config_path = path + "/setup.json"             ;
+
+    data().config     .initialize( kgl_config_path.c_str(), 0                ) ;
+    database_path   = path + "/database.json"          ;
+    mod_path        = path + data().module_path        ;
+    mod_config_path = path + "/kgl_configuration.json" ;
 
     data().config     .initialize( database_path.c_str()  , 0                ) ;
-    data().config     .initialize( kgl_config_path.c_str(), 0                ) ;
+
     data().setup      .initialize(                                           ) ;
     data().mod_manager.initialize( mod_path.c_str(), mod_config_path.c_str() ) ;
     data().mod_manager.start() ;

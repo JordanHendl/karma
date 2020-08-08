@@ -4,14 +4,10 @@
 layout ( location = 0 ) in  vec4 vertex     ; ///< Input in the following format: vec2 position, vec2 texCoords>
 layout ( location = 1 ) out vec2 tex_coords ; ///< Texture coordinate output of this stage.
 
-layout ( binding = 1, std140 ) uniform model
+layout( push_constant ) uniform matrices 
 {
-  mat4 model_mat ; ///< Matrix to transform this object.
-};
-
-layout ( binding = 2, std140 ) uniform projection
-{
-  mat4 proj  ; ///< Projection matrix.
+  mat4 model_mat ;
+  mat4 proj      ;
 };
 
 void main()

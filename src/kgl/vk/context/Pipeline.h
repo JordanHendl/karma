@@ -3,8 +3,9 @@
 
 namespace vk
 {
-  class Buffer     ;
-  class RenderPass ;
+  class Buffer         ;
+  class RenderPass     ;
+  class PipelineLayout ;
 }
 
 namespace kgl
@@ -25,8 +26,12 @@ namespace kgl
           ~Pipeline() ;
           void initialize( const char* uwu_path, unsigned gpu, unsigned width, unsigned height, const ::vk::RenderPass pass ) ;
           const Shader& shader() const ;
+          const ::vk::PipelineLayout layout() const ;
           void subscribe( const char* name, unsigned channel ) ;
           void bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
+          void setPushConstantByteSize( unsigned size ) ;
+          void setPushConstantStageFlag( unsigned stage ) ;
+          
           const char* name() const ;
         private:
           struct PipelineData *pipe_data ;

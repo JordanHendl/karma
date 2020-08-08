@@ -59,7 +59,7 @@ SET( KGL_VK_LIBRARIES
      ${SDL2_LIBRARIES}
      ${Vulkan_LIBRARIES}
      data_bus
-     glsl_compiler
+     uwushader
      kgl_vk_module
    )
 

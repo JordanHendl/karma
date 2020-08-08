@@ -9,6 +9,6 @@
     },
   },
   "database_path"     : "database.json",
-  "graph_config_path" : "graph.json",
-  "module_path"       : "nbbuild/modules"
+  "graph_config_path" : "kgl_configuration.json",
+  "modules_directory" : "/nbbuild/modules"
 }

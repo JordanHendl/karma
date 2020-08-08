@@ -18,17 +18,29 @@ namespace karma
     float xpos ;
     float ypos ;
     float rot  ;
+    
+    float xpos_2 ;
+    float ypos_2 ;
+    float rot_2  ;
 
     void readInputs( const ::kgl::io::Event& event ) ;
     
     GameData()
     {
-      this->running = false ;
+      this->running = false   ;
+      this->xpos    = 0.0f    ;
+      this->ypos    = 0.0f    ;
+      this->rot     = 0.0f    ;
+      this->xpos_2  = 200.0f  ;
+      this->ypos_2  = 200.0f  ;
+      this->rot_2   = 0.0f    ;
     }
   };
   
   void GameData::readInputs( const ::kgl::io::Event& event )
   {
+    const float delta = 10.0f ;
+    
     if( event.type() == ::kgl::io::Event::Type::Quit )
     {
       this->running = false ;
@@ -43,20 +55,38 @@ namespace karma
           break ;
           
         case ::kgl::io::Event::IOCode::Left :
-          this->xpos -= 5.f ;
+          this->xpos -= delta ;
           break ;
         case ::kgl::io::Event::IOCode::Right :
-          this->xpos += 5.f ;
+          this->xpos += delta ;
           break ;
         case ::kgl::io::Event::IOCode::Up :
-          this->ypos -= 5.f ;
+          this->ypos -= delta ;
           break ;
         case ::kgl::io::Event::IOCode::Down :
-          this->ypos += 5.f ;
+          this->ypos += delta ;
           break ;
         case ::kgl::io::Event::IOCode::Z :
-          this->rot += 5.f ;
+          this->rot += delta ;
           break ;
+
+        case ::kgl::io::Event::IOCode::A :
+          this->xpos_2 -= delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::D :
+          this->xpos_2 += delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::W :
+          this->ypos_2 -= delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::S :
+          this->ypos_2 += delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::X :
+          this->rot_2 -= delta ;
+          break ;
+          
+        default: break ;
       }
     }
   }
@@ -86,7 +116,6 @@ namespace karma
     
     data().interface.loadPack ( "/usr/local/karma/active/krender/test.krender" ) ;
 
-    
     while( data().running )
     {
       data().cmd.setImage ( "test"  ) ;
@@ -94,14 +123,14 @@ namespace karma
       data().cmd.setPosY    ( data().ypos ) ;
       data().cmd.setRotation( data().rot  ) ;
       
-      data().bus( "graph1::cmd" ).emit( data().cmd ) ;
+      data().bus( "render2d::cmd" ).emit( data().cmd ) ;
       
-      data().cmd.setImage ( "test_2"  ) ;
-      data().cmd.setPosX    ( data().xpos + 200 ) ;
-      data().cmd.setPosY    ( data().ypos + 200 ) ;
-      data().cmd.setRotation( data().rot  + 90  ) ;
+      data().cmd.setImage ( "test"  ) ;
+      data().cmd.setPosX    ( data().xpos_2 ) ;
+      data().cmd.setPosY    ( data().ypos_2 ) ;
+      data().cmd.setRotation( data().rot_2  ) ;
       
-      data().bus( "graph1::cmd" ).emit( data().cmd ) ;
+      data().bus( "render2d::cmd" ).emit( data().cmd ) ;
       
       data().interface.start() ;
       data().interface.pollEvents() ;

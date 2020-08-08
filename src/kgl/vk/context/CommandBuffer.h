@@ -3,10 +3,11 @@
 
 namespace vk
 {
-  class CommandBuffer ;
-  class Buffer        ;
-  class Semaphore     ;
-  class Fence         ;
+  class CommandBuffer  ;
+  class Buffer         ;
+  class Semaphore      ;
+  class PipelineLayout ;
+  class Fence          ;
 }
 
 namespace kgl
@@ -81,6 +82,15 @@ namespace kgl
           void push( const ::kgl::vk::gpu::Command& command ) ;
           
           /**
+           * @param val
+           * @param layout
+           * @param stage_flags
+           * @param count
+           */
+          template<typename T>
+          void pushConstant( T& val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count ) ;
+          
+          /**
            * @param vertices
            */
           void draw( const ::vk::Buffer vertices, unsigned element_size ) ;
@@ -134,6 +144,15 @@ namespace kgl
         private:
           
           /**
+           * @param val
+           * @param layout
+           * @param stage_flags
+           * @param count
+           * @param element_size
+           */
+          void pushConstantBase( void* val, const ::vk::PipelineLayout layout, unsigned stage_flags, unsigned count, unsigned element_size ) ;
+
+          /**
            */
           struct CmdBuffData *cmd_data ;
           
@@ -149,6 +168,12 @@ namespace kgl
           
           friend class Window ;
       };
+
+      template<typename T>
+      void CommandBuffer::pushConstant( T& val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count )
+      {
+        this->pushConstantBase( reinterpret_cast<void*>( &val ), layout, stage_flags, count, sizeof( T ) ) ;
+      }
     }
     
     namespace compute
@@ -185,9 +210,19 @@ namespace kgl
           void record() const ;
 
           /**
+           * @param val
+           * @param layout
+           * @param stage_flags
+           * @param count
+           */
+          template<typename T>
+          void pushConstant( T val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count ) ;
+
+          /**
            */
           void clearSynchronization() ;
-
+          
+          void wait() const ;
           /**
            * @param id
            * @return 
@@ -215,6 +250,10 @@ namespace kgl
           void onFinish( ::vk::Semaphore sem ) ;
           
           /**
+           */
+          void reset() ;
+
+          /**
            * @param fence
            */
           void attach( ::vk::Fence fence ) ;
@@ -235,6 +274,15 @@ namespace kgl
         private:
           
           /**
+           * @param val
+           * @param layout
+           * @param stage_flags
+           * @param count
+           * @param element_size
+           */
+          void pushConstantBase( void* val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count, unsigned element_size ) ;
+
+          /**
            */
           struct CmdBuffData *cmd_data ;
           
@@ -248,6 +296,12 @@ namespace kgl
            */
           const CmdBuffData& data() const ;
       };
+      
+      template<typename T>
+      void CommandBuffer::pushConstant( T val, const ::vk::PipelineLayout& layout, unsigned stage_flags, unsigned count )
+      {
+        this->pushConstantBase( static_cast<void*>( val ), layout, stage_flags, count, sizeof( T ) ) ;
+      }
     } 
   }
 }
