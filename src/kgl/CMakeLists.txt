@@ -1,11 +1,10 @@
 set( CASPER_VULKAN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan )
 
-
 find_package( X11                )
 find_package( PNG                )
 find_package( Threads            )
 find_package( Vulkan REQUIRED    )
-find_package( SDL2 REQUIRED      )
+find_package( SDL2   REQUIRED    )
 
 set( KGL_SOURCES 
      KGL_Interface.cpp
@@ -43,6 +42,7 @@ ADD_SUBDIRECTORY   ( database   )
 ADD_SUBDIRECTORY   ( io         )
 ADD_SUBDIRECTORY   ( managers   )
 ADD_SUBDIRECTORY   ( vk         )
+ADD_SUBDIRECTORY   ( library    )
 
 ADD_LIBRARY               ( kgl SHARED  ${KGL_SOURCES} ${KGL_HEADERS} )
 TARGET_LINK_LIBRARIES     ( kgl PRIVATE ${KGL_LIBRARIES}              )

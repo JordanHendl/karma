@@ -12,7 +12,8 @@
  * Purpose      : Declaration for Data bus object.
 **********************************************************************/
 
-#include "UWUShader.h"
+#include "../uwuwriter/UWUWriter.h"
+#include "../shader/UWUShader.h"
 #include "ArgumentParser.h"
 #include <string>
 #include <iostream>
@@ -20,7 +21,7 @@
 #include <fstream>
 
 static std::string loadStream( std::ifstream& stream ) ;
-static ::tools::shader::ShaderStage extensionToStage( std::string extension ) ;
+static ::tools::ShaderStage extensionToStage( std::string extension ) ;
 static std::string getExtension( const std::string& name ) ;
 
 std::string loadStream( std::ifstream& stream )
@@ -36,23 +37,23 @@ std::string getExtension( const std::string& name )
   return ( name.rfind( '.' ) == std::string::npos ) ? "" : name.substr( name.rfind( '.' ) + 1 ) ;
 }
 
-::tools::shader::ShaderStage extensionToStage( std::string extension )
+::tools::ShaderStage extensionToStage( std::string extension )
 {
-       if( extension == "frag" ) return ::tools::shader::ShaderStage::FRAGMENT      ;
-  else if( extension == "geom" ) return ::tools::shader::ShaderStage::GEOMETRY      ;
-  else if( extension == "tesc" ) return ::tools::shader::ShaderStage::TESSALATION_C ;
-  else if( extension == "tess" ) return ::tools::shader::ShaderStage::TESSELATION_E ;
-  else if( extension == "comp" ) return ::tools::shader::ShaderStage::COMPUTE       ;
-  else if( extension == "vert" ) return ::tools::shader::ShaderStage::VERTEX        ;
+       if( extension == "frag" ) return ::tools::ShaderStage::FRAGMENT      ;
+  else if( extension == "geom" ) return ::tools::ShaderStage::GEOMETRY      ;
+  else if( extension == "tesc" ) return ::tools::ShaderStage::TESSALATION_C ;
+  else if( extension == "tess" ) return ::tools::ShaderStage::TESSELATION_E ;
+  else if( extension == "comp" ) return ::tools::ShaderStage::COMPUTE       ;
+  else if( extension == "vert" ) return ::tools::ShaderStage::VERTEX        ;
   
-  return ::tools::shader::ShaderStage::VERTEX ;
+  return ::tools::ShaderStage::VERTEX ;
 }
 
 int main( int argc, const char** argv )
 {
   std::ifstream                   stream           ;
   ::tools::shader::ArgumentParser parser           ;
-  ::tools::shader::UWUShader      shader           ;
+  ::tools::UWUWriter              shader           ;
   ::tools::shader::UWUShader      shader_validator ;
   std::string                     recursive_path   ;
   std::string                     directory_name   ;
@@ -82,7 +83,7 @@ int main( int argc, const char** argv )
       stream.open( parser.getFilePath( i ) ) ;
       if( stream )
       {
-        shader.compile( static_cast<::tools::shader::ShaderStage>( parser.getShaderType( i ) ), loadStream( stream ).c_str() ) ;
+        shader.compile( static_cast<::tools::ShaderStage>( parser.getShaderType( i ) ), loadStream( stream ).c_str() ) ;
         stream.close() ;
       }
     }

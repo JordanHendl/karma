@@ -188,25 +188,9 @@ namespace tools
         ~UWUShader() ;
 
         /**
-         * @param stage 
-         * @param data 
-         */
-        void compile( ShaderStage stage, const char* data ) ;
-
-        /**
          * @param path 
          */
         void load( const char* path ) ;
-
-        /**
-         * @param path 
-         */
-        void save( const char* path ) ;
-
-        /**
-         * @param include_dir 
-         */
-        void setIncludeDirectory( const char* include_dir ) ;
 
         /**
          * @return ShaderIterator 

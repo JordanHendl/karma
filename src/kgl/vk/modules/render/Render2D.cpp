@@ -26,6 +26,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <map>
 
 static inline const float vertex_data[] = 
 { 
@@ -45,11 +46,17 @@ namespace kgl
   {      
     struct Render2DData
     {
-      typedef std::stack<ImageCommand>        Commands ;
-      typedef std::vector<::kgl::vk::Uniform> Uniforms ;
+      struct Material
+      {
+        Uniform       uniform ;
+        DescriptorSet set     ;
+      };
 
+      typedef std::stack<ImageCommand>        Commands  ;
+      typedef std::map<std::string, Material> Materials ;
+      
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
-       Uniforms                        uniforms          ; ///< Objects to contain all data to be sent to a uniform.
+       Materials                       materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
       ::kgl::vk::render::CommandBuffer buffer            ; ///< The command buffer to use for all GPU calls.
       ::kgl::vk::render::Pipeline      pipeline          ; ///< The pipeline that is associated with this object's rendering.
@@ -132,17 +139,21 @@ namespace kgl
 
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
     {
+        auto iter = this->materials.find( cmd.image() ) ;
+        
         this->commands.emplace( cmd ) ;
         
         // If we don't have enough uniform objects for the amount of commands we have, scale up.
-        if( this->commands.size() > this->uniforms.size() )
+        if( iter == this->materials.end() )
         {
-          unsigned start = this->uniforms.size() != 0 ? this->uniforms.size() - 1 : 0 ;
-          
-          this->uniforms.resize( this->commands.size() ) ;
-          for( unsigned i = start; i < this->commands.size(); i++ )
+          if( this->manager.contains( cmd.image() ) )
           {
-            this->uniforms[ i ].initialize( this->gpu ) ;
+            auto mat = this->materials.emplace( cmd.image(), Material() ) ;
+            
+            mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
+            mat.first->second.uniform.initialize( this->gpu                                   ) ;
+            mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
+            mat.first->second.set.set( mat.first->second.uniform ) ;
           }
         }
     }
@@ -199,7 +210,7 @@ namespace kgl
     void Render2DData::input( const ::kgl::vk::Synchronization& sync )
     {
       this->sync.copy( sync ) ;
-      this->pool.reset() ;
+//      this->pool.reset() ;
     }
 
     void Render2DData::output()
@@ -256,6 +267,9 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
+      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) * 2                                     ) ;
+      data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
+
       // Initialize vulkan objects.
       data().vertices.initialize<float>( data().gpu, Buffer::Type::VERTEX, 24                                                   ) ;
       data().pass    .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
@@ -291,8 +305,8 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
       
       // Graph-specific JSON-parameters.
-      data().bus( "Graphs::", pipeline, "::window"    ).attach( this->data_2d, &Render2DData::setWindowName      ) ;
-      data().bus( "Graphs::", pipeline, "::gpu"       ).attach( this->data_2d, &Render2DData::setGPU             ) ;
+      data().bus( "Graphs::", pipeline, "::window" ).attach( this->data_2d, &Render2DData::setWindowName ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &Render2DData::setGPU        ) ;
       
       // Module-specific JSON-parameters.
       data().bus( json_path.c_str(), "::input"        ).attach( this->data_2d, &Render2DData::setInputName       ) ;
@@ -300,11 +314,11 @@ namespace kgl
       data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &Render2DData::setOutputImageName ) ;
 
       // Graph-specific inputs.
-      data().bus( pipeline, "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
+      data().bus( this->name(), "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
 
       // Add dependancies for this module's operation.
       data().bus( "" ).onCompletion( this->name(), dynamic_cast<Module*>( this ), &Render2D::kick ) ;
-      data().bus( pipeline, "::cmd" ).addDependancy( this->data_2d, &Render2DData::setCommand, data().name.c_str() ) ;
+      data().bus( this->name(), "::cmd" ).addDependancy( this->data_2d, &Render2DData::setCommand, data().name.c_str() ) ;
       
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -315,37 +329,36 @@ namespace kgl
 
     void Render2D::execute()
     {
-      ::kgl::vk::DescriptorSet set ;
+      struct Transformation
+      {
+        glm::mat4 model ;
+        glm::mat4 proj  ;
+      };
+
+      Transformation transform ;
+
       if( !data().commands.empty() )
       {
+
         data().buffer.record( data().pass ) ;
         while( !data().commands.empty() )
         {
-          // Make new descriptor set.
-          set = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
-          
           // Pop latest draw command off the stack.
           data().pop() ;
           
           // Build Transformation Matrix.
           data().setUpModelMatrix() ;
-          
-          // Set Uniform Variable Data on shaders.
-          data().uniforms[ data().current_cmd_index ].add( "model"     , Uniform::Type::UBO, data().model_matrix ) ;
-          data().uniforms[ data().current_cmd_index ].add( "projection", Uniform::Type::UBO, data().projection   ) ;
-    
-          // If input image is loaded, put it on the shader as well.
-          if( data().manager.contains( data().current_cmd.image() ) )
-          {
-             data().uniforms[ data().current_cmd_index ].addImage( "image", data().manager.image( data().current_cmd.image() ) ) ;
-          } 
 
-          // Pass uniform object to the Descriptor Set to be set.
-          set.set(  data().uniforms[ data().current_cmd_index ] ) ;
-          
+          auto iter = data().materials.find( data().current_cmd.image() ) ;
+
           // Bind pipeline and descriptor set to the command buffer.
-          data().pipeline.bind( data().buffer, set ) ;
-    
+          data().pipeline.bind( data().buffer, iter->second.set ) ;
+          
+          // Push Transformations to the GPU.
+          transform.model = data().model_matrix ;
+          transform.proj  = data().projection   ;
+          data().buffer.pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
+
           // Draw using vertices.
           data().buffer.draw( data().vertices.buffer(), 24 ) ;
           

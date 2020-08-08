@@ -42,6 +42,7 @@ namespace kgl
           None,
           Quit,
           KeyDown,
+          KeyUp,
         };
 
         /**
@@ -49,14 +50,49 @@ namespace kgl
         enum class IOCode
         {
           None,
+          A,
+          B,
+          C,
+          D,
+          E,
+          F,
+          G,
+          H,
+          I,
+          J,
+          K,
+          L,
+          M,
+          N,
+          O,
+          P,
+          Q,
+          R,
+          S,
+          T,
+          U,
+          V,
+          W,
+          X,
+          Y,
+          Z,
+          Zero,
+          One,
+          Two,
+          Three,
+          Four,
+          Five,
+          Six,
+          Seven,
+          Eight,
+          Nine,
           Escape,
           Left,
           Right,
           Up,
           Down,
-          Z,
           Enter,
-          Zero,
+            
         };
         
         /**
@@ -107,11 +143,11 @@ namespace kgl
         
         /**
          */
-        Type     event_type ;
+        Type event_type ;
         
         /**
          */
-        IOCode   key_code   ;
+        IOCode key_code   ;
         
         /**
          */

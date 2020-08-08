@@ -12,7 +12,7 @@
  * Purpose      : Declaration for Data bus object.
 **********************************************************************/
 #include "ArgumentParser.h"
-#include "UWUShader.h"
+#include "../shader/UWUShader.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -83,13 +83,13 @@ namespace tools
     {
       std::string buffer ;
       
-      for( unsigned index = 1; index < num_inputs; index++ )
+      for( unsigned index = 1; index < static_cast<unsigned>( num_inputs ); index++ )
       {
         buffer = std::string( argv[ index ] ) ;
 
-        if     ( buffer == "-i" && index + 1 < num_inputs ) { data().include_directory   = std::string( argv[ index + 1 ] ) ; index++ ; }
-        else if( buffer == "-o"  && index + 1 < num_inputs ) { data().output_path         = std::string( argv[ index + 1 ] ) ; index++ ; }
-        else if( buffer == "-r"       && index + 1 < num_inputs ) { data().recursive_directory = std::string( argv[ index + 1 ] ) ; index++ ; }
+        if     ( buffer == "-i" && index + 1 < static_cast<unsigned>( num_inputs ) ) { data().include_directory   = std::string( argv[ index + 1 ] ) ; index++ ; }
+        else if( buffer == "-o" && index + 1 < static_cast<unsigned>( num_inputs ) ) { data().output_path         = std::string( argv[ index + 1 ] ) ; index++ ; }
+        else if( buffer == "-r" && index + 1 < static_cast<unsigned>( num_inputs ) ) { data().recursive_directory = std::string( argv[ index + 1 ] ) ; index++ ; }
         else if( buffer == "-v"                                 ) { data().verbose             = true                             ;           }
         else                                                      { data().shaders_paths.push_back( std::string( argv[ index ] ) )          ; }
       }

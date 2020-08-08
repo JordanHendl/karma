@@ -22,13 +22,13 @@ namespace kgl
      */
     static uint32_t findMemType( uint32_t filter, ::vk::MemoryPropertyFlags flag, ::vk::PhysicalDevice device ) ;
     
-    /**
-     * @param filter
-     * @param props
-     * @param gpu
-     * @return 
-     */
-    static inline unsigned memoryType( unsigned filter, ::vk::MemoryPropertyFlags props, unsigned gpu ) ;
+//    /**
+//     * @param filter
+//     * @param props
+//     * @param gpu
+//     * @return 
+//     */
+//    static inline unsigned memoryType( unsigned filter, ::vk::MemoryPropertyFlags props, unsigned gpu ) ;
 
     struct BufferData
     {
@@ -89,7 +89,6 @@ namespace kgl
       mem_prop = device.getMemoryProperties() ;
       for( unsigned i = 0; i < mem_prop.memoryTypeCount; i++ )
       {
-//        std::cout << "Mem Prop: " << i << " -> " << ::vk::to_string( mem_prop.memoryTypes[ i ].propertyFlags ) << std::endl ;
         if( filter & ( 1 << i ) && (mem_prop.memoryTypes[ i ].propertyFlags & flag ) == flag )
         {
           
@@ -120,8 +119,7 @@ namespace kgl
     ::vk::Buffer BufferData::createBuffer( ::vk::DeviceSize size, ::vk::BufferUsageFlags usage )
     {
       const ::kgl::vk::compute::Context context ;
-      const ::vk::PhysicalDevice p_device = context.physicalDevice( this->gpu ) ;
-      const ::vk::Device         device   = context.virtualDevice ( this->gpu ) ;
+      const ::vk::Device                device   = context.virtualDevice ( this->gpu ) ;
       ::vk::BufferCreateInfo info   ;
       ::vk::Buffer           buffer ;
 
@@ -157,8 +155,6 @@ namespace kgl
 
     void BufferData::copy( ::vk::Buffer buffer, unsigned size )
     {
-      const ::kgl::vk::compute::Context context                      ;
-      const ::vk::Queue queue   = context.computeQueue ( this->gpu ) ;
       ::vk::BufferCopy region ;
       ::vk::DeviceSize offset ;
       
@@ -170,8 +166,8 @@ namespace kgl
       this->cmd_buff.record() ;
       this->cmd_buff.buffer( 0 ).copyBuffer( buffer, this->buffer, 1, &region ) ;
       this->cmd_buff.stop() ;
-      
       this->cmd_buff.submit() ;
+      this->cmd_buff.wait() ;
     }
 
     BufferImpl::BufferImpl()
@@ -192,8 +188,8 @@ namespace kgl
       ::vk::FenceCreateInfo fence_info ;
       
       size = sz ;
-      data().device = context.virtualDevice( device )                        ;
-      data().gpu    = device                                                 ;
+      data().device = context.virtualDevice( device ) ;
+      data().gpu    = device                          ;
 
       this->data().count      = count                             ;
       this->data().type       = static_cast<Buffer::Type>( type ) ; 
@@ -208,15 +204,12 @@ namespace kgl
     {
       const unsigned sz = this->data().element_sz * this->data().count ;
       ::vk::Buffer         staging_buffer ;
-      ::vk::MemoryMapFlags flag           ;
-      ::vk::DeviceSize     mem_offset     ;
       ::vk::DeviceMemory   staging_mem    ;
+      ::vk::MemoryMapFlags flag           ;
       void*                mapped_data    ;
          
       staging_buffer = this->data().createBuffer( sz, ::vk::BufferUsageFlagBits::eTransferSrc ) ;
       staging_mem    = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible, staging_buffer ) ;
-      
-      mem_offset     = offset ;
       
       this->data().device.mapMemory( staging_mem, offset, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
       std::memcpy( mapped_data, data, (size_t)sz                                                     ) ;

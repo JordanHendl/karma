@@ -105,8 +105,6 @@ namespace kgl
     {
       const ::vk::PhysicalDevice pdevice = device.physicalDevice() ;
       const ::vk::SurfaceKHR     surf    = surface.surface()       ;
-      uint32_t format_count  ;
-      uint32_t present_count ;
 
       data().details.formats       = pdevice.getSurfaceFormatsKHR     ( surf ) ;
       data().details.capabilities  = pdevice.getSurfaceCapabilitiesKHR( surf ) ;
@@ -207,10 +205,10 @@ namespace kgl
 
       data().views.resize( data().images.size() ) ;
       
-      mapping.r == ::vk::ComponentSwizzle::eIdentity ;
-      mapping.g == ::vk::ComponentSwizzle::eIdentity ;
-      mapping.b == ::vk::ComponentSwizzle::eIdentity ;
-      mapping.a == ::vk::ComponentSwizzle::eIdentity ;
+      mapping.r = ::vk::ComponentSwizzle::eIdentity ;
+      mapping.g = ::vk::ComponentSwizzle::eIdentity ;
+      mapping.b = ::vk::ComponentSwizzle::eIdentity ;
+      mapping.a = ::vk::ComponentSwizzle::eIdentity ;
       
       subresource_range.setAspectMask    ( ::vk::ImageAspectFlagBits::eColor ) ;
       subresource_range.setLevelCount    ( 1                                 ) ;

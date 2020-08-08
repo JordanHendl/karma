@@ -50,7 +50,6 @@ namespace kgl
     {
         PropertyList  plist ;
         ExtensionList list  ;
-        uint32_t      count ;
 
         plist = ::vk::enumerateInstanceExtensionProperties() ;
 

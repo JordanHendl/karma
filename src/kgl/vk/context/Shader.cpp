@@ -140,6 +140,7 @@ namespace kgl
         case ::tools::shader::UniformType::SAMPLER : desc_type = ::vk::DescriptorType::eCombinedImageSampler ; break ;
         case ::tools::shader::UniformType::SSBO    : desc_type = ::vk::DescriptorType::eStorageBuffer        ; break ;
         case ::tools::shader::UniformType::None    : desc_type = ::vk::DescriptorType::eUniformBuffer        ; break ;
+        default : break ;
       }
     }
 
@@ -228,7 +229,7 @@ namespace kgl
       
       info.setBindingCount( bindings.size() );
       info.setPBindings   ( bindings.data() );
-      
+
       this->layout = this->gpu.createDescriptorSetLayout( info, nullptr) ;
     }
 

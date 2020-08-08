@@ -23,8 +23,6 @@ namespace karma
 {
   namespace config
   {
-    #pragma region // Data Structure Declarations.
-
     /** The data structure to contain all of the Configuration object's data.
      */
     struct ConfigurationData
@@ -34,10 +32,6 @@ namespace karma
       json::Token                 begin  ; ///< The beginning of this object's internal parsed data.
       json::Token                 end    ; ///< The end of this object's internal parsed data.
     };
-
-    #pragma endregion
-
-    #pragma region // Configuration Class definitions.
 
     Configuration::Configuration()
     {
@@ -123,7 +117,5 @@ namespace karma
     {
       return *this->config_data ;
     }
-
-    #pragma endregion
   }
 }

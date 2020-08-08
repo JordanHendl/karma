@@ -26,13 +26,8 @@ namespace karma
   {
     namespace json
     {
-      #pragma region //Helper Typedefs
-
       typedef std::vector<std::string>            TokenValues ;
       typedef  std::map<std::string, TokenValues> JSONMap     ;
-      #pragma endregion
-
-      #pragma region //Static Global Function Declerations
 
       /** Function to recieve the next valid JSON character from the stream.
        * @param json_stream Reference to the stringstream to search through.
@@ -45,9 +40,6 @@ namespace karma
        * @return std::string The string value without the double quotes.
        */
       static std::string getString( std::stringstream& json_stream ) ;
-      #pragma endregion
-
-      #pragma region //Object Data Structure Declerations.
 
       /** Structure to contain a token's internal data.
        */
@@ -143,9 +135,6 @@ namespace karma
          */
         void handleNext   ( std::string parent_key, JSONFile& stream ) ;
       };
-      #pragma endregion
-
-      #pragma region //Global function definitions.
 
       std::string getString( std::stringstream& json_stream )
       {
@@ -169,9 +158,6 @@ namespace karma
 
         return val ;
       }
-      #pragma endregion
-
-      #pragma region //Parser Object Definitions.
 
       void ParserData::handleComma( std::string parent_key, JSONFile& stream )
       {
@@ -340,7 +326,6 @@ namespace karma
       {
         const char next = getNextValidCharacter( stream ) ;
         std::string       buffer ;
-        bool              val    ;
 
         if( next == 't')
         {
@@ -348,8 +333,7 @@ namespace karma
           stream.putback( next ) ;
           stream.read( &buffer[0], 4 ) ;
 
-          if( buffer == "true" ) val = true ;
-          else for( unsigned i = 0; i < 4; i++ ) stream.putback( buffer[i] ) ;
+          if( buffer != "true" ) for( unsigned i = 0; i < 4; i++ ) stream.putback( buffer[i] ) ;
         }
         else if( next == 'f')
         {
@@ -357,8 +341,7 @@ namespace karma
           stream.putback( next ) ;
           stream.read( &buffer[0], 5 ) ;
 
-          if( buffer == "false" ) val = false ;
-          else for( unsigned i = 0; i < 5; i++ ) stream.putback( buffer[i] ) ;
+          if( buffer != "false" ) for( unsigned i = 0; i < 5; i++ ) stream.putback( buffer[i] ) ;
         }
 
         if( buffer.size() != 0 )
@@ -437,9 +420,6 @@ namespace karma
       {
         return *this->parser_data ;
       }
-      #pragma endregion
-
-      #pragma region //Token Object Definitions.
 
       Token::Token()
       {
@@ -538,7 +518,6 @@ namespace karma
       {
         return *this->token_data ;
       }
-      #pragma endregion
     }
   }
 }

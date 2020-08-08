@@ -20,14 +20,16 @@ namespace kgl
     {
       struct PipelineData
       {
-        ::kgl::vk::PipelineConfiguration config   ; ///< 
-        ::kgl::vk::Shader                shader   ; ///< 
-        ::vk::Pipeline                   pipeline ; ///< 
-        ::vk::PipelineLayout             layout   ; ///< 
-        ::vk::RenderPass                 pass     ; ///< 
-        std::string                      name     ; ///<
-        unsigned                         num_desc ; ///<
-        unsigned                         gpu      ; ///<
+        ::kgl::vk::PipelineConfiguration config     ; ///< 
+        ::kgl::vk::Shader                shader     ; ///< 
+        ::vk::Pipeline                   pipeline   ; ///< 
+        ::vk::PipelineLayout             layout     ; ///< 
+        ::vk::RenderPass                 pass       ; ///< 
+        std::string                      name       ; ///<
+        unsigned                         num_desc   ; ///<
+        unsigned                         gpu        ; ///<
+        unsigned                         push_size  ; ///<
+        ::vk::ShaderStageFlags           push_flags ; ///<
 
         /**
          */
@@ -83,7 +85,9 @@ namespace kgl
     {
       PipelineData::PipelineData()
       {
-        this->gpu = UINT_MAX ;
+        this->push_size  = 0                               ;
+        this->gpu        = UINT_MAX                        ;
+        this->push_flags = ::vk::ShaderStageFlagBits::eAll ;
       }
 
       void PipelineData::createLayout()
@@ -91,11 +95,18 @@ namespace kgl
         const ::kgl::vk::render::Context context                                          ;
         const ::vk::Device               device      = context.virtualDevice( this->gpu ) ;
         const auto                       desc_layout = this->shader.layout()              ;
-        ::vk::PipelineLayoutCreateInfo info ;
+        ::vk::PushConstantRange        range ;
+        ::vk::PipelineLayoutCreateInfo info  ;
         
-        info.setSetLayoutCount( 1            ) ;
-        info.setPSetLayouts   ( &desc_layout ) ;
-        
+        range.setOffset    ( 0                ) ;
+        range.setSize      ( this->push_size  ) ;
+        range.setStageFlags( this->push_flags ) ;
+
+        info.setSetLayoutCount        ( 1                            ) ;
+        info.setPSetLayouts           ( &desc_layout                 ) ;
+        info.setPPushConstantRanges   ( &range                       ) ;
+        info.setPushConstantRangeCount( this->push_size != 0 ? 1 : 0 ) ;
+
         this->layout = device.createPipelineLayout( info, nullptr ) ;
       }
 
@@ -170,13 +181,16 @@ namespace kgl
         }
       }
       
-      
-      
       const Shader& Pipeline::shader() const
       {
         return data().shader ;
       }
       
+      const ::vk::PipelineLayout Pipeline::layout() const
+      {
+        return data().layout ;
+      }
+
       void Pipeline::subscribe( const char* name, unsigned channel )
       {
         data().config.subscribe( name, channel ) ;
@@ -186,7 +200,17 @@ namespace kgl
       {
         data().bind( buffer, set ) ;
       }
-
+      
+      void Pipeline::setPushConstantByteSize( unsigned size )
+      {
+        data().push_size = size ;
+      }
+      
+      void Pipeline::setPushConstantStageFlag( unsigned stage )
+      {
+        data().push_flags = static_cast<::vk::ShaderStageFlags>( stage ) ;
+      }
+      
       const char* Pipeline::name() const
       {
         return data().name.c_str() ;

@@ -59,7 +59,6 @@ namespace kgl
 
   void WindowSetup::subscribe()
   {
-    const auto base_path = ::kgl::vk::basePath() ;
     ::data::module::Bus bus ;
     
     bus.setChannel( this->bus_channel ) ;

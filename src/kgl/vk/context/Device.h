@@ -14,7 +14,6 @@ namespace kgl
 {
   namespace vk
   {
-    static void findDevices( const ::vk::Instance instance ) ;
     class Device ;
     class Surface ;
 
