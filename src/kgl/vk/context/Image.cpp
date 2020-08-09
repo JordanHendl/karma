@@ -377,6 +377,13 @@ namespace kgl
       this->img_data = new ImageData() ;
     }
     
+    Image::Image( const Image& image )
+    {
+      this->img_data = new ImageData() ;
+      *this->img_data = *image.img_data ;
+      data().cmd_buffer = image.data().cmd_buffer ;
+    }
+    
     Image::~Image()
     {
       delete this->img_data ;
@@ -475,6 +482,18 @@ namespace kgl
       img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                  ) ;
     }
 
+    Image& Image::operator=( const Image& image )
+    {
+      *this->img_data = *image.img_data ;
+      data().cmd_buffer = image.data().cmd_buffer ;
+      return *this ;
+    }
+
+    bool Image::operator<( const Image& image ) const
+    {
+      return ( this->data().image_view ) < ( image.data().image_view ) ;
+    }
+        
     void Image::initialize( unsigned gpu, unsigned w, unsigned h ) 
     {
       const ::kgl::vk::compute::Context context ;

@@ -99,12 +99,12 @@ void KGL_Interface::initialize( const char* base_path )
     data().bus( "required_models"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage      ) ;
     data().bus( "modules_directory" ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath ) ;
 
-    kgl_config_path = path + "/setup.json"             ;
+    kgl_config_path = path + "/setup.json" ;
 
-    data().config     .initialize( kgl_config_path.c_str(), 0                ) ;
-    database_path   = path + "/database.json"          ;
-    mod_path        = path + data().module_path        ;
-    mod_config_path = path + "/kgl_configuration.json" ;
+    data().config     .initialize( kgl_config_path.c_str(), 0 ) ;
+    database_path   = path + "/database.json"                   ;
+    mod_path        = path + data().module_path                 ;
+    mod_config_path = path + "/kgl_configuration.json"          ;
 
     data().config     .initialize( database_path.c_str()  , 0                ) ;
 

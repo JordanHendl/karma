@@ -119,7 +119,7 @@ namespace kgl
       fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
 
       data().window = SDL_CreateWindow( name, 500, 500, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN ) ;
-  
+      
       data().surface.initialize( *data().window                ) ;
       data().device .initialize( data().surface.surface(), gpu ) ;
       data().chain  .initialize( data().surface, data().device ) ;
@@ -220,8 +220,7 @@ namespace kgl
     {
       const ::vk::Fence fence = data().fences.at( data().current_frame ) ;
       ::data::module::Bus bus   ;
-      
-      if( data().current_frame == 0 )
+      if( data().current_frame < 1 )
       {
         data().device.device().waitForFences( 1, &fence, true, UINT64_MAX ) ;
         data().device.device().resetFences  ( 1, &fence                   ) ;
@@ -229,11 +228,11 @@ namespace kgl
         
         data().current_img = result.value ;
         data().current_frame++ ;
-//        data().current_frame = data().current_frame + 1 % ( data().conf.max_frames_in_flight - 1 ) ;
+        
         bus( "start" ).emit( data().sync ) ;
       }
 
-      while( data().current_frame != 0 ) {} ;
+      while( data().current_frame >= 1 ) {} ;
     }
 //    void Window::setName( const char* name )
 //    {

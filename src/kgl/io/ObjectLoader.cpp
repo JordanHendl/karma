@@ -10,12 +10,17 @@
 
   static inline LibHandle loadSharedObject( const char* input )
   {
-    return LibHandle() ;
+    return dlopen( input ) ;
   }
 
   static inline const char* getError()
   {
     return "Windows Error handler not yet implemented." ;
+  }
+
+  static inline void releaseHandle( LibHandle handle )
+  {
+    FreeLibrary( handle ) ;
   }
 
 #elif __linux__ 

@@ -17,10 +17,12 @@ set( KGL_IO_HEADERS
 
 set( KGL_IO_INCLUDE_DIRS
     ${DATA_BUS_DIR}
+    ${SDL2_INCLUDE_DIRS}
    )
 
 set( KGL_IO_LIBRARIES
      data_bus
+     ${SDL2_LIBRARIES}
    )
 
 add_library( kgl_io SHARED ${KGL_IO_SOURCES} ${KGL_IO_HEADERS} )

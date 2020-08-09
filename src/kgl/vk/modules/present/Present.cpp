@@ -19,15 +19,18 @@
 #include "../../context/Descriptor.h"
 #include "../../context/Buffer.h"
 #include "../../context/RenderPass.h"
+#include <containers/BufferedStack.h>
 #include "vk/context/Window.h"
 #include "vk/context/Swapchain.h"
+#include <vk/context//Descriptor.h>
 #include "vk/context/Uniform.h"
 #include "vk/context/Image.h"
 #include <Bus.h>
 #include <Signal.h>
 #include <vulkan/vulkan.hpp>
 #include <string>
-
+#include <map>
+#include <mutex>
 
 static inline const float vertex_data[] = 
 { 
@@ -50,7 +53,15 @@ namespace kgl
   namespace vk
   {
     struct PresentData
-    {
+    { 
+      static constexpr unsigned BUFFERS = 3 ;
+      typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS > ImageStack ;
+      typedef std::vector<::kgl::vk::Uniform >                 Uniforms   ;
+      
+      std::mutex mutex ;
+      Uniforms                          uniforms     ;
+      ImageStack                       stack        ;
+      ::kgl::vk::DescriptorPool        pool         ;
       ::kgl::vk::render::CommandBuffer buffer       ; ///< TODO
       ::kgl::vk::render::Context       context      ; ///< TODO
       ::kgl::vk::Synchronization       sync         ; ///< TODO
@@ -59,7 +70,6 @@ namespace kgl
       ::kgl::vk::RenderPass            pass         ; ///< TODO
       ::kgl::vk::Buffer                vertices     ; ///< TODO
       ::kgl::vk::Buffer                indices      ; ///< TODO
-      ::kgl::vk::DescriptorPool        pool         ; ///< TODO
       ::data::module::Bus              bus          ; ///< TODO
       unsigned                         gpu          ; ///< TODO
       ::vk::Device                     device       ; ///< TODO
@@ -67,6 +77,9 @@ namespace kgl
       std::string                      output_name  ; ///< TODO
       std::string                      install_path ; ///< TODO
       std::string                      name         ;
+      
+      unsigned current_command ;
+
       void setGPU( unsigned gpu ) ;
       void setWindowName( const char* window ) ;
       void setInputName( const char* name ) ; 
@@ -113,13 +126,26 @@ namespace kgl
     void PresentData::setInput( const ::kgl::vk::Synchronization& sync )
     {
       this->sync.copy( sync ) ;
-      this->pool.reset() ;
     }
 
     void PresentData::setImage( const ::kgl::vk::Image& image )
     {
-      this->device.waitIdle() ;
-      this->uniform.addImage( "framebuffer", image ) ;
+      this->mutex.lock() ;
+      this->stack.insert( image, this->stack.next() ) ;
+      this->mutex.unlock() ;
+      
+      // If we don't have enough uniform objects for the amount of commands we have, scale up.
+      if( this->stack.size( static_cast<int>( this->stack.next() ) ) > this->uniforms.size() )
+      {
+        unsigned start = this->uniforms.size() != 0 ? this->uniforms.size() - 1 : 0 ;
+        
+        this->uniforms.resize( this->stack.size( static_cast<int>( this->stack.next() ) ) ) ;
+
+        for( unsigned index = start; index < this->stack.size(); index++ )
+        {
+          this->uniforms[ index ].initialize( this->gpu ) ;
+        }
+      }
     }
 
     Present::Present()
@@ -193,21 +219,45 @@ namespace kgl
 
     void Present::execute()
     {
+      ::kgl::vk::DescriptorSet set ;
+      
+      data().current_command = 0 ;
+
+      
+      if( data().stack.current() == 0 ) data().pool.reset() ;
+      
       data().buffer.record( data().pass ) ;
-      
-      auto set = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
-      set.set( data().uniform ) ;
-      
-      // Set image & other uniforms.
-      data().pipeline.bind( data().buffer, set ) ;
-
-      //Draw with buffer.
-      data().buffer.drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
-
+      while( !data().stack.empty() )
+      {
+        data().mutex.lock() ;
+        auto img  = data().stack.pop()                                        ;
+        data().mutex.unlock() ;
+        set       = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
+        
+        data().uniforms[ data().current_command ].addImage( "framebuffer", img ) ;
+        set.set( data().uniforms[ data().current_command ] ) ;
+        data().pipeline.bind( data().buffer, set ) ;
+        data().buffer.drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
+      }
       data().buffer.stop() ;
-
-      // Submit to render pass with synchronization data.
       data().pass.submit( data().sync, data().buffer ) ;
+      
+      data().mutex.lock() ;
+      data().stack.swap() ;
+      data().mutex.unlock() ;
+      
+//      set.set( data().uniform ) ;
+//      
+//      // Set image & other uniforms.
+//      data().pipeline.bind( data().buffer, set ) ;
+//
+//      //Draw with buffer.
+//      data().buffer.drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
+//
+//      data().buffer.stop() ;
+//
+//      // Submit to render pass with synchronization data.
+//      data().pass.submit( data().sync, data().buffer ) ;
 
       data().bus( data().window_name.c_str(), "::present" ).emit( data().sync ) ;
     }

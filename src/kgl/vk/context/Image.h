@@ -17,8 +17,11 @@ namespace kgl
     {
       public:
         Image() ;
+        Image( const Image& image ) ;
         ~Image() ;
         void initialize( unsigned gpu, unsigned w, unsigned h ) ;
+        Image& operator=( const Image& image ) ;
+        bool operator<( const Image& image ) const ;
         const ::vk::Sampler sampler() const ;
         const ::vk::ImageView view() const ;
         void setLayout( const ::vk::ImageLayout& layout ) ;

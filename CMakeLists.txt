@@ -1,15 +1,37 @@
 cmake_minimum_required( VERSION 3.8.2 )
 
-project( karma LANGUAGES CXX )
 
 #Build Options
-option( BUILD_DOC      "Whether or not documentation should be build"                       OFF ) 
-option( BUILD_UWUMAKER "Whether or not to build the GLSLANG library & UWUMaker executable." ON  ) 
-option( MAJOR_VERSION  "The major component of the version"                                 0   ) 
-option( MINOR_VERSION  "The minor component of the version"                                 1   ) 
-option( PATCH_VERSION  "The patch component of the version"                                 0   ) 
-
+option( OPEPRATING_SYSTEM "The Operating system to build for."                                 "LINUX" )
+option( BUILD_DOC         "Whether or not documentation should be build"                       OFF     ) 
+option( BUILD_UWUMAKER    "Whether or not to build the GLSLANG library & UWUMaker executable." ON      ) 
+option( MAJOR_VERSION     "The major component of the version"                                 0       ) 
+option( MINOR_VERSION     "The minor component of the version"                                 1       ) 
+option( PATCH_VERSION     "The patch component of the version"                                 0       ) 
 set( CMAKE_CXX_STANDARD 17 )
+
+if( OPERATING_SYSTEM STREQUAL "WINDOWS" )
+
+    MESSAGE( "BUILDING FOR WINDOWS" )
+    SET( CMAKE_SYSTEM_NAME Windows)
+
+    # which compilers to use for C and C++
+    SET( CMAKE_C_COMPILER   /usr/bin/x86_64-w64-mingw32-gcc )
+    SET( CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++ )
+
+    # here is the target environment located
+    SET(CMAKE_FIND_ROOT_PATH  /usr/i586-mingw32msvc /home/alex/mingw-install )
+
+    # adjust the default behaviour of the FIND_XXX() commands:
+    # search headers and libraries in the target environment, search
+    # programs in the host environment
+#    set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
+#    set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY  )
+#    set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY  )
+
+endif( OPERATING_SYSTEM STREQUAL "WINDOWS" )
+
+project( karma LANGUAGES CXX )
 
 #Application information.
 set( ENGINE_NAME     "Karma"                       )

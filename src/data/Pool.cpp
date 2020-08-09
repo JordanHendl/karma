@@ -1,6 +1,7 @@
 #include "Pool.h"
 #include "PoolData.h"
 #include <map>
+#include <string>
 
 namespace data
 {
