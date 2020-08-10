@@ -15,6 +15,7 @@ set( KGL_VK_RENDER_MODULE_MODULE_INCLUDE_DIRS
 
 set( KGL_VK_RENDER_MODULE_MODULE_LIBRARIES
      data_bus
+     kgl_containers
      kgl_vk_module
      kgl
    )

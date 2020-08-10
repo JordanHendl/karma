@@ -13,6 +13,7 @@ set( KGL_VK_PRESENT__MODULE_INCLUDE_DIRS
 
 set( KGL_VK_PRESENT__MODULE_LIBRARIES
      data_bus
+     kgl_containers
      kgl_vk_module
      kgl
    )

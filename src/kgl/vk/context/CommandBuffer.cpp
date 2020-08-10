@@ -49,24 +49,10 @@ namespace kgl
       {
         typedef std::vector<::vk::RenderPassBeginInfo> RenderPassInfos ;
         typedef std::vector<::vk::CommandBuffer      > CommandBuffers  ;
-        typedef std::vector<::vk::Semaphore>           Semaphores      ;
-        typedef std::vector<::vk::Fence>               ImageFences     ;
         typedef std::vector<::vk::Fence>               FlightFences    ;
         const unsigned max_frames_in_flight = 5 ;
         
         mutable ::kgl::vk::Synchronization sync ;
-        Semaphores       wait_sems     ;
-        Semaphores       signal_sems   ;
-        Semaphores       image_sem     ; ///< TODO
-        Semaphores       finish_sem    ; ///< TODO
-        ::vk::Fence      fence         ;
-        ImageFences      img_fences    ; ///< TODO
-        FlightFences     fences        ; ///< TODO
-        ::vk::Semaphore  wait_sem      ; ///< TODO
-        ::vk::Semaphore  signal_sem    ; ///< TODO
-        unsigned         current_frame ; ///< TODO
-        unsigned         current_image ; ///< TODO
-
         RenderPassInfos  render_infos  ; ///< The render info array to use for drawing.
         CommandBuffers   buffers       ; ///< The buffers that make up this object.
         unsigned         gpu           ; ///< The gpu to use for all operations.
@@ -77,9 +63,30 @@ namespace kgl
         /** Default Constructor.
          */
         CmdBuffData() ;
+        
+        CmdBuffData( const CmdBuffData& data )
+        {
+          this->buffers      .assign( data.buffers.begin()    , data.buffers.end()      ) ;
+          this->render_infos.assign( data.render_infos.begin(), data.render_infos.end() ) ;
+          this->sync    = data.sync    ;
+          this->gpu     = data.gpu     ;
+          this->level   = data.level   ;
+        }
+        
+        CmdBuffData& operator=( const CmdBuffData& data )
+          {
+            this->buffers      .assign( data.buffers.begin()    , data.buffers.end()      ) ;
+            this->render_infos.assign( data.render_infos.begin(), data.render_infos.end() ) ;
+            this->sync    = data.sync    ;
+            this->gpu     = data.gpu     ;
+            this->level   = data.level   ;
+
+            return *this ;
+          }
       };
     }
     
+
     namespace compute
     {
       
@@ -96,13 +103,8 @@ namespace kgl
       struct CmdBuffData
       {
         typedef std::vector<::vk::CommandBuffer> CommandBuffers ;
-        typedef std::vector<::vk::Semaphore>     Semaphores     ;
-        typedef std::vector<::vk::Fence>         Fences         ;
         
         mutable ::kgl::vk::Synchronization sync ;
-        Semaphores     wait_sems   ;
-        Semaphores     signal_sems ;
-        Semaphores     finish_sem  ; ///< TODO
         ::vk::Fence    fence       ;
         CommandBuffers buffers     ; ///< The buffers that make up this object.
         unsigned       gpu         ; ///< The gpu to use for all operations.
@@ -111,6 +113,28 @@ namespace kgl
         /** Default constructor.
          */
         CmdBuffData() ;
+        ~CmdBuffData()
+        {
+          this->buffers.clear() ;
+        }
+        
+        CmdBuffData( const CmdBuffData& data )
+        {
+          this->buffers.assign( data.buffers.begin(), data.buffers.end() ) ;
+          this->sync    = data.sync    ;
+          this->gpu     = data.gpu     ;
+          this->level   = data.level   ;
+        }
+
+        CmdBuffData& operator=( const CmdBuffData& data )
+        {
+          this->buffers.assign( data.buffers.begin(), data.buffers.end() ) ;
+          this->sync    = data.sync    ;
+          this->gpu     = data.gpu     ;
+          this->level   = data.level   ;
+          
+          return *this ;
+        }
       };
     }
 
@@ -152,6 +176,19 @@ namespace kgl
       CommandBuffer::CommandBuffer()
       {
         this->cmd_data = new CmdBuffData() ;
+      }
+      
+      CommandBuffer::CommandBuffer( const CommandBuffer& buff )
+      {
+        this->cmd_data = new CmdBuffData() ;
+        
+        *this->cmd_data = *buff.cmd_data ;
+      }
+      
+      CommandBuffer& CommandBuffer::operator=(const CommandBuffer& buff)
+      {
+        *this->cmd_data = *buff.cmd_data ;
+        return *this ;
       }
 
       CommandBuffer::~CommandBuffer()
@@ -302,17 +339,17 @@ namespace kgl
 
       void CommandBuffer::waitOn( ::vk::Semaphore sem )
       {
-        data().wait_sems.push_back( sem ) ;
+//        data().wait_sems.push_back( sem ) ;
       }
 
       void CommandBuffer::onFinish( ::vk::Semaphore sem )
       {
-        data().signal_sems.push_back( sem ) ;
+//        data().signal_sems.push_back( sem ) ;
       }
 
       void CommandBuffer::attach( ::vk::Fence fence )
       {
-        data().fence = fence ;
+//        data().fence = fence ;
       }
 
       void CommandBuffer::submit() const
@@ -325,12 +362,12 @@ namespace kgl
         data().sync.resetFence() ;
         if( data().level == BufferLevel::Primary )
         { 
-          info.setWaitSemaphoreCount  ( data().wait_sems.size()   ) ;
-          info.setPWaitSemaphores     ( data().wait_sems.data()   ) ;
+//          info.setWaitSemaphoreCount  ( data().wait_sems.size()   ) ;
+//          info.setPWaitSemaphores     ( data().wait_sems.data()   ) ;
           info.setCommandBufferCount  ( data().buffers.size()     ) ;
           info.setPCommandBuffers     ( data().buffers.data()     ) ;
-          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
-          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
+//          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
+//          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
            
           queue.submit( 1, &info, data().sync.fence() ) ;
         }
@@ -338,30 +375,30 @@ namespace kgl
 
       void CommandBuffer::submit( int buffer )
       {
-        const ::kgl::vk::render::Context context ;
-        const              ::vk::Queue   queue  = context.graphicsQueue( data().gpu )                 ;
-
-        ::vk::SubmitInfo info  ;
-        
-        if( data().level == BufferLevel::Primary )
-        { 
-          info.setWaitSemaphoreCount  ( data().wait_sems.size()                                          ) ;
-          info.setPWaitSemaphores     ( data().wait_sems.data()                                          ) ;
-          info.setCommandBufferCount  ( buffer == -1 ? data().buffers.size() : 1                         ) ;
-          info.setPCommandBuffers     ( buffer == -1 ? data().buffers.data() : &data().buffers[ buffer ] ) ;
-          info.setSignalSemaphoreCount( data().signal_sems.size()                                        ) ;
-          info.setPSignalSemaphores   ( data().signal_sems.data()                                        ) ;
-           
-          queue.submit( 1, &info, data().fence ) ;
-        }
+//        const ::kgl::vk::render::Context context ;
+////        const              ::vk::Queue   queue  = context.graphicsQueue( data().gpu )                 ;
+//
+//        ::vk::SubmitInfo info  ;
+//        
+//        if( data().level == BufferLevel::Primary )
+//        { 
+////          info.setWaitSemaphoreCount  ( data().wait_sems.size()                                          ) ;
+////          info.setPWaitSemaphores     ( data().wait_sems.data()                                          ) ;
+////          info.setCommandBufferCount  ( buffer == -1 ? data().buffers.size() : 1                         ) ;
+////          info.setPCommandBuffers     ( buffer == -1 ? data().buffers.data() : &data().buffers[ buffer ] ) ;
+////          info.setSignalSemaphoreCount( data().signal_sems.size()                                        ) ;
+////          info.setPSignalSemaphores   ( data().signal_sems.data()                                        ) ;
+////           
+////          queue.submit( 1, &info, data().fence ) ;
+//        }
       }
       
       void CommandBuffer::clearSynchronization()
       {
-        data().finish_sem .clear()   ;
-        data().signal_sems.clear()   ;
-        data().wait_sems  .clear()   ;
-        data().fence = ::vk::Fence() ;
+//        data().finish_sem .clear()   ;
+//        data().signal_sems.clear()   ;
+//        data().wait_sems  .clear()   ;
+//        data().fence = ::vk::Fence() ;
       }
 
       void CommandBuffer::submit( const CommandBuffer& buffer ) const
@@ -416,6 +453,19 @@ namespace kgl
         this->cmd_data = new CmdBuffData() ;
       }
 
+      CommandBuffer::CommandBuffer( const CommandBuffer& buff )
+      {
+        this->cmd_data = new CmdBuffData() ;
+        
+        *this->cmd_data = *buff.cmd_data ;
+      }
+      
+      CommandBuffer& CommandBuffer::operator=(const CommandBuffer& buff)
+      {
+        *this->cmd_data = *buff.cmd_data ;
+        return *this ;
+      }
+
       CommandBuffer::~CommandBuffer()
       {
         delete this->cmd_data ;
@@ -455,9 +505,9 @@ namespace kgl
       
       void CommandBuffer::clearSynchronization()
       {
-        data().finish_sem .clear()   ;
-        data().signal_sems.clear()   ;
-        data().wait_sems  .clear()   ;
+//        data().finish_sem .clear()   ;
+//        data().signal_sems.clear()   ;
+//        data().wait_sems  .clear()   ;
         data().fence = ::vk::Fence() ;
       }
 
@@ -548,12 +598,12 @@ namespace kgl
 
       void CommandBuffer::waitOn( ::vk::Semaphore sem )
       {
-        data().wait_sems.push_back( sem ) ;
+//        data().wait_sems.push_back( sem ) ;
       }
 
       void CommandBuffer::onFinish( ::vk::Semaphore sem )
       {
-        data().signal_sems.push_back( sem ) ;
+//        data().signal_sems.push_back( sem ) ;
       }
       
       void CommandBuffer::reset()

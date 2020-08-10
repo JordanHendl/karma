@@ -16,6 +16,8 @@
 #include <vk/context/Context.h>
 #include <vk/context/Image.h>
 #include <vk/context/CommandBuffer.h>
+#include <containers/BufferedStack.h>
+#include <containers/List.h>
 #include <managers/AssetManager.h>
 #include <vulkan/vulkan.hpp>
 #include <DrawCommand.h>
@@ -51,10 +53,12 @@ namespace kgl
         Uniform       uniform ;
         DescriptorSet set     ;
       };
-
-      typedef std::stack<ImageCommand>        Commands  ;
+      
+      static constexpr unsigned BUFFERS = 3 ;
+//      typedef std::stack<ImageCommand>        Commands  ;
       typedef std::map<std::string, Material> Materials ;
       
+      ::kgl::BufferedStack<ImageCommand, BUFFERS> commands ;
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
        Materials                       materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
@@ -75,7 +79,7 @@ namespace kgl
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
-      Commands                         commands          ; ///< The stack of commands this object is to process when kicked.
+//      Commands                         commands          ; ///< The stack of commands this object is to process when kicked.
       unsigned                         current_cmd_index ; ///< The current index of command being processed.
 
       /** Default Constructor. Initializes member data.
@@ -133,29 +137,28 @@ namespace kgl
     
     void Render2DData::pop()
     {
-      this->current_cmd = this->commands.top() ;
-      this->commands.pop() ;
+      this->current_cmd = this->commands.pop() ;
     }
 
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
     {
-        auto iter = this->materials.find( cmd.image() ) ;
-        
-        this->commands.emplace( cmd ) ;
-        
-        // If we don't have enough uniform objects for the amount of commands we have, scale up.
-        if( iter == this->materials.end() )
+      auto iter = this->materials.find( cmd.image() ) ;
+
+      this->commands.insert( cmd, this->commands.next() ) ;
+
+      // If we don't have enough uniform objects for the amount of commands we have, scale up.
+      if( iter == this->materials.end() )
+      {
+        if( this->manager.contains( cmd.image() ) )
         {
-          if( this->manager.contains( cmd.image() ) )
-          {
-            auto mat = this->materials.emplace( cmd.image(), Material() ) ;
-            
-            mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
-            mat.first->second.uniform.initialize( this->gpu                                   ) ;
-            mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
-            mat.first->second.set.set( mat.first->second.uniform ) ;
-          }
+          auto mat = this->materials.emplace( cmd.image(), Material() ) ;
+
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
+          mat.first->second.uniform.initialize( this->gpu                                   ) ;
+          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
+          mat.first->second.set.set( mat.first->second.uniform ) ;
         }
+      }
     }
     
     void Render2DData::setUpModelMatrix()
@@ -337,9 +340,10 @@ namespace kgl
 
       Transformation transform ;
 
+      data().commands.swap() ;
+
       if( !data().commands.empty() )
       {
-
         data().buffer.record( data().pass ) ;
         while( !data().commands.empty() )
         {

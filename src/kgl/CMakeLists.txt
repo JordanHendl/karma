@@ -43,6 +43,7 @@ ADD_SUBDIRECTORY   ( io         )
 ADD_SUBDIRECTORY   ( managers   )
 ADD_SUBDIRECTORY   ( vk         )
 ADD_SUBDIRECTORY   ( library    )
+ADD_SUBDIRECTORY   ( containers )
 
 ADD_LIBRARY               ( kgl SHARED  ${KGL_SOURCES} ${KGL_HEADERS} )
 TARGET_LINK_LIBRARIES     ( kgl PRIVATE ${KGL_LIBRARIES}              )

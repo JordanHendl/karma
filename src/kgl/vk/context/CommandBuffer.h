@@ -43,10 +43,21 @@ namespace kgl
           ~CommandBuffer() ;
           
           /**
+           * @param buff
+           */
+          CommandBuffer( const CommandBuffer& buff ) ;
+          
+          /**
            * @param window_name
            * @param gpu
            */
           void initialize( const char* window_name, unsigned gpu, unsigned count, BufferLevel level = BufferLevel::Primary ) ;
+          
+          /**
+           * @param buff
+           * @return 
+           */
+          CommandBuffer& operator=( const CommandBuffer& buff ) ;
           
           /** Method to return the name of the window this command buffer is associated with.
            * @return The name of the window this command buffer is associated with.
@@ -187,6 +198,11 @@ namespace kgl
           /**
            */
           CommandBuffer() ;
+          
+          /**
+           * @param buff
+           */
+          CommandBuffer( const CommandBuffer& buff ) ;
         
           /**
            * @param gpu
@@ -194,6 +210,11 @@ namespace kgl
            */
           ~CommandBuffer() ;
         
+          /**
+           * @param buff
+           * @return 
+           */
+          CommandBuffer& operator=( const CommandBuffer& buff ) ;
           /**
            * @param command
            */
