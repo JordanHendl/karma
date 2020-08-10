@@ -17,7 +17,7 @@ set( TOOLS_UWUWRITER_LIBRARIES
      stdc++fs
     )
 
-add_library               ( uwuwriter SHARED   ${TOOLS_UWUWRITER_SOURCES} ${TOOLS_UWUWRITER_HEADERS} )
-target_include_directories( uwuwriter PRIVATE  ${TOOLS_UWUWRITER_INCLUDE_DIRS}                       )
-target_link_libraries     ( uwuwriter PRIVATE  ${TOOLS_UWUWRITER_LIBRARIES}                          )
+add_library               ( karma_uwuwriter SHARED   ${TOOLS_UWUWRITER_SOURCES} ${TOOLS_UWUWRITER_HEADERS} )
+target_include_directories( karma_uwuwriter PRIVATE  ${TOOLS_UWUWRITER_INCLUDE_DIRS}                       )
+target_link_libraries     ( karma_uwuwriter PRIVATE  ${TOOLS_UWUWRITER_LIBRARIES}                          )
 

@@ -13,6 +13,7 @@
 **********************************************************************/
 #include "Configuration.h"
 #include "Parser.h"
+#include <log/Log.h>
 #include <Bus.h>
 #include <Signal.h>
 #include <fstream>
@@ -31,7 +32,17 @@ namespace karma
       karma::config::json::Parser parser ; ///< The parser to use to parse the configuration.
       json::Token                 begin  ; ///< The beginning of this object's internal parsed data.
       json::Token                 end    ; ///< The end of this object's internal parsed data.
+      bool                        init   ; ///< Whether or not this object is initialized.
+      
+      /** Default Constructor.
+      */
+      ConfigurationData() ;
     };
+
+    ConfigurationData::ConfigurationData()
+    {
+      this->init = false ;
+    }
 
     Configuration::Configuration()
     {
@@ -52,6 +63,11 @@ namespace karma
     {
       return data().end ;
     }
+    
+    bool Configuration::isInitialized() const
+    {
+      return data().init ;
+    }
 
     void Configuration::initialize( const char* path, unsigned channel )
     {
@@ -64,6 +80,8 @@ namespace karma
       data().parser.clear() ;
       if( stream )
       {
+        data().init = true ;
+        
         // Copy stream's contents into string.
         stream.seekg  ( 0, std::ios::end  ) ;
         file  .reserve( stream.tellg()    ) ;
@@ -105,6 +123,11 @@ namespace karma
             data().bus( token.key() ).emit<float      >( token.decimal () ) ;
           }
         }
+      }
+      else
+      {
+        karma::log::Log::output( karma::log::Log::Level::Warning, "Unable to load configuration file: ", path ) ;
+        data().init = false ;
       }
     }
 

@@ -1,8 +1,6 @@
 #include "Module.h"
 #include <Bus.h>
 #include <Signal.h>
-#include <condition_variable>
-#include <mutex>
 #include <string>
 #include <limits.h>
 
@@ -10,23 +8,20 @@ namespace kgl
 {
   namespace vk
   {
-    const unsigned DATA_BUS_SUBSCRIPTION_CHANNEL = UINT_MAX ;
-
     /** Structure to contain the Module object's internal data.
      */
     struct ModuleData
     {
       typedef bool Flag ;
       
-      std::condition_variable variable   ; ///< TODO
-      std::mutex              lock       ; ///< TODO
       std::string             name       ; ///< TODO
       std::string             type       ; ///< TODO
       unsigned                version    ; ///< TODO
       Flag                    running    ; ///< TODO
       Flag                    should_run ; ///< TODO
       ::data::module::Bus     bus        ; ///< TODO
-              
+      unsigned                num_deps   ;
+      unsigned                wait_sem   ;
       /**
        */
       ModuleData() ;
@@ -37,6 +32,8 @@ namespace kgl
       this->name       = ""    ;
       this->running    = false ;
       this->should_run = false ;
+      this->num_deps   = 0     ;
+      this->wait_sem   = 0     ;
     }
 
     Module::Module()
@@ -48,11 +45,6 @@ namespace kgl
     {
       delete this->module_data ;
     }
-
-    void Module::kick()
-    {
-      data().variable.notify_all() ;
-    }
     
     void Module::subscribe( const char* pipeline, unsigned id )
     {
@@ -61,21 +53,18 @@ namespace kgl
             
     void Module::start()
     {
-      std::unique_lock<std::mutex> lock ;
-      
       data().running    = true ;
       data().should_run = true ;
-
-      while( data().should_run ) 
-      {
-        lock = std::unique_lock<std::mutex>( data().lock ) ;
-        data().variable.wait( lock ) ;
-        
-        this->execute() ;
-        
-        data().lock.unlock() ;
-      }
       
+      while( data().should_run )
+      {
+        while ( data().wait_sem < data().num_deps ) {} ;
+
+        data().wait_sem = 0 ;
+
+        this->execute() ;
+      }
+
       data().running = false ;
     }
 
@@ -109,6 +98,16 @@ namespace kgl
     unsigned Module::version() const
     {
       return data().version ;
+    }
+
+    void Module::setNumDependancies( unsigned count )
+    {
+      data().num_deps = count ;
+    }
+    
+    void Module::semIncrement()
+    {
+      data().wait_sem++ ;
     }
 
     const char* Module::name() const

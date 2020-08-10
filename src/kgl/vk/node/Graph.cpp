@@ -1,6 +1,7 @@
 #include "Graph.h"
 #include "Module.h"
 #include "Loader.h"
+#include <log/Log.h>
 #include <Bus.h>
 #include <Signal.h>
 #include <string>
@@ -37,11 +38,20 @@ namespace kgl
         
         void create()
         {
+          using namespace karma::log ;
+
           if( this->graph->find( this->name ) == this->graph->end() )
-          {
+          { 
+            Log::output( " Initializing module. \n\n",
+
+            "  - Name    : ", this->name.c_str()    , "\n",
+            "  - Module  : ", this->type.c_str()    , "\n",
+            "  - Version : ", this->version         , "\n",
+            "  - Pipeline: ", this->pipeline.c_str(), "\n" ) ;
+
             auto descriptor = loader->descriptor( this->type.c_str() ) ;  
             auto module     = descriptor.create ( this->version      ) ;
-
+            
             if( module )
             {
               module->setName    ( this->name.c_str()               ) ;
@@ -67,15 +77,15 @@ namespace kgl
 
       void setName( const char* name )
       {
+
         std::string dependency ;
-        
+
         dependency = this->pipeline + name ;
-        
         
         if( this->loaded_map.find( name ) == this->loaded_map.end() )
         {
           this->bus("").onCompletion( dependency.c_str(), &this->loaded_map[ name ], &NodeInfo::create ) ;
-
+          
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::version" ).attach( &this->loaded_map[ name ], &NodeInfo::setVersion                         ) ;
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).attach( &this->loaded_map[ name ], &NodeInfo::setType                            ) ;
           this->bus( "Graphs::", this->pipeline.c_str(), "::Modules::", name, "::type"    ).addDependancy( &this->loaded_map[ name ], &NodeInfo::setType, dependency.c_str() ) ;

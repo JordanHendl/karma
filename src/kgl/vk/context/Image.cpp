@@ -1,7 +1,7 @@
 #include "Image.h"
 #include "CommandBuffer.h"
 #include "Context.h"
-#include "../node/Synchronization.h"
+#include "Synchronization.h"
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 
@@ -185,8 +185,6 @@ namespace kgl
 
     void ImageData::transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout ) const
     {
-      const ::kgl::vk::compute::Context context ;
-      const ::vk::Queue queue = context.computeQueue( this->gpu ) ;
       ::vk::ImageMemoryBarrier    barrier ;
       ::vk::ImageSubresourceRange range   ;
       ::vk::PipelineStageFlags    src     ;
@@ -220,7 +218,6 @@ namespace kgl
       this->cmd_buffer.submit() ;
       this->cmd_buffer.wait() ;
       this->layout = new_layout ;
-      queue.waitIdle() ;
     }
 
     void ImageData::copyBufferToImage( ::vk::Buffer buffer )

@@ -13,9 +13,9 @@ set( KGL_VK_SPRITESHEET_MODULE_MODULE_INCLUDE_DIRS
     )
 
 set( KGL_VK_SPRITESHEET_MODULE_MODULE_LIBRARIES
-     data_bus
      kgl_vk_module
      kgl
+     karma_data_bus
    )
 
 add_library               ( spritesheet SHARED   ${KGL_VK_SPRITESHEET_MODULE_MODULE_SOURCES} ${KGL_VK_SPRITESHEET_MODULE_MODULE_HEADERS} )

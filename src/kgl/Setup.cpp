@@ -1,5 +1,6 @@
 #include "Setup.h"
 #include <vk/context/Context.h>
+#include <log/Log.h>
 #include <managers/AssetManager.h>
 #include <string>
 #include <vector>
@@ -123,6 +124,8 @@ namespace kgl
   void Setup::initialize()
   {
     ::kgl::vk::render::Context context ;
+    
+    karma::log::Log::output( "Initializing KGL setup" ) ;
     for( auto setup : data().window_sets )
     {
       auto set = setup.second ;

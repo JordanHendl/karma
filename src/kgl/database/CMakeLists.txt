@@ -13,9 +13,10 @@ set( KGL_DATABASE_INCLUDES
    )
 
 set( KGL_DATABASE_LIBRARIES
-     configuration
      kgl_managers
-     data_bus
+     karma_data_bus
+     karma_configuration
+     karma_log
    )
 
 add_library               ( kgl_database SHARED  ${KGL_DATABASE_SOURCES}  ${KGL_DATABASE_HEADERS} )

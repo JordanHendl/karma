@@ -1,6 +1,7 @@
 #include "Loader.h"
 #include "Module.h"
 #include "../../io/ObjectLoader.h"
+#include <log/Log.h>
 #include <filesystem>
 #include <string> 
 #include <map>
@@ -105,12 +106,15 @@ namespace kgl
     
     void Descriptor::initalize( const char* module_path )
     {
+      using namespace karma::log ;
       unsigned version ;
 
       data().loader.load( module_path ) ;
       
       DescriptorData::Module mod ;
       
+      Log::output( "loading shared library at: ", module_path ) ;
+
       mod.name    = data().loader.symbol( "name"    ) ;
       mod.make    = data().loader.symbol( "make"    ) ;
       mod.destroy = data().loader.symbol( "destroy" ) ;

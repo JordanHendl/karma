@@ -1,6 +1,7 @@
 #include "Instance.h"
 #include "Validation.h"
 #include "Library.h"
+#include <log/Log.h>
 #include <Bus.h>
 #include <Signal.h>
 #include <vulkan/vulkan.hpp>
@@ -20,7 +21,10 @@ namespace kgl
             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
             void* pUserData )
     {
-      std::cerr << "VULKAN::Validation::" << pCallbackData->pMessage << "\n" <<std::endl;
+      
+      karma::log::Log::output( "**VULKAN VALIDATION LAYER**: ", ::vk::to_string( static_cast<::vk::DebugUtilsMessageSeverityFlagBitsEXT>( messageSeverity ) ).c_str(), " -> ",
+              pCallbackData->pMessage ) ;
+              
       return VK_FALSE;
     }
 
@@ -105,17 +109,14 @@ namespace kgl
       ext_list   = data().makeExtensionList() ;
       debug_info = data().makeDebugInfo()     ;
       
-      if( layer.supported() )
+      info.setEnabledLayerCount  ( layer.count() ) ;
+      info.setPpEnabledLayerNames( layer.names() ) ;
+      info.setPNext              ( (VkDebugUtilsMessengerCreateInfoEXT*)&debug_info ) ;
+      
+      if( layer.count() != 0 ) 
       {
-        info.setEnabledLayerCount  ( layer.count() ) ;
-        info.setPpEnabledLayerNames( layer.names() ) ;
-        info.setPNext              ( (VkDebugUtilsMessengerCreateInfoEXT*)&debug_info ) ;
-        
-        ext_list.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME ) ;
-      }
-      else
-      {
-        info.setEnabledLayerCount( 0 ) ;
+        ext_list.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME                ) ;
+        info.setPNext     ( (VkDebugUtilsMessengerCreateInfoEXT*)&debug_info ) ;
       }
       
       info.setPApplicationInfo       ( &app_info       ) ;

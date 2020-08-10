@@ -11,7 +11,6 @@ class KGL_Interface
     void setCurrentWindow( const char* name ) ;
     void loadPack( const char* path ) ;
     void unloadPack() ;
-    void present() ;
     void start() ;
     void pollEvents() ;
 //    void present() ;

@@ -4,7 +4,8 @@
 #include "Render2D.h"
 #include "Bus.h"
 #include "Signal.h"
-#include <vk/node/Synchronization.h>
+#include <log/Log.h>
+#include <profiling/Timer.h>
 #include "vk/context/Buffer.h"
 #include "vk/context/Window.h"
 #include "vk/context/Swapchain.h"
@@ -13,6 +14,7 @@
 #include <vk/context/Uniform.h>
 #include <vk/context/Descriptor.h>
 #include <vk/context/RenderPass.h>
+#include <vk/context/Synchronization.h>
 #include <vk/context/Context.h>
 #include <vk/context/Image.h>
 #include <vk/context/CommandBuffer.h>
@@ -55,10 +57,11 @@ namespace kgl
       };
       
       static constexpr unsigned BUFFERS = 3 ;
-//      typedef std::stack<ImageCommand>        Commands  ;
-      typedef std::map<std::string, Material> Materials ;
+      typedef std::map<std::string, Material>             Materials ;
+      typedef ::kgl::BufferedStack<ImageCommand, BUFFERS> Stack     ;
       
-      ::kgl::BufferedStack<ImageCommand, BUFFERS> commands ;
+      karma::ms::Timer                 profiler          ;
+       Stack                           commands          ;
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
        Materials                       materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
@@ -79,7 +82,6 @@ namespace kgl
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
-//      Commands                         commands          ; ///< The stack of commands this object is to process when kicked.
       unsigned                         current_cmd_index ; ///< The current index of command being processed.
 
       /** Default Constructor. Initializes member data.
@@ -111,20 +113,11 @@ namespace kgl
       /** Method to prepare the transformation matrix of this object for rendering.
        */
       void setUpModelMatrix() ;
-
-      /** Method to recieve a synchronization object for rendering synchronization.
-       * @param sync The object to wait on for operations.
-       */
-      void input ( const ::kgl::vk::Synchronization& sync ) ;
       
       /** Method to output this object's data.
        */
       void output() ;
 
-      /** Method to set the name of this object's synchronization input.
-       */
-      void setInputName( const char* name ) ;
-      
       /** Method to set the name of this object's synchronization output.
        */
       void setOutputName( const char* name ) ;
@@ -143,7 +136,7 @@ namespace kgl
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
     {
       auto iter = this->materials.find( cmd.image() ) ;
-
+      
       this->commands.insert( cmd, this->commands.next() ) ;
 
       // If we don't have enough uniform objects for the amount of commands we have, scale up.
@@ -210,29 +203,29 @@ namespace kgl
       this->device = this->context.virtualDevice( gpu ) ;
     }
     
-    void Render2DData::input( const ::kgl::vk::Synchronization& sync )
+    void Render2D::input( const ::kgl::vk::Synchronization& sync )
     {
-      this->sync.copy( sync ) ;
-//      this->pool.reset() ;
+      data().sync.copy( sync ) ;
+      this->semIncrement() ;
     }
 
     void Render2DData::output()
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
-      this->bus( this->output_name      .c_str() ).emit( this->sync                ) ;
       this->bus( this->output_image_name.c_str() ).emit( this->pass.image( index ) ) ;
+      this->bus( this->output_name      .c_str() ).emit( this->sync                ) ;
     }
 
-    void Render2DData::setInputName( const char* name )
+    void Render2D::setInputName( const char* name )
     {
       static bool found_input = false ;
 
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !found_input )
       {
-        this->bus( name ).attach       ( this, &Render2DData::input                     ) ;
-        this->bus( name ).addDependancy( this, &Render2DData::input, this->name.c_str() ) ;
+        data().bus( name ).attach( this, &Render2D::input ) ;
+        
         found_input = true ;
       }
     }
@@ -266,6 +259,8 @@ namespace kgl
       static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
+      this->setNumDependancies( 1 ) ;
+
       // Build path to this object's shdder.
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
@@ -282,6 +277,8 @@ namespace kgl
       data().sync    .initialize       ( data().gpu                                                                             ) ;
       
       // Initialize data.
+      data().profiler.initialize() ;
+
       data().window     = &data().context.window( data().window_name.c_str() )                ;
       data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
       
@@ -312,17 +309,13 @@ namespace kgl
       data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &Render2DData::setGPU        ) ;
       
       // Module-specific JSON-parameters.
-      data().bus( json_path.c_str(), "::input"        ).attach( this->data_2d, &Render2DData::setInputName       ) ;
+      data().bus( json_path.c_str(), "::input"        ).attach( this         , &Render2D::setInputName           ) ;
       data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &Render2DData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &Render2DData::setOutputImageName ) ;
 
-      // Graph-specific inputs.
+      // Module-specific inputs.
       data().bus( this->name(), "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
 
-      // Add dependancies for this module's operation.
-      data().bus( "" ).onCompletion( this->name(), dynamic_cast<Module*>( this ), &Render2D::kick ) ;
-      data().bus( this->name(), "::cmd" ).addDependancy( this->data_2d, &Render2DData::setCommand, data().name.c_str() ) ;
-      
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -339,9 +332,10 @@ namespace kgl
       };
 
       Transformation transform ;
-
+      
+      data().profiler.start() ;
       data().commands.swap() ;
-
+      
       if( !data().commands.empty() )
       {
         data().buffer.record( data().pass ) ;
@@ -377,6 +371,9 @@ namespace kgl
         // Output our synchronization to next module in the graph & reset command index.
         data().output() ;
         data().current_cmd_index = 0 ;
+        data().profiler.stop() ;
+        
+        karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
       }
     }
 

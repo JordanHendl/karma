@@ -29,12 +29,14 @@ set( KGL_INCLUDE_DIRS
 set( KGL_LIBRARIES
      ${SDL2_LIBRARIES}
      ${Vulkan_LIBRARIES}
-     data_bus
      kgl_vk_context
      kgl_vk_module
+     kgl_io
      kgl_managers
      kgl_database
-     configuration
+     karma_configuration
+     karma_data_bus
+     karma_log
     )
 
 INCLUDE_DIRECTORIES( ${KGL_DIR} )

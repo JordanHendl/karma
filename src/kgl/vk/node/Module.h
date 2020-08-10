@@ -40,10 +40,6 @@ namespace kgl
          */
         virtual void resize() = 0 ;
 
-        /** Method to kick off operation of this module.
-         */
-        void kick() ;
-        
         /** Method to start operations of this module.
          * @return 
          */
@@ -83,8 +79,20 @@ namespace kgl
          * @return The name of this module.
          */
         const char* name() const ;
+        
+        /** Method to set the amount of dependancies of this object.
+         * @param count The amount of dependancies this object has.
+         */
+        void setNumDependancies( unsigned count ) ;
+        
+        /** Method to decrement the semaphore of this this object.
+         */
+        void semIncrement() ;
 
       private:
+        
+        /**
+         */
         struct ModuleData* module_data ;
         
         /** Method to retrieve a reference to this object's internal data structure.

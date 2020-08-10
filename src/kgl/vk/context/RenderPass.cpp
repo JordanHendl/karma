@@ -2,7 +2,7 @@
 #include "CommandBuffer.h"
 #include "Context.h"
 #include "Image.h"
-#include "../node/Synchronization.h"
+#include "Synchronization.h"
 #include "Bus.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>

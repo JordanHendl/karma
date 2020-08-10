@@ -3,12 +3,21 @@
 
 #include <Module.h>
 
+#ifdef _WIN32
+  #include <windows.h>
+  #define  exported_function extern "C" __declspec(dllexport)
+#else 
+  #define exported_function extern "C"
+#endif
+
 const unsigned VERSION = 1 ;
 
 namespace kgl
 {
   namespace vk
   {
+    class Synchronization ;
+
     class Present : public ::kgl::vk::Module
     {
       public:
@@ -18,6 +27,16 @@ namespace kgl
         void shutdown() final ;
         void subscribe( const char* pipeline, unsigned id ) final ;
         void execute() final ;
+
+        /** Method to set the name of this object's synchronization input.
+         */
+        void setInputName( const char* name ) ;
+        
+        /** Method to recieve a synchronization object for rendering synchronization.
+         * @param sync The object to wait on for operations.
+         */
+        void input ( const ::kgl::vk::Synchronization& sync ) ;
+
         void resize() final ;
       private:
         struct PresentData *data_2d ;
@@ -30,7 +49,7 @@ namespace kgl
 /**
  * @return 
  */
-extern "C" const char* name()
+exported_function const char* name()
 {
   return "Present" ;
 }
@@ -38,7 +57,7 @@ extern "C" const char* name()
 /**
  * @return 
  */
-extern "C" unsigned version()
+exported_function unsigned version()
 {
   return VERSION ;
 }
@@ -46,7 +65,7 @@ extern "C" unsigned version()
 /**
  * @return 
  */
-extern "C" ::kgl::vk::Module* make()
+exported_function ::kgl::vk::Module* make()
 {
   return new ::kgl::vk::Present() ;
 }
@@ -54,7 +73,7 @@ extern "C" ::kgl::vk::Module* make()
 /**
  * @param module
  */
-extern "C" void destroy( ::kgl::vk::Module* module )
+exported_function void destroy( ::kgl::vk::Module* module )
 {
   ::kgl::vk::Present* mod ;
   
