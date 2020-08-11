@@ -223,7 +223,6 @@ namespace kgl
     void ImageData::copyBufferToImage( ::vk::Buffer buffer )
     {
       const ::kgl::vk::compute::Context context ;
-      const ::vk::Queue queue = context.computeQueue( this->gpu ) ;
       ::vk::BufferImageCopy        region      ;
       ::vk::ImageSubresourceLayers subresource ;
       ::vk::Extent3D               extent      ;
@@ -254,13 +253,11 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).copyBufferToImage( buffer, this->img, ::vk::ImageLayout::eTransferDstOptimal, 1, &region ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
-      queue.waitIdle() ;
     }
 
     void ImageData::copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout )
     {
       const ::kgl::vk::compute::Context context ;
-      const ::vk::Queue queue = context.computeQueue( this->gpu ) ;
       ::vk::ImageCopy              region      ;
       ::vk::ImageSubresourceLayers subresource ;
       ::vk::Extent3D               extent      ;
@@ -291,7 +288,6 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).copyImage( img, layout, this->img, this->layout, 1, &region ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
-      queue.waitIdle() ;
     }
 
     void ImageData::createBuffer( ::vk::DeviceSize size, ::vk::BufferUsageFlags usage, ::vk::MemoryPropertyFlags properties, ::vk::Buffer& buffer, ::vk::DeviceMemory& mem )

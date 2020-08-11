@@ -2,7 +2,7 @@
 #include <vk/context/Context.h>
 #include <vulkan/vulkan.hpp>
 #include <vector>
-
+#include <iostream>
 namespace kgl
 {
   namespace vk
@@ -41,6 +41,7 @@ namespace kgl
 
     void Synchronization::operator=( const Synchronization& sync )
     {
+      
       *this->sync_data = *sync.sync_data ;
     }
     
@@ -66,6 +67,14 @@ namespace kgl
 
       device.resetFences( 1, &data().fence ) ;
     }
+    
+    void Synchronization::flip()
+    {
+      const ::vk::Semaphore tmp = data().signal_sem ;
+
+      data().signal_sem     = data().wait_sems[ 0 ] ;
+      data().wait_sems[ 0 ] = tmp                   ;
+    }
 
     void Synchronization::initialize( ::vk::Device device )
     {
@@ -85,13 +94,6 @@ namespace kgl
     {
       this->data().wait_sems.clear() ;
       this->data().wait_sems.push_back( sync.data().signal_sem ) ;
-    }
-
-    void Synchronization::swap()
-    {
-      ::vk::SemaphoreCreateInfo sem_info   ;
-
-      data().wait_sems.push_back( data().signal_sem ) ;
     }
     
     void Synchronization::copyWaits( const Synchronization& sync )

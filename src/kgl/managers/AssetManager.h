@@ -31,15 +31,37 @@ namespace kgl
 
   namespace man
   {
+    class AssetManager ;
+    class Atlas
+    {
+      public:
+        Atlas() ;
+        Atlas( const Atlas& atlas ) ;
+        ~Atlas() ;
+        ::kgl::vk::Image& image() ;
+        unsigned spriteWidth() ;
+        unsigned maxSprites() ;
+        unsigned spriteHeight() ;
+        Atlas& operator=( const Atlas& atlas ) ;
+        
+      private:
+        friend class AssetManager ;
+        struct AtlasData* atlas_data ;
+        AtlasData& data() ;
+        const AtlasData& data() const ;
+    };
+
     class AssetManager
     {
       public:
-        AssetManager() ;
-        ~AssetManager() ;
+        AssetManager() = default ;
+        ~AssetManager() = default ;
         void addImage( const char* path, const char* name, unsigned gpu ) ;
-        const ::kgl::vk::Image& image( const char* name ) ;
-        void addModel( const char* path, const char* name ) ;
+        void addAtlas( const char* path, const char* name, unsigned sprite_width, unsigned sprite_height, unsigned gpu ) ;
         void addParticle( const char* image, const char* name ) ;
+        void addModel( const char* path, const char* name ) ;
+        const ::kgl::vk::Image& image( const char* name ) const ;
+        const Atlas& atlas( const char* name ) const ;
         bool contains( const char* name ) const ;
         void remove( const char* name ) ;
         void clear() ;

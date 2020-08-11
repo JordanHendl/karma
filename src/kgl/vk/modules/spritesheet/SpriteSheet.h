@@ -15,6 +15,16 @@ namespace kgl
         ~SpriteSheet() ;
         void initialize() final ;
         void shutdown() final ;
+        
+        /** Method to set the name of this object's synchronization input.
+         */
+        void setInputName( const char* name ) ;
+        
+        /** Method to recieve a synchronization object for rendering synchronization.
+         * @param sync The object to wait on for operations.
+         */
+        void input ( const ::kgl::vk::Synchronization& sync ) ;
+
         void subscribe( const char* pipeline, unsigned id ) final ;
         void execute() final ;
         void resize() final ;

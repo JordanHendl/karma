@@ -14,24 +14,78 @@ namespace kgl
   namespace man
   {
     typedef std::map<std::string, ::kgl::vk::Image*> ImageMap ;
+    typedef std::map<std::string, Atlas           *> AtlasMap ;
 //    typedef std::map<std::string, ::kgl::vk::Model*> ModelMap ;
 
     struct AssetMaps
     {
-      ImageMap images ;
+      ImageMap images      ;
+      AtlasMap spritesheet ;
 //      ModelMap models ;
     };
     
-    static AssetMaps data ;
-
-    AssetManager::AssetManager()
+    struct AtlasData
     {
+      std::string name       ;
+      ::kgl::vk::Image image ;
+      unsigned sprite_width  ;
+      unsigned sprite_height ;
+      unsigned sprite_count  ;
+    };
+
+    static AssetMaps data ;
     
+    Atlas::Atlas()
+    {
+      this->atlas_data = new AtlasData() ;
+    }
+    
+    Atlas::Atlas( const Atlas& atlas )
+    {
+      this->atlas_data = new AtlasData() ;
+      *this->atlas_data = *atlas.atlas_data ;
     }
 
-    AssetManager::~AssetManager()
+    Atlas::~Atlas()
     {
-    
+      delete this->atlas_data ;
+    }
+
+    ::kgl::vk::Image& Atlas::image()
+    {
+      return data().image ;
+    }
+
+    unsigned Atlas::spriteWidth()
+    {
+      return data().sprite_width ;
+    }
+
+    unsigned Atlas::maxSprites()
+    {
+      return data().sprite_count ;
+    }
+
+    unsigned Atlas::spriteHeight()
+    {
+      return data().sprite_height ;
+    }
+
+    Atlas& Atlas::operator=( const Atlas& atlas )
+    {
+      *this->atlas_data = *atlas.atlas_data ;
+      
+      return *this ;
+    }
+
+    AtlasData& Atlas::data()
+    {
+      return *this->atlas_data ;
+    }
+
+    const AtlasData& Atlas::data() const
+    {
+      return *this->atlas_data ;
     }
 
     void AssetManager::addImage( const char* path, const char* name, unsigned gpu )
@@ -41,7 +95,7 @@ namespace kgl
 
       if( data.images.find( name ) == data.images.end() )
       {
-        karma::log::Log::output( "Loading file ", name, " at path ", path, " on GPU ", gpu ) ;
+        karma::log::Log::output( "Loading image ", name, " at path ", path, " on GPU ", gpu ) ;
         loader.load( path ) ;
         data.images.insert( { name,  new ::kgl::vk::Image() } ) ;
 
@@ -50,7 +104,22 @@ namespace kgl
       }
     }
 
-    const ::kgl::vk::Image& AssetManager::image( const char* name )
+    void AssetManager::addAtlas( const char* path, const char* name, unsigned sprite_width, unsigned sprite_height, unsigned gpu )
+    {
+      ::kgl::io::ImageLoader loader ;
+
+      if( data.spritesheet.find( name ) == data.spritesheet.end() )
+      {
+        karma::log::Log::output( "Loading spritesheet ", name, " at path ", path, " on GPU ", gpu ) ;
+        loader.load( path ) ;
+        data.spritesheet.insert( { name,  new Atlas() } ) ;
+
+        data.spritesheet.at( name )->data().image.initialize( gpu, loader.width(), loader.height() ) ;
+        data.spritesheet.at( name )->data().image.copy( loader.pixels(), loader.channels() ) ;
+      }
+    }
+
+    const ::kgl::vk::Image& AssetManager::image( const char* name ) const
     {
       const static ::kgl::vk::Image dummy ;
       const auto iter = data.images.find( name ) ;

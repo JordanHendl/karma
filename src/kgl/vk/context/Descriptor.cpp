@@ -48,6 +48,7 @@ namespace kgl
       UniformMap                       map      ;
       ::vk::Device                     device   ;
       ::vk::PhysicalDevice             p_device ;
+      ::vk::DescriptorPool             pool     ;
       unsigned                         gpu      ;
       
       void buildBufferMap( UniformMap& map ) ;
@@ -230,6 +231,11 @@ namespace kgl
       }
     }
     
+    void DescriptorSet::reset()
+    {
+      data().device.freeDescriptorSets( data().pool, data().descriptors.size(), data().descriptors.data() ) ;
+    }
+    
     void DescriptorPoolData::buildUniformData( const Shader& shader )
     {
       UniformInformation uni_info ;
@@ -307,6 +313,7 @@ namespace kgl
 
       set.data().descriptors.resize( count ) ;
 
+      set.data().pool        = data().pool                                  ;
       set.data().device      = data().device                                ;
       set.data().descriptors = data().device.allocateDescriptorSets( info ) ;
       set.data().p_device    = data().p_dev                                 ;
@@ -336,9 +343,10 @@ namespace kgl
         size.push_back( sz )                           ;
       }
 
-      info.setPoolSizeCount( size.size() ) ;
-      info.setPPoolSizes   ( size.data() ) ;
-      info.setMaxSets      ( max_amt     ) ;
+      info.setPoolSizeCount( size.size()                                            ) ;
+      info.setPPoolSizes   ( size.data()                                            ) ;
+      info.setMaxSets      ( max_amt                                                ) ;
+      info.setFlags        ( ::vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet ) ;
 
       data().pool = data().device.createDescriptorPool( info, nullptr ) ;
     }

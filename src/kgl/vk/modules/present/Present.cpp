@@ -20,6 +20,7 @@
 #include "../../context/Buffer.h"
 #include "../../context/RenderPass.h"
 #include <containers/BufferedStack.h>
+#include <containers/Layered.h>
 #include "vk/context/Window.h"
 #include "vk/context/Swapchain.h"
 #include <vk/context//Descriptor.h>
@@ -33,6 +34,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <queue>
 
 static inline const float vertex_data[] = 
 { 
@@ -59,14 +61,17 @@ namespace kgl
       static constexpr unsigned BUFFERS = 3 ;
       typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS > ImageStack ;
       typedef std::vector<::kgl::vk::Uniform >                 Uniforms   ;
+      typedef kgl::containers::Layered<Synchronization, 3>     Syncs      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 2> CmdBuffs ;
       
+      std::queue<::kgl::vk::DescriptorSet> sets ;
+      Syncs                            syncs        ;
       Uniforms                         uniforms     ; ///< TODO
       ImageStack                       stack        ; ///< TODO
+      CmdBuffs                         buffers      ; ///< TODO
       karma::ms::Timer                 profiler     ; ///< TODO
       ::kgl::vk::DescriptorPool        pool         ; ///< TODO
-      ::kgl::vk::render::CommandBuffer buffer       ; ///< TODO
       ::kgl::vk::render::Context       context      ; ///< TODO
-      ::kgl::vk::Synchronization       sync         ; ///< TODO
       ::kgl::vk::render::Pipeline      pipeline     ; ///< TODO
       ::kgl::vk::Uniform               uniform      ; ///< TODO
       ::kgl::vk::RenderPass            pass         ; ///< TODO
@@ -125,7 +130,7 @@ namespace kgl
 
     void Present::input( const ::kgl::vk::Synchronization& sync )
     {
-      data().sync.copy( sync ) ;
+      data().syncs.value().copy( sync ) ;
       this->semIncrement() ;
     }
 
@@ -171,16 +176,23 @@ namespace kgl
       data().pass.setFormat( static_cast<::vk::Format>( data().context.window( data().window_name.c_str() ).chain().format() ) ) ;
       data().pass.setImageFinalLayout( ::vk::ImageLayout::ePresentSrcKHR ) ;
       
-      data().profiler.initialize( ""         ) ;
-      data().sync    .initialize( data().gpu ) ;
-      data().uniform .initialize( data().gpu ) ;
-      data().vertices.initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16  ) ;
-      data().indices .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6   ) ;
-      data().pass    .initialize( data().window_name.c_str(), data().gpu, false                             ) ;
-      data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass           ) ;
-      data().buffer  .initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-      data().pipeline.initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
-      data().pool.initialize( data().gpu, MAX_SETS, data().pipeline.shader() ) ;
+      data().profiler       .initialize( ""         ) ;
+      data().syncs.seek( 0 ).initialize( data().gpu ) ;
+      data().syncs.seek( 1 ).initialize( data().gpu ) ;
+      data().syncs.seek( 2 ).initialize( data().gpu ) ;
+      data().uniform        .initialize( data().gpu ) ;
+      data().vertices       .initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16  ) ;
+      data().indices        .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6   ) ;
+      data().pass           .initialize( data().window_name.c_str(), data().gpu, false   ) ;
+
+      data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass ) ;
+
+      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+//      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
+      data().pool             .initialize( data().gpu, MAX_SETS, data().pipeline.shader()                            ) ;
+
       data().vertices.copyToDevice( vertex_data ) ;
       data().indices .copyToDevice( index_data  ) ;
     }
@@ -219,32 +231,51 @@ namespace kgl
 
     void Present::execute()
     {
-      ::kgl::vk::DescriptorSet set ;
+      ::kgl::vk::DescriptorSet set  ;
+      Synchronization          sync ;
       
+      sync = data().syncs.value() ;
+      data().syncs .swap()        ;
+
       data().current_command = 0 ;
 
-      
-      if( data().stack.current() == 0 ) data().pool.reset() ;
-      
+      data().stack   .swap()  ;
       data().profiler.start() ;
-      data().buffer.record( data().pass ) ;
-      while( !data().stack.empty() )
-      {
-        auto img  = data().stack.pop()                                        ;
-        set       = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
-        
-        data().uniforms[ data().current_command ].addImage( "framebuffer", img ) ;
-        set.set( data().uniforms[ data().current_command ] ) ;
-        data().pipeline.bind( data().buffer, set ) ;
-        data().buffer.drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
-      }
-      data().buffer.stop() ;
-      data().pass.submit( data().sync, data().buffer ) ;
       
-      data().stack.swap() ;
+      // If we have no commands, flip the sync to skip this module's operation.
+      if( data().stack.empty() )
+      {
+        sync.flip() ;
+      }
+      else
+      {
+        data().buffers.value().record( data().pass ) ;
+        while( !data().stack.empty() )
+        {
+          auto img  = data().stack.pop()                                        ;
+          set       = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
+
+          data().uniforms[ data().current_command ].addImage( "framebuffer", img ) ;
+          set.set( data().uniforms[ data().current_command ] ) ;
+          data().pipeline.bind( data().buffers.value(), set ) ;
+          data().buffers.value().drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
+          
+          data().sets.push( set ) ;
+          if( data().sets.size() > 2 )
+          {
+            data().sets.front().reset() ;
+            data().sets.pop() ;
+          }
+        }
+        data().buffers.value().stop() ;
+        data().pass.submit( sync, data().buffers.value() ) ;
+        data().buffers.swap() ;
+      }
+
+      
       data().profiler.stop() ;
       karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
-      data().bus( data().window_name.c_str(), "::present" ).emit( data().sync ) ;
+      data().bus( data().window_name.c_str(), "::present" ).emit( sync ) ;
     }
 
     PresentData& Present::data()

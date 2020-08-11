@@ -32,6 +32,7 @@ namespace kgl
         ~DescriptorSet() ;
         void operator=( const DescriptorSet& set ) ;
         void set( const Uniform& uniform ) ;
+        void reset() ;
         const ::vk::DescriptorSet descriptor( unsigned index ) const ;
       private:
         struct DescriptorSetData *set_data ;

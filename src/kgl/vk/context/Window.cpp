@@ -6,6 +6,7 @@
 #include "Semaphore.h"
 #include "Surface.h"
 #include "Synchronization.h"
+#include "CommandBuffer.h"
 #include <Bus.h>
 #include <Pool.h>
 #include <PoolData.h>
@@ -19,7 +20,9 @@
 #include <stdexcept>
 #include <iostream>
 #include <vector>
-
+#include <array>
+#include <queue>
+#include <mutex>
 namespace kgl
 {
   namespace vk
@@ -47,15 +50,16 @@ namespace kgl
       }
     };
 
+    std::mutex                 fence_mutex   ;
     struct WindowData
     {
-      typedef std::vector<::vk::Fence> Fences ;
-      
+      typedef std::vector<::vk::Fence>                  Fences ;
+      typedef std::array<::kgl::vk::Synchronization, 2> Syncs ;
       SDL_Window*                window        ; ///< JHTODO
       Fences                     fences        ; ///< TODO
+      Syncs                      syncs         ;
       Surface                    surface       ;
       ::vk::PresentInfoKHR       info          ;
-      ::kgl::vk::Synchronization sync          ;
       Device                     device        ;
       SwapChain                  chain         ;
       WindowConf                 conf          ;
@@ -69,6 +73,9 @@ namespace kgl
       bool                       fullscreen    ; ///< JHTODO
       unsigned                   current_img   ;
       unsigned                   current_frame ;
+      unsigned                   sync_index    ;
+      std::queue<::vk::Fence>    fence_queue   ;
+      std::queue<unsigned>       images        ;
 
       WindowData() ;
 
@@ -88,6 +95,7 @@ namespace kgl
       this->height        = 1024  ;
       this->fullscreen    = false ;
       this->current_frame = 0     ;
+      this->sync_index    = 0     ;
     }
 
     Window::Window()
@@ -123,10 +131,11 @@ namespace kgl
 
       data().window = SDL_CreateWindow( name, 500, 500, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN ) ;
       
-      data().surface.initialize( *data().window                ) ;
-      data().device .initialize( data().surface.surface(), gpu ) ;
-      data().chain  .initialize( data().surface, data().device ) ;
-      data().sync   .initialize( data().device.device()        ) ;
+      data().surface .initialize( *data().window                ) ;
+      data().device  .initialize( data().surface.surface(), gpu ) ;
+      data().chain   .initialize( data().surface, data().device ) ;
+      data().syncs[0].initialize( data().device.device()        ) ;
+      data().syncs[1].initialize( data().device.device()        ) ;
 
       data().fences.resize( data().conf.max_frames_in_flight ) ;
       
@@ -199,43 +208,74 @@ namespace kgl
       return data().current_img ;
     }
     
+    static std::mutex img_mutex ;
+    
     void Window::present( const Synchronization& sync )
     {
       const ::vk::Queue        queue = data().device.graphics() ;
       const ::vk::SwapchainKHR chain = data().chain.chain()     ;
-      ::data::module::Bus bus ;
-      
-      // Swap the input signal sems into this object's wait sems.
-      data().sync.copy( sync ) ;
-      
-      data().info.setPImageIndices     ( &data().current_img       ) ;
-      data().info.setSwapchainCount    ( 1                         ) ;
-      data().info.setPSwapchains       ( &chain                    ) ;
-      data().info.setWaitSemaphoreCount( data().sync.numWaitSems() ) ;
-      data().info.setPWaitSemaphores   ( data().sync.waitSems()    ) ;
+      ::vk::Fence     fence ;
+      unsigned        img   ;
 
+      fence = sync.fence() ;
+      
+      fence_mutex.lock() ;
+      data().fence_queue.push( fence ) ;
+      fence_mutex.unlock() ;
+
+      img_mutex.lock() ;
+      img = data().images.front() ;
+      data().images.pop() ;
+      img_mutex.unlock() ;
+
+      data().info.setPImageIndices     ( &img                 ) ;
+      data().info.setSwapchainCount    ( 1                    ) ;
+      data().info.setPSwapchains       ( &chain               ) ;
+      data().info.setWaitSemaphoreCount( sync.numSignalSems() ) ;
+      data().info.setPWaitSemaphores   ( sync.signalSems()    ) ;
+
+      queueMutex().lock() ;
       queue.presentKHR( &data().info ) ;
-      queue.waitIdle() ;
+      queueMutex().unlock() ;
+      
       data().current_frame-- ;
     }
     
     void Window::start()
     {
-      const ::vk::Fence fence = data().fences.at( data().current_frame ) ;
+      const unsigned    index = data().sync_index ;
+      const ::vk::Fence dummy                     ;
+      ::vk::Fence         fence ;
       ::data::module::Bus bus   ;
-      if( data().current_frame < 1 )
+
+      if( data().current_frame < 2 )
       {
-        data().device.device().waitForFences( 1, &fence, true, UINT64_MAX ) ;
-        data().device.device().resetFences  ( 1, &fence                   ) ;
-        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), UINT64_MAX, data().sync.signalSem( 0 ), fence ) ;
+        if( data().fence_queue.size() != 0 )
+        {
+          fence_mutex.lock() ;
+          fence = data().fence_queue.front() ;
+          data().fence_queue.pop() ;
+          fence_mutex.unlock() ;
+
+          data().device.device().waitForFences(1, &fence, true, UINT64_MAX ) ;
+        }
         
+        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), 200, data().syncs[ index ].signalSem( 0 ), dummy ) ;
+
+        img_mutex.lock() ;
+        data().images.push( result.value ) ;
+        img_mutex.unlock() ;
+
         data().current_img = result.value ;
         data().current_frame++ ;
         
-        bus( "start" ).emit( data().sync ) ;
+        bus( "start" ).emit( data().syncs[ index ] ) ;
+
+        if( index == 0 ) data().sync_index = 1 ;
+        else             data().sync_index = 0 ;
       }
       
-      while( data().current_frame >= 1 ) {} ;
+      while( data().current_frame >= 2 ) {} ;
     }
 //    void Window::setName( const char* name )
 //    {
