@@ -14,7 +14,7 @@ set( TOOLS_SHADER_LIBRARIES
      stdc++fs
     )
 
-add_library               ( uwushader SHARED   ${TOOLS_SHADER_SOURCES} ${TOOLS_SHADER_HEADERS} )
-target_include_directories( uwushader PRIVATE  ${TOOLS_SHADER_INCLUDE_DIRS}                    )
-target_link_libraries     ( uwushader PRIVATE  ${TOOLS_SHADER_LIBRARIES}                       )
+add_library               ( karma_uwushader SHARED   ${TOOLS_SHADER_SOURCES} ${TOOLS_SHADER_HEADERS} )
+target_include_directories( karma_uwushader PRIVATE  ${TOOLS_SHADER_INCLUDE_DIRS}                    )
+target_link_libraries     ( karma_uwushader PRIVATE  ${TOOLS_SHADER_LIBRARIES}                       )
 

@@ -2,6 +2,7 @@
 #include "../vk/context/Context.h"
 #include "../vk/context/Image.h"
 #include "../io/ImageLoader.h"
+#include <log/Log.h>
 #include <data/Bus.h>
 #include <data/Signal.h>
 #include <vulkan/vulkan.hpp>
@@ -36,9 +37,11 @@ namespace kgl
     void AssetManager::addImage( const char* path, const char* name, unsigned gpu )
     {
       ::kgl::io::ImageLoader loader ;
+      
 
       if( data.images.find( name ) == data.images.end() )
       {
+        karma::log::Log::output( "Loading file ", name, " at path ", path, " on GPU ", gpu ) ;
         loader.load( path ) ;
         data.images.insert( { name,  new ::kgl::vk::Image() } ) ;
 

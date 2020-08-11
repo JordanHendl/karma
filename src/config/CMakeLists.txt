@@ -14,12 +14,13 @@ set( KARMA_CONFIG_INCLUDES
    )
 
 set( KARMA_CONFIG_LIBRARIES 
-     data_bus
+     karma_data_bus
+     karma_log
    )
 
-add_library               ( configuration SHARED  ${KARMA_CONFIG_SOURCES} ${KARMA_CONFIG_HEADERS} )
-target_include_directories( configuration PRIVATE ${KARMA_CONFIG_INCLUDES}                        ) 
-target_link_libraries     ( configuration PRIVATE ${KARMA_CONFIG_LIBRARIES}                       ) 
+add_library               ( karma_configuration SHARED  ${KARMA_CONFIG_SOURCES} ${KARMA_CONFIG_HEADERS} )
+target_include_directories( karma_configuration PRIVATE ${KARMA_CONFIG_INCLUDES}                        ) 
+target_link_libraries     ( karma_configuration PRIVATE ${KARMA_CONFIG_LIBRARIES}                       ) 
 
-add_executable       ( config_test test.cpp      )
-target_link_libraries( config_test configuration )
+add_executable       ( karma_config_test test.cpp      )
+target_link_libraries( karma_config_test karma_configuration )

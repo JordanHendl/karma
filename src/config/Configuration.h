@@ -39,6 +39,11 @@ namespace karma
         /** Default Deconstructor. Releases this object's allocated data.
          */
         ~Configuration() ;
+        
+        /** Method to retrieve whether or not this object is initialized.
+         * @return Whether or not this object is initialized.
+         */
+        bool isInitialized() const ;
 
         /** Method to retrieve a const reference to this object's beginning of the parsed map.
          * @note This object automatically pulses data through it's internal data bus. This is for manual iteration.

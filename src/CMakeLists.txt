@@ -1,19 +1,21 @@
 
-set( KGL_DIR           ${CMAKE_CURRENT_SOURCE_DIR}/kgl    )
-set( DATA_BUS_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/data   )
-set( CONFIGURATION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/config )
-set( TOOLS_DIR         ${CMAKE_CURRENT_SOURCE_DIR}/tools  )
+SET( KGL_DIR           ${CMAKE_CURRENT_SOURCE_DIR}/kgl    )
+SET( DATA_BUS_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/data   )
+SET( CONFIGURATION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/config )
+SET( TOOLS_DIR         ${CMAKE_CURRENT_SOURCE_DIR}/tools  )
 
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/glm/glm ) 
-add_subdirectory( tools  )
-add_subdirectory( data   )
-add_subdirectory( config )
-add_subdirectory( kgl    ) 
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR} )
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_SOURCE_DIR}/glm/glm ) 
 
-add_subdirectory( game   )
-add_subdirectory( glm    )
+ADD_SUBDIRECTORY( config    )
+ADD_SUBDIRECTORY( data      )
+ADD_SUBDIRECTORY( game      )
+ADD_SUBDIRECTORY( glm       )
+ADD_SUBDIRECTORY( kgl       ) 
+ADD_SUBDIRECTORY( log       )
+ADD_SUBDIRECTORY( profiling )
+ADD_SUBDIRECTORY( tools     )
 
 if ( ${DOXYGEN_FOUND} AND ${BUILD_DOC} )
     # set input and output files

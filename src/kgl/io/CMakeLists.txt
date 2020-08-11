@@ -21,10 +21,13 @@ set( KGL_IO_INCLUDE_DIRS
    )
 
 set( KGL_IO_LIBRARIES
-     data_bus
      ${SDL2_LIBRARIES}
+     karma_data_bus
    )
 
-add_library( kgl_io SHARED ${KGL_IO_SOURCES} ${KGL_IO_HEADERS} )
+
+add_library               ( kgl_io SHARED ${KGL_IO_SOURCES} ${KGL_IO_HEADERS} )
+target_link_libraries     ( kgl_io PRIVATE ${KGL_IO_LIBRARIES}                )
+target_include_directories( kgl_io PRIVATE ${KGL_IO_INCLUDE_DIRS}             )
 
 

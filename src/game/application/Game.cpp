@@ -14,7 +14,7 @@ namespace karma
     ::KGL_Interface     interface ;
     ::data::module::Bus bus       ;
     bool                running   ;
-    
+    std::string         base_path ;
     float xpos ;
     float ypos ;
     float rot  ;
@@ -108,13 +108,14 @@ namespace karma
     data().bus( "kgl::input" ).attach( this->game_data, &GameData::readInputs ) ;
     data().cmd.setWidth ( 502     ) ;
     data().cmd.setHeight( 502     ) ;
+    data().base_path = base_path ;
   }
 
   bool Game::run()
   {
     data().running = true ;
     
-    data().interface.loadPack ( "/usr/local/karma/active/krender/test.krender" ) ;
+    data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
 
     while( data().running )
     {
@@ -135,6 +136,8 @@ namespace karma
       data().interface.start() ;
       data().interface.pollEvents() ;
     }
+    
+    data().interface.shutdown() ;
     return 0 ;
   }
 

@@ -205,12 +205,8 @@ namespace kgl
       dev_info.setPpEnabledExtensionNames( required_extensions.data() ) ;
       dev_info.setPEnabledFeatures       ( &features                  ) ;
 
-      if( layers.supported() )
-      {
-        dev_info.enabledLayerCount   = layers.count() ;
-        dev_info.ppEnabledLayerNames = layers.names() ;
-      }
-      
+      dev_info.enabledLayerCount   = layers.count() ;
+      dev_info.ppEnabledLayerNames = layers.names() ;
 
       this->p_device.createDevice( &dev_info, nullptr, &this->v_device ) ;
       

@@ -3,7 +3,7 @@
 #include "Context.h"
 #include "Command.h"
 #include "RenderPass.h"
-#include "../node/Synchronization.h"
+#include "Synchronization.h"
 #include <vulkan/vulkan.hpp>
 #include <algorithm>
 #include <string>

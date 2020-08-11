@@ -24,6 +24,7 @@ SET( KGL_VK_SOURCES
      Surface.cpp
      Validation.cpp
      Window.cpp
+     Synchronization.cpp
    )
      
 SET( KGL_VK_HEADERS
@@ -46,6 +47,7 @@ SET( KGL_VK_HEADERS
      Swapchain.h
      Validation.h
      Window.h
+     Synchronization.h
    )
 
 SET( KGL_VK_INCLUDE_DIRS
@@ -58,9 +60,9 @@ SET( KGL_VK_INCLUDE_DIRS
 SET( KGL_VK_LIBRARIES
      ${SDL2_LIBRARIES}
      ${Vulkan_LIBRARIES}
-     data_bus
-     uwushader
-     kgl_vk_module
+     karma_data_bus
+     karma_uwushader
+     karma_log
    )
 
 ADD_LIBRARY               ( kgl_vk_context SHARED   ${KGL_VK_SOURCES} ${KGL_VK_HEADERS} )

@@ -1,4 +1,5 @@
 #include "KGL_Interface.h"
+#include <log/Log.h>
 #include "Setup.h"
 #include "io/Input.h"
 #include "managers/AssetManager.h"
@@ -15,22 +16,27 @@
 
 struct KGL_InterfaceData
 {
-  ::data::module::Bus            bus           ; ///< The bus to use for data transfer.
-  ::kgl::vk::render::Context     context       ; ///< The vulkan context for rendering.
-  ::kgl::vk::Manager             mod_manager   ; ///< The Render Graph module manager.
-  ::kgl::io::Input               input         ; ///< The object in charge of emitting event data.
-  ::kgl::man::AssetManager       asset_manager ; ///< The asset manager.
-  ::kgl::man::CommandManager     cmd_manager   ; ///< The GPU command manager.
-  ::karma::config::Configuration config        ; ///< The Configuration to initialize the graphics library with.
-  ::kgl::database::Database      database      ; ///< The database that contains all asset metadata.
-  ::kgl::Setup                   setup         ; ///< The object to handle setup of kgl.
-  std::string                    window        ; ///< The name of the current active window.
-  std::string                    module_path   ; ///< The path to the modules on the filesystem.
+  ::data::module::Bus            bus                ; ///< The bus to use for data transfer.
+  ::kgl::vk::render::Context     context            ; ///< The vulkan context for rendering.
+  ::kgl::vk::Manager             mod_manager        ; ///< The Render Graph module manager.
+  ::kgl::io::Input               input              ; ///< The object in charge of emitting event data.
+  ::kgl::man::AssetManager       asset_manager      ; ///< The asset manager.
+  ::kgl::man::CommandManager     cmd_manager        ; ///< The GPU command manager.
+  ::karma::config::Configuration config             ; ///< The Configuration to initialize the graphics library with.
+  ::kgl::database::Database      database           ; ///< The database that contains all asset metadata.
+  ::kgl::Setup                   setup              ; ///< The object to handle setup of kgl.
+  std::string                    window             ; ///< The name of the current active window.
+  std::string                    module_path        ; ///< The path to the modules on the filesystem.
+  std::string                    module_config_path ; ///< The path to the modules on the filesystem.
+  std::string                    database_path      ; ///< The path to the modules on the filesystem.
 
   void fixString( std::string& str ) ;
   void addImage( const char* img_name ) ;
   void addModel( const char* model_name ) ;
-  void setModulePath( const char* path ) ;
+  void setDatabasePath( const char* path ) ;
+  void setModuleConfigPath( const char* path ) ;
+  void setModulePath( const char* path ) ; 
+  void setDebugOutput( const char* output ) ;
 };
 
 
@@ -39,14 +45,29 @@ void KGL_InterfaceData::addImage( const char* img_name )
   this->database.loadImage( img_name ) ;
 }
 
+void KGL_InterfaceData::addModel( const char* model_name )
+{
+  
+}
+
 void KGL_InterfaceData::setModulePath( const char* path )
 {
   this->module_path = path ;
 }
 
-void KGL_InterfaceData::addModel( const char* model_name )
+void KGL_InterfaceData::setModuleConfigPath( const char* path )
 {
-  
+  this->module_config_path = path ;
+}
+
+void KGL_InterfaceData::setDatabasePath( const char* path )
+{
+  this->database_path = path ;
+}
+
+void KGL_InterfaceData::setDebugOutput( const char* output )
+{
+  karma::log::Log::initialize( output ) ;
 }
 
 void KGL_InterfaceData::fixString( std::string& str )
@@ -71,21 +92,20 @@ KGL_Interface::~KGL_Interface()
 
 void KGL_Interface::shutdown()
 {
-  data().mod_manager.shutdown() ;
+  karma::log::Log::write()      ;
+//  data().mod_manager.shutdown() ;
 }
 
 void KGL_Interface::initialize( const char* base_path )
 {
+  using namespace karma::log ;
+
   std::string path            ;
   std::string kgl_config_path ;
-  std::string mod_path        ;
-  std::string mod_config_path ;
-  std::string database_path   ;
   
   path = base_path ;
   
   data().fixString( path ) ;
-  
   
   if( !::kgl::vk::isInitialized() )
   {
@@ -95,22 +115,24 @@ void KGL_Interface::initialize( const char* base_path )
     data().database.subscribe( base_path, 0 ) ;
     data().setup   .subscribe( 0            ) ;
     
-    data().bus( "required_images"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage      ) ;
-    data().bus( "required_models"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage      ) ;
-    data().bus( "modules_directory" ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath ) ;
+    data().bus( "required_images"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
+    data().bus( "required_models"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
+    data().bus( "database_path"     ).attach( this->kgl_data, &KGL_InterfaceData::setDatabasePath     ) ;
+    data().bus( "modules_path"      ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath       ) ;
+    data().bus( "graph_config_path" ).attach( this->kgl_data, &KGL_InterfaceData::setModuleConfigPath ) ;
+    data().bus( "log_output_path"   ).attach( this->kgl_data, &KGL_InterfaceData::setDebugOutput      ) ;
 
     kgl_config_path = path + "/setup.json" ;
-
+    
+    
     data().config     .initialize( kgl_config_path.c_str(), 0 ) ;
-    database_path   = path + "/database.json"                   ;
-    mod_path        = path + data().module_path                 ;
-    mod_config_path = path + "/kgl_configuration.json"          ;
 
-    data().config     .initialize( database_path.c_str()  , 0                ) ;
-
-    data().setup      .initialize(                                           ) ;
-    data().mod_manager.initialize( mod_path.c_str(), mod_config_path.c_str() ) ;
+    data().config     .initialize( data().database_path.c_str()  , 0                             ) ;
+    data().setup      .initialize(                                                               ) ;
+    data().mod_manager.initialize( data().module_path.c_str(), data().module_config_path.c_str() ) ;
     data().mod_manager.start() ;
+    
+    karma::log::Log::write() ;
   }
 }
 
@@ -122,11 +144,6 @@ void KGL_Interface::setCurrentWindow( const char* name )
 void KGL_Interface::pollEvents()
 {
   data().input.poll() ;
-}
-
-void KGL_Interface::present()
-{
-  
 }
 
 void KGL_Interface::start()

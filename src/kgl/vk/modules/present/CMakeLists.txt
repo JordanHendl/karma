@@ -9,13 +9,18 @@ set( KGL_VK_PRESENT__MODULE_HEADERS
 set( KGL_VK_PRESENT__MODULE_INCLUDE_DIRS
       ${DATA_BUS_DIR}
       ${KGL_NODE_DIR}
+      ${Vulkan_INCLUDE_DIR}
     )
 
 set( KGL_VK_PRESENT__MODULE_LIBRARIES
-     data_bus
      kgl_containers
      kgl_vk_module
+     kgl_vk_context
      kgl
+     karma_data_bus
+     karma_log
+     karma_profiling
+     ${Vulkan_LIBRARIES}
    )
 
 add_library               ( present SHARED   ${KGL_VK_PRESENT__MODULE_SOURCES} ${KGL_VK_PRESENT__MODULE_HEADERS} )

@@ -4,7 +4,6 @@ set( KGL_VK_MODULE_SOURCES
      Loader.cpp
      Graph.cpp
      Manager.cpp
-     Synchronization.cpp
    )
      
 set( KGL_VK_MODULE_HEADERS
@@ -12,19 +11,22 @@ set( KGL_VK_MODULE_HEADERS
      Loader.h
      Manager.h
      Graph.h
-     Synchronization.h
    )
 
 set( KGL_VK_MODULE_INCLUDE_DIRS
       ${DATA_BUS_DIR}
       ${CONFIGURATION_DIR}
+      ${Vulkan_INCLUDE_DIR}
     )
 
 set( KGL_VK_MODULE_LIBRARIES
-     data_bus
      kgl_io
+     kgl_vk_context
      stdc++fs
-    configuration
+     karma_data_bus
+     karma_configuration
+     karma_log
+     ${Vulkan_LIBRARY}
    )
 
 add_library               ( kgl_vk_module SHARED   ${KGL_VK_MODULE_SOURCES} ${KGL_VK_MODULE_HEADERS} )

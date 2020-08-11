@@ -10,5 +10,6 @@
   },
   "database_path"     : "database.json",
   "graph_config_path" : "kgl_configuration.json",
-  "modules_directory" : "/nbbuild/modules"
+  "modules_path"      : "nbbuild/modules"
+  "log_output_path"   : "/var/tmp"
 }

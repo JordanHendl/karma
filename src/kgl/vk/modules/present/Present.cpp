@@ -12,7 +12,7 @@
  */
 
 #include "Present.h"
-#include "Synchronization.h"
+#include <vk/context/Synchronization.h>
 #include "../../context/Context.h"
 #include "../../context/Pipeline.h"
 #include "../../context/CommandBuffer.h"
@@ -25,12 +25,14 @@
 #include <vk/context//Descriptor.h>
 #include "vk/context/Uniform.h"
 #include "vk/context/Image.h"
+#include <log/Log.h>
+#include <profiling/Timer.h>
 #include <Bus.h>
 #include <Signal.h>
 #include <vulkan/vulkan.hpp>
 #include <string>
 #include <map>
-#include <mutex>
+#include <iostream>
 
 static inline const float vertex_data[] = 
 { 
@@ -58,10 +60,10 @@ namespace kgl
       typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS > ImageStack ;
       typedef std::vector<::kgl::vk::Uniform >                 Uniforms   ;
       
-      std::mutex mutex ;
-      Uniforms                          uniforms     ;
-      ImageStack                       stack        ;
-      ::kgl::vk::DescriptorPool        pool         ;
+      Uniforms                         uniforms     ; ///< TODO
+      ImageStack                       stack        ; ///< TODO
+      karma::ms::Timer                 profiler     ; ///< TODO
+      ::kgl::vk::DescriptorPool        pool         ; ///< TODO
       ::kgl::vk::render::CommandBuffer buffer       ; ///< TODO
       ::kgl::vk::render::Context       context      ; ///< TODO
       ::kgl::vk::Synchronization       sync         ; ///< TODO
@@ -82,20 +84,19 @@ namespace kgl
 
       void setGPU( unsigned gpu ) ;
       void setWindowName( const char* window ) ;
-      void setInputName( const char* name ) ; 
       void setInputImageName( const char* name ) ; 
-      void setInput( const ::kgl::vk::Synchronization& sync ) ;
       void setImage( const ::kgl::vk::Image& image ) ;
     };
 
-    void PresentData::setInputName( const char* name )
+    void Present::setInputName( const char* name )
     {
       static bool found_input = false ;
+
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !found_input )
       {
-        this->bus( name ).attach       ( this, &PresentData::setInput                     ) ;
-        this->bus( name ).addDependancy( this, &PresentData::setInput, this->name.c_str() ) ;
+        data().bus( name ).attach( this, &Present::input ) ;
+        
         found_input = true ;
       }
     }
@@ -106,8 +107,7 @@ namespace kgl
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !found_input )
       {
-        this->bus( name ).attach       ( this, &PresentData::setImage                     ) ;
-        this->bus( name ).addDependancy( this, &PresentData::setImage, this->name.c_str() ) ;
+        this->bus( name ).attach( this, &PresentData::setImage ) ;
         found_input = true ;
       }
     }
@@ -123,16 +123,15 @@ namespace kgl
       this->window_name = window ;
     }
 
-    void PresentData::setInput( const ::kgl::vk::Synchronization& sync )
+    void Present::input( const ::kgl::vk::Synchronization& sync )
     {
-      this->sync.copy( sync ) ;
+      data().sync.copy( sync ) ;
+      this->semIncrement() ;
     }
 
     void PresentData::setImage( const ::kgl::vk::Image& image )
     {
-      this->mutex.lock() ;
       this->stack.insert( image, this->stack.next() ) ;
-      this->mutex.unlock() ;
       
       // If we don't have enough uniform objects for the amount of commands we have, scale up.
       if( this->stack.size( static_cast<int>( this->stack.next() ) ) > this->uniforms.size() )
@@ -166,10 +165,13 @@ namespace kgl
       const unsigned    num_buffers   = data().context.numFrameBuffers( data().window_name.c_str() ) ;
       const unsigned     width        = data().context.width ( data().window_name.c_str() )          ;
       const unsigned     height       = data().context.height( data().window_name.c_str() )          ;
+      
+      this->setNumDependancies( 1 ) ;
 
       data().pass.setFormat( static_cast<::vk::Format>( data().context.window( data().window_name.c_str() ).chain().format() ) ) ;
       data().pass.setImageFinalLayout( ::vk::ImageLayout::ePresentSrcKHR ) ;
-
+      
+      data().profiler.initialize( ""         ) ;
       data().sync    .initialize( data().gpu ) ;
       data().uniform .initialize( data().gpu ) ;
       data().vertices.initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16  ) ;
@@ -196,20 +198,18 @@ namespace kgl
     void Present::subscribe( const char* pipeline, unsigned id )
     {
       const std::string json_path = std::string( "Graphs::" ) + std::string( pipeline ) + std::string( "::Modules::" ) + std::string( this->name() ) ;
-      data().name = this->name() ;
-      data().pass.subscribe( this->name(), id ) ;
+
+      data().name         = this->name()          ;
+      data().pass.subscribe( this->name(), id )   ;
       data().install_path = ::kgl::vk::basePath() ;
       
       data().pipeline.subscribe( json_path.c_str(), id ) ;
 
-      data().bus( json_path.c_str(), "::input"       ).attach( this->data_2d, &PresentData::setInputName      ) ;
+      data().bus( json_path.c_str(), "::input"       ).attach( this         , &Present::setInputName          ) ;
       data().bus( json_path.c_str(), "::input_image" ).attach( this->data_2d, &PresentData::setInputImageName ) ;
       data().bus( json_path.c_str(), "::image"       ).attach( this->data_2d, &PresentData::setImage          ) ;
       data().bus( "Graphs::", pipeline, "::window"   ).attach( this->data_2d, &PresentData::setWindowName     ) ;
       data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->data_2d, &PresentData::setGPU            ) ;
-      
-      // Add dependancies for this module's operation.
-      data().bus( "" ).onCompletion( this->name(), dynamic_cast<Module*>( this ), &Present::kick ) ;
       
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -226,12 +226,11 @@ namespace kgl
       
       if( data().stack.current() == 0 ) data().pool.reset() ;
       
+      data().profiler.start() ;
       data().buffer.record( data().pass ) ;
       while( !data().stack.empty() )
       {
-        data().mutex.lock() ;
         auto img  = data().stack.pop()                                        ;
-        data().mutex.unlock() ;
         set       = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
         
         data().uniforms[ data().current_command ].addImage( "framebuffer", img ) ;
@@ -242,23 +241,9 @@ namespace kgl
       data().buffer.stop() ;
       data().pass.submit( data().sync, data().buffer ) ;
       
-      data().mutex.lock() ;
       data().stack.swap() ;
-      data().mutex.unlock() ;
-      
-//      set.set( data().uniform ) ;
-//      
-//      // Set image & other uniforms.
-//      data().pipeline.bind( data().buffer, set ) ;
-//
-//      //Draw with buffer.
-//      data().buffer.drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
-//
-//      data().buffer.stop() ;
-//
-//      // Submit to render pass with synchronization data.
-//      data().pass.submit( data().sync, data().buffer ) ;
-
+      data().profiler.stop() ;
+      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
       data().bus( data().window_name.c_str(), "::present" ).emit( data().sync ) ;
     }
 

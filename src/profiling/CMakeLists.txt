@@ -1,0 +1,15 @@
+set( KARMA_PROFILING_SOURCES 
+     Timer.cpp
+   )
+      
+set( KARMA_PROFILING_HEADERS
+     Timer.h
+   )
+
+set( KARMA_PROFILING_INCLUDES
+   )
+
+set( KARMA_PROFILING_LIBRARIES
+    )
+
+add_library( karma_profiling SHARED ${KARMA_PROFILING_SOURCES} ${KARMA_PROFILING_HEADERS} )

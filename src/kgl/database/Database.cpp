@@ -1,5 +1,6 @@
 #include "Database.h"
 #include "../managers/AssetManager.h"
+#include <log/Log.h>
 #include <Parser.h>
 #include <string>
 #include <Bus.h>
@@ -63,6 +64,7 @@ namespace kgl
     {
       if( !this->manager.contains( this->name.c_str() ) )
       {
+        karma::log::Log::output( "Adding image to database: ", this->name.c_str(), " using path ", this->path.c_str() ) ;
         this->manager.addImage( this->path.c_str(), this->name.c_str(), this->gpu ) ;
       }
     }
@@ -128,6 +130,7 @@ namespace kgl
 
     void Database::initialize()
     {
+      karma::log::Log::output( "Initializing KGL database using config: ", data().database_path.c_str() ) ;
       data().parser.initialize( data().database_path.c_str() ) ;
     }
   

@@ -5,11 +5,12 @@
 #include "Library.h"
 #include "Semaphore.h"
 #include "Surface.h"
-#include "../node/Synchronization.h"
+#include "Synchronization.h"
 #include <Bus.h>
 #include <Pool.h>
 #include <PoolData.h>
 #include <Signal.h>
+#include <log/Log.h>
 #include <vulkan/vulkan.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
@@ -117,6 +118,8 @@ namespace kgl
       ::vk::FenceCreateInfo     fence_info ;
       
       fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
+      
+      karma::log::Log::output( "Creating window ", name, " with width: ", width, ", height: ", height, " on GPU ", gpu ) ;
 
       data().window = SDL_CreateWindow( name, 500, 500, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN ) ;
       
@@ -204,7 +207,7 @@ namespace kgl
       
       // Swap the input signal sems into this object's wait sems.
       data().sync.copy( sync ) ;
-
+      
       data().info.setPImageIndices     ( &data().current_img       ) ;
       data().info.setSwapchainCount    ( 1                         ) ;
       data().info.setPSwapchains       ( &chain                    ) ;
@@ -231,7 +234,7 @@ namespace kgl
         
         bus( "start" ).emit( data().sync ) ;
       }
-
+      
       while( data().current_frame >= 1 ) {} ;
     }
 //    void Window::setName( const char* name )

@@ -11,13 +11,19 @@ set( KGL_VK_RENDER_MODULE_MODULE_HEADERS
 set( KGL_VK_RENDER_MODULE_MODULE_INCLUDE_DIRS
       ${DATA_BUS_DIR}
       ${KGL_NODE_DIR}
+      ${Vulkan_INCLUDE_DIR}
     )
 
 set( KGL_VK_RENDER_MODULE_MODULE_LIBRARIES
-     data_bus
      kgl_containers
      kgl_vk_module
+     kgl_vk_context
+     kgl_managers
      kgl
+     karma_data_bus
+     karma_profiling
+     karma_log
+     ${Vulkan_LIBRARIES}
    )
 
 add_library               ( render2D SHARED   ${KGL_VK_RENDER_MODULE_MODULE_SOURCES} ${KGL_VK_RENDER_MODULE_MODULE_HEADERS} )

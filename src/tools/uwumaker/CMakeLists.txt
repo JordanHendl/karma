@@ -1,10 +1,10 @@
 set( UWUMAKER_LIBRARIES
-     uwushader
-     uwuwriter
+     karma_uwushader
+     karma_uwuwriter
      glslang
      SPIRV
      stdc++fs
     )
 
-add_executable       ( uwumaker main.cpp ArgumentParser.cpp ArgumentParser.h )
-target_link_libraries( uwumaker PRIVATE  ${UWUMAKER_LIBRARIES}               )
+add_executable       ( karma_uwumaker main.cpp ArgumentParser.cpp ArgumentParser.h )
+target_link_libraries( karma_uwumaker PRIVATE  ${UWUMAKER_LIBRARIES}               )

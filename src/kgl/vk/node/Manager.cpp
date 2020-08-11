@@ -1,6 +1,7 @@
 #include "Manager.h"
 #include "Loader.h"
 #include "Graph.h"
+#include <log/Log.h>
 #include <Bus.h>
 #include <Signal.h>
 #include <Configuration.h>
@@ -35,6 +36,7 @@ namespace kgl
     {
       if( this->graphs.find( name ) == this->graphs.end() )
       {
+        karma::log::Log::output( "Adding render graph ", name ) ;
         Graph* graph ;
         
         graph = new Graph() ;
@@ -63,6 +65,8 @@ namespace kgl
 
       data().config_path = configuration_path ;
       
+      karma::log::Log::output( "Initializing Module Manager with modules in ", mod_path, " using the following config: ", configuration_path ) ;
+
       data().loader.initialize( mod_path ) ;
       bus( "Graphs" ).attach( this->man_data, &ManagerData::addGraph ) ;
       data().config.initialize( data().config_path.c_str(), 0 ) ;
@@ -73,6 +77,9 @@ namespace kgl
       unsigned index ;
       
       index = 0 ;
+      
+      karma::log::Log::output( "Initializing all current active graphs." ) ;
+
       for( auto &graph : data().graphs ) 
       {
         // Push config once to build nodes.
