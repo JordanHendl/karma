@@ -1,14 +1,15 @@
 # karma
-C++ Engine Library &amp; Tools for Game Development.
 
-Trying to make an actual enterprise-level engine myself, using what I've learned in the industry.
+Karma Engine is a rendering & compute engine designed to be heavily modular, quick to learn, and quick to integrate into existing workflows.
 
-My experience is mostly OpenGL & CUDA, so a lot of design decisions might be built around that.
+Karma provides classes & functions to interact with the engine. The modules themselves are designed to be run with their defaults, but are also able to be heavily modified at runtime if the user wishes too. They can be modified either through JSON configurations, or through sending the data directly through a class provided by the engine.
 
-Any suggestions please make to jordiehendl@gmail.com.
+The project provides callback systems for retrieving compute data once it is finished processing as well.
 
-Build with cmake & gcc8 on Centos8.
+Currently, Karma is limited to a vulkan implementation. This is done first for the purpose of being cross-platform, but other Graphics API implementations are on the to-do list.
 
-Requires Vulkan 1.2 & SDL2 to compile.
+Karma is developed on Linux using Centos8 using GCC8, making use of many C++17 features as well. It is dependant on Vulkan 1.2 & SDL2.
 
-It should be ok to build on other systems, as I use nothing platform-specific, but this is not tested.
+The windows build of the library is also supported using MinGW-w64. Android & iOS are not yet supported.
+
+For any questions or inquiries feel free to send them to jordiehendl@gmail.com !
