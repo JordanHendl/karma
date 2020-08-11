@@ -13,8 +13,8 @@ namespace kgl
 {
   namespace man
   {
-    typedef std::map<std::string, ::kgl::vk::Image*> ImageMap ;
     typedef std::map<std::string, Atlas           *> AtlasMap ;
+    typedef std::map<std::string, ::kgl::vk::Image*> ImageMap ;
 //    typedef std::map<std::string, ::kgl::vk::Model*> ModelMap ;
 
     struct AssetMaps
@@ -26,11 +26,12 @@ namespace kgl
     
     struct AtlasData
     {
-      std::string name       ;
-      ::kgl::vk::Image image ;
-      unsigned sprite_width  ;
-      unsigned sprite_height ;
-      unsigned sprite_count  ;
+      std::string name            ;
+      ::kgl::vk::Image image      ;
+      unsigned sprite_width       ;
+      unsigned sprite_height      ;
+      unsigned num_sprites_in_row ;
+      unsigned num_sprites_in_col ;
     };
 
     static AssetMaps data ;
@@ -63,7 +64,7 @@ namespace kgl
 
     unsigned Atlas::maxSprites()
     {
-      return data().sprite_count ;
+      return data().num_sprites_in_col * data().num_sprites_in_row ;
     }
 
     unsigned Atlas::spriteHeight()
@@ -107,15 +108,20 @@ namespace kgl
     void AssetManager::addAtlas( const char* path, const char* name, unsigned sprite_width, unsigned sprite_height, unsigned gpu )
     {
       ::kgl::io::ImageLoader loader ;
-
+      
       if( data.spritesheet.find( name ) == data.spritesheet.end() )
       {
         karma::log::Log::output( "Loading spritesheet ", name, " at path ", path, " on GPU ", gpu ) ;
         loader.load( path ) ;
         data.spritesheet.insert( { name,  new Atlas() } ) ;
-
+        
         data.spritesheet.at( name )->data().image.initialize( gpu, loader.width(), loader.height() ) ;
         data.spritesheet.at( name )->data().image.copy( loader.pixels(), loader.channels() ) ;
+
+        data.spritesheet.at( name )->data().num_sprites_in_row = ( loader.width()  / sprite_width  ) ;
+        data.spritesheet.at( name )->data().num_sprites_in_col = ( loader.height() / sprite_height ) ;
+        data.spritesheet.at( name )->data().sprite_width       = sprite_width                        ;
+        data.spritesheet.at( name )->data().sprite_height      = sprite_height                       ;
       }
     }
 

@@ -22,12 +22,12 @@ if ( ${DOXYGEN_FOUND} AND ${BUILD_DOC} )
     set(DOXYGEN_IN  ${DOXYGEN_CONFIG_DIR}/doxygen.cfg                 )
     set(DOXYGEN_OUT ${DOCUMENTATION_OUTPUT_DIRECTORY}/doc/doxygen.cfg )
     
-    set( DOC_INPUT ${CMAKE_CURRENT_SOURCE_DIR} )
+    set( DOC_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/ )
 
     # request to configure the file
     configure_file( ${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY )
 
-    message("Generating ${MODULE_NAME} documentation")
+    message("Generating KGL documentation")
     # note the option ALL which allows to build the docs together with the application
     add_custom_target( doc_doxygen ALL
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}

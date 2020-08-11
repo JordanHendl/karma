@@ -59,7 +59,7 @@ namespace kgl
       
       static constexpr unsigned BUFFERS = 3 ; // Todo make this 
       typedef std::map<std::string, Material>                 Materials  ;
-      typedef ::kgl::BufferedStack<ImageCommand, BUFFERS>     Stack      ;
+      typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>     Stack      ;
       typedef std::array<::kgl::vk::render::CommandBuffer, 2> CmdBuffers ;
       typedef kgl::containers::Layered<Synchronization, 3>    Syncs      ;
       
@@ -85,7 +85,7 @@ namespace kgl
       std::string                      output_name       ; ///< The name of this object's synchronization output.
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
-      ImageCommand                     current_cmd       ; ///< The current command that is being processed.
+      SheetCommand                     current_cmd       ; ///< The current command that is being processed.
       /** Default Constructor. Initializes member data.
        */
       SpriteSheetData() ;
@@ -110,7 +110,7 @@ namespace kgl
       
       /** Method to push a command to this object for operation.
       */
-      void setCommand( const ::kgl::ImageCommand& cmd ) ;
+      void setCommand( const ::kgl::SheetCommand& cmd ) ;
       
       /** Method to prepare the transformation matrix of this object for rendering.
        */
@@ -135,22 +135,22 @@ namespace kgl
       this->current_cmd = this->commands.pop() ;
     }
 
-    void SpriteSheetData::setCommand( const ::kgl::ImageCommand& cmd )
+    void SpriteSheetData::setCommand( const ::kgl::SheetCommand& cmd )
     {
-      auto iter = this->materials.find( cmd.image() ) ;
+      auto iter = this->materials.find( cmd.sheet() ) ;
       
       this->commands.insert( cmd, this->commands.next() ) ;
 
       // If we don't have enough uniform objects for the amount of commands we have, scale up.
       if( iter == this->materials.end() )
       {
-        if( this->manager.contains( cmd.image() ) )
+        if( this->manager.contains( cmd.sheet() ) )
         {
-          auto mat = this->materials.emplace( cmd.image(), Material() ) ;
+          auto mat = this->materials.emplace( cmd.sheet(), Material() ) ;
 
           mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
           mat.first->second.uniform.initialize( this->gpu                                   ) ;
-          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
+          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.sheet() ) ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
@@ -163,13 +163,13 @@ namespace kgl
       const float       w   = this->current_cmd.width()    ;
       const float       h   = this->current_cmd.height()   ;
       const float       r   = this->current_cmd.rotation() ;
-      const std::string img = this->current_cmd.image()    ;
+      const std::string img = this->current_cmd.sheet()    ;
 
       glm::vec2 size ;
      
       if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
       {
-        const auto image = &this->manager.image( this->current_cmd.image() ) ;
+        const auto image = &this->manager.image( this->current_cmd.sheet() ) ;
         size = glm::vec2( image->width(), image->height() ) ;
       }
       else
@@ -258,7 +258,7 @@ namespace kgl
       const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/spritesheet.uwu"                              ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -355,7 +355,7 @@ namespace kgl
           // Build Transformation Matrix.
           data().setUpModelMatrix() ;
 
-          auto iter = data().materials.find( data().current_cmd.image() ) ;
+          auto iter = data().materials.find( data().current_cmd.sheet() ) ;
 
           // Bind pipeline and descriptor set to the command buffer.
           data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;

@@ -1,6 +1,14 @@
 #ifndef KGL_VK_MODULE
 #define KGL_VK_MODULE
 
+// Defines for different OS Shared Library Exports.
+#ifdef _WIN32
+  #include <windows.h>
+  #define exported_function extern "C" __declspec( dllexport )
+#else 
+  #define exported_function extern "C"
+#endif
+
 namespace kgl
 {
   namespace vk

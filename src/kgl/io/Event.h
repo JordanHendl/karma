@@ -1,20 +1,12 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   Event.h
- * Author: jhendl
- *
- * Created on August 1, 2020, 3:36 PM
- */
-
 #ifndef KGL_IO_EVENT_H
 #define KGL_IO_EVENT_H
 
+/* Forward decleration of SDL event used for conversion.
+ */
 union SDL_Event ;
+
+/* Forward Decleration of KGL event.
+ */
 namespace kgl
 {
   namespace io
@@ -23,19 +15,21 @@ namespace kgl
   }
 }
 
+/* Conversion operator between SDL_Event and kgl Event.
+ */
 ::kgl::io::Event& operator<<( ::kgl::io::Event& event, SDL_Event& sdl_event ) ;
 
 namespace kgl
 {
   namespace io
   {
-    /**
+    /** Event object to describe keyboard & window events.
      */
     class Event
     {
       public:
         
-        /**
+        /** The type of event that has occured.
          */
         enum class Type
         {
@@ -45,7 +39,7 @@ namespace kgl
           KeyUp,
         };
 
-        /**
+        /** The code correlating to the event that occured.
          */
         enum class IOCode
         {
@@ -96,7 +90,7 @@ namespace kgl
             
         };
         
-        /**
+        /** The modifier that was active when the event happened.
          */
         enum class Modifier
         {
@@ -114,45 +108,46 @@ namespace kgl
           Mode,
         };
 
-        /**
+        /** Default constructor
          */
         Event() ;
         
-        /**
+        /** Defaulted deconstructor.
          */
         ~Event() = default ;
         
-        /**
-         * @return 
+        /** Method to return the type of event that this object represents.
+         * @return The type of event this object represents.
          */
-        Type   type() const ;
+        Type type() const ;
         
-        /**
-         * @return 
+        /** Method to retrieve the specific event code that occured.
+         * @return The event code that occuted.
          */
         IOCode code() const ;
         
-        /**
-         * @return 
+        /** Method to retrieve the modifier active when the event occured.
+         * @return The modifer, if any, that were active when the event occured.
          */
         Modifier mod() const ;
+
       private:
         
-        /**
+        /** Friend declaration of SDL_Event conversion operator.
          */
         friend ::kgl::io::Event& ::operator<<( ::kgl::io::Event& event, SDL_Event& sdl_event ) ;
         
-        /**
+        /** The type of event.
          */
         Type event_type ;
         
-        /**
+        /** The code of event.
          */
-        IOCode key_code   ;
+        IOCode key_code ;
         
-        /**
+        /** The modifier.
          */
-        Modifier modifier   ;
+        Modifier modifier ;
     };
   }
 }

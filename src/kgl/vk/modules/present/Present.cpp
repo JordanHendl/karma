@@ -154,12 +154,12 @@ namespace kgl
 
     Present::Present()
     {
-      this->data_2d = new PresentData() ;
+      this->present_data = new PresentData() ;
     }
 
     Present::~Present()
     {
-      delete this->data_2d ;
+      delete this->present_data ;
     }
 
     void Present::initialize()
@@ -218,10 +218,10 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
 
       data().bus( json_path.c_str(), "::input"       ).attach( this         , &Present::setInputName          ) ;
-      data().bus( json_path.c_str(), "::input_image" ).attach( this->data_2d, &PresentData::setInputImageName ) ;
-      data().bus( json_path.c_str(), "::image"       ).attach( this->data_2d, &PresentData::setImage          ) ;
-      data().bus( "Graphs::", pipeline, "::window"   ).attach( this->data_2d, &PresentData::setWindowName     ) ;
-      data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->data_2d, &PresentData::setGPU            ) ;
+      data().bus( json_path.c_str(), "::input_image" ).attach( this->present_data, &PresentData::setInputImageName ) ;
+      data().bus( json_path.c_str(), "::image"       ).attach( this->present_data, &PresentData::setImage          ) ;
+      data().bus( "Graphs::", pipeline, "::window"   ).attach( this->present_data, &PresentData::setWindowName     ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->present_data, &PresentData::setGPU            ) ;
       
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -280,12 +280,12 @@ namespace kgl
 
     PresentData& Present::data()
     {
-      return *this->data_2d ;
+      return *this->present_data ;
     }
 
     const PresentData& Present::data() const
     {
-      return *this->data_2d ;
+      return *this->present_data ;
     }
   }
 }

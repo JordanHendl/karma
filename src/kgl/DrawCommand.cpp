@@ -155,7 +155,7 @@ namespace kgl
     delete this->img_cmd_data ;
   }
 
-  void SheetCommand::setImage( const char* name )
+  void SheetCommand::setSheet( const char* name )
   {
     data().image = name ;
   }
@@ -215,7 +215,7 @@ namespace kgl
     return data().rot ;
   }
 
-  const char* SheetCommand::image() const
+  const char* SheetCommand::sheet() const
   {
     return data().image.c_str() ;
   }

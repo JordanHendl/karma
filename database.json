@@ -11,6 +11,17 @@
       "path" : "/data/images/test.jpeg"
     }
   },
+
+  "spritesheets" :
+  {
+    "sheet" :
+    { 
+       "sprite_width"  : 64,
+       "sprite_height" : 64,
+       "path"          : "/data/images/sheet.png"
+    }
+  },
+
   "models": 
   {
     "player_model":
