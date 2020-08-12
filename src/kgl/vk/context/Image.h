@@ -29,7 +29,7 @@ namespace kgl
         unsigned width() const ;
         unsigned height() const ;
         void copy( const unsigned char* data, unsigned channels ) ;
-        ::vk::Semaphore copy( const Image& image ) ;
+        void copy( const Image& image ) ;
         void copy( const Image& image, Synchronization& sync ) ;
         void reset() ;
       private:

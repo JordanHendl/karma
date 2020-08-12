@@ -137,7 +137,7 @@ namespace kgl
       data().map.clear() ;
     }
     
-    ::vk::Semaphore Uniform::addImage( const char* name, const ::kgl::vk::Image& image )
+    void Uniform::addImage( const char* name, const ::kgl::vk::Image& image )
     {
       BufferMap::iterator iter ;
 
@@ -154,7 +154,7 @@ namespace kgl
       }
       
       iter->second->type = Uniform::Type::Sampler ;
-      return iter->second->image.copy( image ) ;
+      iter->second->image.copy( image ) ;
     }
 
     void Uniform::addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count )

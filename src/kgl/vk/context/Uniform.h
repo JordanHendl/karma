@@ -56,7 +56,7 @@ namespace kgl
         UniformIterator begin() const ;
         UniformIterator end() const ;
         
-        ::vk::Semaphore addImage( const char* name, const ::kgl::vk::Image& image ) ;
+        void addImage( const char* name, const ::kgl::vk::Image& image ) ;
         
         template<typename T>
         void add( const char* name, Type type, const T& val ) ;

@@ -547,7 +547,7 @@ namespace kgl
         }
       }
 
-      ::vk::Semaphore CommandBuffer::submit() const
+      void CommandBuffer::submit() const
       {
         const ::kgl::vk::compute::Context context                       ;
         const ::vk::Queue queue   = context.computeQueue ( data().gpu ) ;
@@ -570,7 +570,6 @@ namespace kgl
           mutex.unlock() ;
           
         }
-        return data().sync.signalSem( 0 ) ;
       }
       
       void CommandBuffer::wait() const

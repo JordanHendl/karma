@@ -78,13 +78,13 @@ namespace kgl
        * 
        * @param buffer
        */
-      ::vk::Semaphore copyBufferToImage( ::vk::Buffer buffer ) ;
+      void copyBufferToImage( ::vk::Buffer buffer ) ;
 
       /**
        * 
        * @param buffer
        */
-      ::vk::Semaphore copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout ) ;
+      void copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout ) ;
     };
     
     ::vk::PipelineStageFlags flagFromLayout( ::vk::ImageLayout layout )
@@ -220,7 +220,7 @@ namespace kgl
       this->layout = new_layout ;
     }
 
-    ::vk::Semaphore ImageData::copyBufferToImage( ::vk::Buffer buffer )
+    void ImageData::copyBufferToImage( ::vk::Buffer buffer )
     {
       const ::kgl::vk::compute::Context context ;
       ::vk::BufferImageCopy        region      ;
@@ -255,7 +255,7 @@ namespace kgl
       return this->cmd_buffer.submit() ;
     }
 
-    ::vk::Semaphore ImageData::copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout )
+    void ImageData::copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout )
     {
       const ::kgl::vk::compute::Context context ;
       
@@ -303,7 +303,7 @@ namespace kgl
       this->cmd_buffer.buffer( 0 ).copyImage( img, layout, this->img, this->layout, 1, &region ) ;
       this->cmd_buffer.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eAllGraphics, ::vk::PipelineStageFlagBits::eAllGraphics, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
       this->cmd_buffer.stop() ;
-      return this->cmd_buffer.submit() ;
+      this->cmd_buffer.submit() ;
     }
 
     void ImageData::createBuffer( ::vk::DeviceSize size, ::vk::BufferUsageFlags usage, ::vk::MemoryPropertyFlags properties, ::vk::Buffer& buffer, ::vk::DeviceMemory& mem )
@@ -450,7 +450,7 @@ namespace kgl
       data().device.freeMemory   ( staging_buffer_mem, nullptr ) ;
     }
     
-    ::vk::Semaphore Image::copy( const Image& img )
+    void Image::copy( const Image& img )
     {
       const auto old_layout = img.data().layout ;
 
@@ -465,11 +465,9 @@ namespace kgl
 
           data().transitionLayout( data().format    , data().layout    , ::vk::ImageLayout::eTransferDstOptimal ) ;
       img.data().transitionLayout( img.data().format, img.data().layout, ::vk::ImageLayout::eTransferSrcOptimal ) ;
-      auto sem = data().copyImageToImage( img.data().img, img.data().layout ) ;
+          data().copyImageToImage( img.data().img, img.data().layout ) ;
           data().transitionLayout( data().format    , ::vk::ImageLayout::eTransferDstOptimal, ::vk::ImageLayout::eGeneral ) ;
       img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                  ) ;
-      
-      return sem ;
     }
 
     void Image::copy( const Image& img, Synchronization& sync )
