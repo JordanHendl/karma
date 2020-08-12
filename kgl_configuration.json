@@ -11,7 +11,7 @@
         "render2d" :
         {
           "version"      : 0,
-          "type"         : "Render2D",
+          "type"         : "SpriteSheet",
           "input"        : "start",
           "output_image" : "present",
           "output"       : "2d_render",

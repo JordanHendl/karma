@@ -5,6 +5,7 @@ namespace vk
 {
   class Sampler   ;
   class ImageView ;
+  class Semaphore ;
   enum class ImageLayout ;
 }
 
@@ -28,7 +29,7 @@ namespace kgl
         unsigned width() const ;
         unsigned height() const ;
         void copy( const unsigned char* data, unsigned channels ) ;
-        void copy( const Image& image ) ;
+        ::vk::Semaphore copy( const Image& image ) ;
         void copy( const Image& image, Synchronization& sync ) ;
         void reset() ;
       private:

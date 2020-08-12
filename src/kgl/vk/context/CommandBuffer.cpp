@@ -547,7 +547,7 @@ namespace kgl
         }
       }
 
-      void CommandBuffer::submit() const
+      ::vk::Semaphore CommandBuffer::submit() const
       {
         const ::kgl::vk::compute::Context context                       ;
         const ::vk::Queue queue   = context.computeQueue ( data().gpu ) ;
@@ -561,14 +561,16 @@ namespace kgl
           info.setPWaitSemaphores     ( data().sync.waitSems()      ) ;
           info.setCommandBufferCount  ( data().buffers.size()       ) ;
           info.setPCommandBuffers     ( data().buffers.data()       ) ;
-          info.setSignalSemaphoreCount( 0 ) ; //data().sync.numSignalSems() ) ;
+          info.setSignalSemaphoreCount( 0                           ) ;
           info.setPSignalSemaphores   ( data().sync.signalSems()    ) ;
           
           mutex.lock() ;
           queue.submit( 1, &info, data().sync.fence() ) ;
           queue.waitIdle() ;
           mutex.unlock() ;
+          
         }
+        return data().sync.signalSem( 0 ) ;
       }
       
       void CommandBuffer::wait() const

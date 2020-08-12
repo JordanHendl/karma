@@ -149,6 +149,20 @@ namespace kgl
   {
     this->img_cmd_data = new SheetCommandData() ;
   }
+  
+  SheetCommand::SheetCommand( const SheetCommand& cmd )
+  {
+    this->img_cmd_data = new SheetCommandData() ;
+    
+    *this->img_cmd_data = *cmd.img_cmd_data ;
+  }
+  
+  SheetCommand& SheetCommand::operator=( const SheetCommand& cmd )
+  {
+    *this->img_cmd_data = *cmd.img_cmd_data ;
+    
+    return *this ;
+  }
 
   SheetCommand::~SheetCommand()
   {

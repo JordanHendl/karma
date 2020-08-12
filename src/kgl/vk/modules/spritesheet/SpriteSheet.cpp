@@ -23,7 +23,7 @@
 #include <containers/Layered.h>
 #include <managers/AssetManager.h>
 #include <vulkan/vulkan.hpp>
-#include <DrawCommand.h>
+#include <cmd/DrawCommand.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <string>
@@ -33,17 +33,7 @@
 #include <iostream>
 #include <map>
 
-static inline const float vertex_data[] = 
-{ 
-  // pos      // tex
-  0.0f, 1.0f, 0.0f, 1.0f,
-  1.0f, 0.0f, 1.0f, 0.0f,
-  0.0f, 0.0f, 0.0f, 0.0f, 
 
-  0.0f, 1.0f, 0.0f, 1.0f,
-  1.0f, 1.0f, 1.0f, 1.0f,
-  1.0f, 0.0f, 1.0f, 0.0f
-};
 
 namespace kgl
 {
@@ -62,6 +52,19 @@ namespace kgl
       typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>     Stack      ;
       typedef std::array<::kgl::vk::render::CommandBuffer, 2> CmdBuffers ;
       typedef kgl::containers::Layered<Synchronization, 3>    Syncs      ;
+      
+      
+      std::vector<float> vert = 
+      { 
+        // pos      // tex
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 
+      
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f
+      };
       
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
@@ -86,6 +89,7 @@ namespace kgl
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
       SheetCommand                     current_cmd       ; ///< The current command that is being processed.
+      
       /** Default Constructor. Initializes member data.
        */
       SpriteSheetData() ;
@@ -116,6 +120,10 @@ namespace kgl
        */
       void setUpModelMatrix() ;
       
+      /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
+       */
+      void setUpTextureCoords( const ::kgl::man::Atlas& sheet ) ;
+
       /** Method to output this object's data.
        */
       void output( const Synchronization& sync ) ;
@@ -148,14 +156,53 @@ namespace kgl
         {
           auto mat = this->materials.emplace( cmd.sheet(), Material() ) ;
 
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
-          mat.first->second.uniform.initialize( this->gpu                                   ) ;
-          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.sheet() ) ) ;
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()             ) ;
+          mat.first->second.uniform.initialize( this->gpu                                           ) ;
+          mat.first->second.uniform.addImage  ( "image", this->manager.atlas( cmd.sheet() ).image() ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
     }
-    
+
+    void SpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet )
+    {
+      const unsigned sprite             = this->current_cmd.index()                        ;
+      const unsigned sprite_width       = sheet.spriteWidth()                              ;
+      const unsigned sprite_height      = sheet.spriteHeight()                             ;
+      const unsigned image_width        = sheet.image().width()                            ;
+      const unsigned image_height       = sheet.image().height()                           ;
+      const unsigned num_sprites_in_row = image_width  / sprite_width                      ; 
+      const unsigned sprite_y_index     = sprite / num_sprites_in_row                      ;
+      const unsigned sprite_x_index     = sprite - ( sprite_y_index * num_sprites_in_row ) ;
+      const unsigned sprite_ypixel      = sprite_y_index * sprite_height                   ;
+      const unsigned sprite_xpixel      = sprite_x_index * sprite_width                    ;
+      
+      const float top_left_x     = static_cast<float>( sprite_xpixel                 ) / static_cast<float>( image_width  ) ;
+      const float top_left_y     = static_cast<float>( sprite_ypixel                 ) / static_cast<float>( image_height ) ;
+      const float top_right_x    = static_cast<float>( sprite_xpixel + sprite_width  ) / static_cast<float>( image_width  ) ;
+      const float top_right_y    = static_cast<float>( sprite_ypixel                 ) / static_cast<float>( image_height ) ;
+      const float bottom_left_x  = static_cast<float>( sprite_xpixel                 ) / static_cast<float>( image_width  ) ;
+      const float bottom_left_y  = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
+      const float bottom_right_x = static_cast<float>( sprite_xpixel + sprite_width  ) / static_cast<float>( image_width  ) ;
+      const float bottom_right_y = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
+
+      this->vert[ 2  ] = bottom_left_x  ;
+      this->vert[ 3  ] = bottom_left_y  ;
+      this->vert[ 6  ] = top_right_x    ;
+      this->vert[ 7  ] = top_right_y    ;
+      this->vert[ 10 ] = top_left_x     ;
+      this->vert[ 11 ] = top_left_y     ;
+      
+      this->vert[ 14 ] = bottom_left_x  ;
+      this->vert[ 15 ] = bottom_left_y  ;
+      this->vert[ 18 ] = bottom_right_x ;
+      this->vert[ 19 ] = bottom_right_y ;
+      this->vert[ 22 ] = top_right_x    ;
+      this->vert[ 23 ] = top_right_y    ;
+      
+      this->vertices.copyToDevice( this->vert.data() ) ;
+    }
+
     void SpriteSheetData::setUpModelMatrix()
     {
       const float       x   = this->current_cmd.posX()     ;
@@ -258,7 +305,7 @@ namespace kgl
       const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/spritesheet.uwu"                              ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -288,7 +335,7 @@ namespace kgl
       data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
       
       // Copy vertex data to the device.
-      data().vertices.copyToDevice( vertex_data ) ;
+      data().vertices.copyToDevice( data().vert.data() ) ;
     }
 
     void SpriteSheet::shutdown()
@@ -352,11 +399,11 @@ namespace kgl
           // Pop latest draw command off the stack.
           data().pop() ;
           
-          // Build Transformation Matrix.
-          data().setUpModelMatrix() ;
-
           auto iter = data().materials.find( data().current_cmd.sheet() ) ;
-
+          // Build Transformation Matrix.
+          data().setUpModelMatrix()                                                       ;
+          data().setUpTextureCoords( data().manager.atlas( data().current_cmd.sheet() ) ) ;
+          
           // Bind pipeline and descriptor set to the command buffer.
           data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
@@ -383,7 +430,7 @@ namespace kgl
       else                             data().cmd_buff_index++ ;
       data().profiler.stop() ;
 
-      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
+//      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     SpriteSheetData& SpriteSheet::data()

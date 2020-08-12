@@ -16,7 +16,7 @@ namespace kgl
 
     static const std::vector<const char*> required_extensions = 
     {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
 
     static std::vector<::vk::PhysicalDevice> physical_devices ;
@@ -197,8 +197,9 @@ namespace kgl
         infos[ i ].setPQueuePriorities( priority                   ) ;
       }
       
-      features.setSamplerAnisotropy( true ) ;
-      
+      features.setSamplerAnisotropy ( true ) ;
+      features.setDualSrcBlend      ( true ) ;
+      features.setRobustBufferAccess( true ) ;
       dev_info.setQueueCreateInfoCount   ( infos.size()               ) ;
       dev_info.setPQueueCreateInfos      ( infos.data()               ) ;
       dev_info.setEnabledExtensionCount  ( required_extensions.size() ) ;

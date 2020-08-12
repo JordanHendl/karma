@@ -13,6 +13,7 @@ set( KARMA_GAME_INCLUDE_DIRS
 set( KARMA_GAME_LIBRARIES
      kgl
      kgl_io
+     kgl_command
      karma_data_bus
      karma_profiling
    )

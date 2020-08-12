@@ -294,7 +294,7 @@ namespace kgl
         
           /**
            */
-          void submit() const ;
+          ::vk::Semaphore submit() const ;
           
           /**
            * @param buffer

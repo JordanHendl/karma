@@ -3,7 +3,8 @@
 
 namespace vk
 {
-  class Buffer ;
+  class Buffer    ;
+  class Semaphore ;
 }
 
 namespace kgl
@@ -55,7 +56,7 @@ namespace kgl
         UniformIterator begin() const ;
         UniformIterator end() const ;
         
-        void addImage( const char* name, const ::kgl::vk::Image& image ) ;
+        ::vk::Semaphore addImage( const char* name, const ::kgl::vk::Image& image ) ;
         
         template<typename T>
         void add( const char* name, Type type, const T& val ) ;

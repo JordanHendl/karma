@@ -87,7 +87,7 @@ namespace kgl
           Down,
           Space,
           Enter,
-            
+          Tab
         };
         
         /** The modifier that was active when the event happened.

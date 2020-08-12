@@ -52,22 +52,22 @@ namespace kgl
       delete this->atlas_data ;
     }
 
-    ::kgl::vk::Image& Atlas::image()
+    const ::kgl::vk::Image& Atlas::image() const
     {
       return data().image ;
     }
 
-    unsigned Atlas::spriteWidth()
+    unsigned Atlas::spriteWidth() const
     {
       return data().sprite_width ;
     }
 
-    unsigned Atlas::maxSprites()
+    unsigned Atlas::maxSprites() const
     {
       return data().num_sprites_in_col * data().num_sprites_in_row ;
     }
 
-    unsigned Atlas::spriteHeight()
+    unsigned Atlas::spriteHeight() const 
     {
       return data().sprite_height ;
     }
@@ -134,6 +134,16 @@ namespace kgl
       
       return dummy ;
     }
+    
+    const ::kgl::man::Atlas& AssetManager::atlas( const char* name ) const
+    {
+      const static ::kgl::man::Atlas dummy ;
+      const auto iter = data.spritesheet.find( name ) ;
+      
+      if( iter != data.spritesheet.end() ) return *iter->second ;
+      
+      return dummy ;
+    }
 
     void AssetManager::addModel( const char* path, const char* name )
     {
@@ -147,7 +157,7 @@ namespace kgl
 
     bool AssetManager::contains( const char* name ) const
     {
-      return data.images.find( name ) != data.images.end() ;
+      return data.images.find( name ) != data.images.end() || data.spritesheet.find( name ) != data.spritesheet.end() ;
     }
 
     void AssetManager::remove( const char* name )

@@ -38,10 +38,10 @@ namespace kgl
         Atlas() ;
         Atlas( const Atlas& atlas ) ;
         ~Atlas() ;
-        ::kgl::vk::Image& image() ;
-        unsigned spriteWidth() ;
-        unsigned maxSprites() ;
-        unsigned spriteHeight() ;
+        const ::kgl::vk::Image& image() const ;
+        unsigned spriteWidth() const ;
+        unsigned maxSprites() const ;
+        unsigned spriteHeight() const ;
         Atlas& operator=( const Atlas& atlas ) ;
         
       private:

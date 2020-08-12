@@ -137,7 +137,6 @@ namespace kgl
       const ::kgl::vk::compute::Context context ;
       const ::vk::PhysicalDevice p_device = context.physicalDevice( this->gpu ) ;
       const ::vk::Device         device   = context.virtualDevice ( this->gpu ) ;
-      
       ::vk::MemoryRequirements req        ;
       ::vk::MemoryAllocateInfo alloc_info ;
       ::vk::DeviceMemory       memory     ;
@@ -155,16 +154,28 @@ namespace kgl
 
     void BufferData::copy( ::vk::Buffer buffer, unsigned size )
     {
-      ::vk::BufferCopy region ;
-      ::vk::DeviceSize offset ;
-      
+      ::kgl::vk::compute::Context context ;
+      ::vk::BufferCopy          region       ;
+      ::vk::DeviceSize          offset       ;
+      ::vk::MemoryBarrier       barrier      ;
+      ::vk::BufferMemoryBarrier buff_barrier ;
+      ::vk::DependencyFlags     flags        ;
       offset = 0 ;
       region.setSize     ( size   ) ;
       region.setSrcOffset( offset ) ;
       region.setDstOffset( offset ) ;
-
+      
+      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eShaderWrite ) ;
+      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eShaderRead  ) ;
+      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eShaderWrite ) ;
+      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eShaderRead  ) ;
+      buff_barrier.setBuffer             ( this->buffer                       ) ;
+      buff_barrier.setSize               ( size                               ) ;
+      buff_barrier.setSrcQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
+      buff_barrier.setDstQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
       this->cmd_buff.record() ;
       this->cmd_buff.buffer( 0 ).copyBuffer( buffer, this->buffer, 1, &region ) ;
+      this->cmd_buff.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eAllCommands, ::vk::PipelineStageFlagBits::eAllCommands, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
       this->cmd_buff.stop() ;
       this->cmd_buff.submit() ;
       this->cmd_buff.wait() ;

@@ -11,6 +11,7 @@ void main()
   vec4 color ;
   
   color = texture( image, tex_coords ) ;
+  if( color.a < 0.1 ) discard ;
 
-  out_color = vec4( color.xyz, 1.0 ) ;
+  out_color = vec4( color ) ;
 }

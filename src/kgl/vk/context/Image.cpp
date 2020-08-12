@@ -78,13 +78,13 @@ namespace kgl
        * 
        * @param buffer
        */
-      void copyBufferToImage( ::vk::Buffer buffer ) ;
+      ::vk::Semaphore copyBufferToImage( ::vk::Buffer buffer ) ;
 
       /**
        * 
        * @param buffer
        */
-      void copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout ) ;
+      ::vk::Semaphore copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout ) ;
     };
     
     ::vk::PipelineStageFlags flagFromLayout( ::vk::ImageLayout layout )
@@ -166,13 +166,13 @@ namespace kgl
       
       info.setMagFilter              ( ::vk::Filter::eLinear              ) ;
       info.setMinFilter              ( ::vk::Filter::eLinear              ) ;
-      info.setAddressModeU           ( ::vk::SamplerAddressMode::eRepeat  ) ;
-      info.setAddressModeV           ( ::vk::SamplerAddressMode::eRepeat  ) ;
-      info.setAddressModeW           ( ::vk::SamplerAddressMode::eRepeat  ) ;
-      info.setBorderColor            ( ::vk::BorderColor::eIntOpaqueBlack ) ;
+      info.setAddressModeU           ( ::vk::SamplerAddressMode::eClampToBorder) ;
+      info.setAddressModeV           ( ::vk::SamplerAddressMode::eClampToBorder) ;
+      info.setAddressModeW           ( ::vk::SamplerAddressMode::eClampToBorder) ;
+      info.setBorderColor            ( ::vk::BorderColor::eIntTransparentBlack ) ;
       info.setCompareOp              ( ::vk::CompareOp::eAlways           ) ;
       info.setMipmapMode             ( ::vk::SamplerMipmapMode::eLinear   ) ;
-      info.setAnisotropyEnable       ( ::vk::Bool32( true )               ) ;
+      info.setAnisotropyEnable       ( ::vk::Bool32( true  )              ) ;
       info.setUnnormalizedCoordinates( ::vk::Bool32( false )              ) ;
       info.setCompareEnable          ( ::vk::Bool32( false )              ) ;
       info.setMaxAnisotropy          ( max_anisotropy                     ) ;
@@ -196,7 +196,7 @@ namespace kgl
       range.setLevelCount    ( 1                                 ) ;
       range.setLayerCount    ( 1                                 ) ;
       range.setAspectMask    ( ::vk::ImageAspectFlagBits::eColor ) ;
-
+      
       barrier.setOldLayout       ( old_layout ) ;
       barrier.setNewLayout       ( new_layout ) ;
       barrier.setImage           ( this->img  ) ;
@@ -220,7 +220,7 @@ namespace kgl
       this->layout = new_layout ;
     }
 
-    void ImageData::copyBufferToImage( ::vk::Buffer buffer )
+    ::vk::Semaphore ImageData::copyBufferToImage( ::vk::Buffer buffer )
     {
       const ::kgl::vk::compute::Context context ;
       ::vk::BufferImageCopy        region      ;
@@ -252,16 +252,26 @@ namespace kgl
              
       this->cmd_buffer.buffer( 0 ).copyBufferToImage( buffer, this->img, ::vk::ImageLayout::eTransferDstOptimal, 1, &region ) ;
       this->cmd_buffer.stop() ;
-      this->cmd_buffer.submit() ;
+      return this->cmd_buffer.submit() ;
     }
 
-    void ImageData::copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout )
+    ::vk::Semaphore ImageData::copyImageToImage( ::vk::Image img, ::vk::ImageLayout layout )
     {
       const ::kgl::vk::compute::Context context ;
+      
+      ::vk::ImageMemoryBarrier     barrier     ;
       ::vk::ImageCopy              region      ;
+      ::vk::ImageSubresourceRange  range       ;
       ::vk::ImageSubresourceLayers subresource ;
       ::vk::Extent3D               extent      ;
       ::vk::Offset3D               offset      ;
+      ::vk::DependencyFlags        flags       ;
+
+      range.setBaseArrayLayer( 0                                 ) ;
+      range.setBaseMipLevel  ( 0                                 ) ;
+      range.setLevelCount    ( 1                                 ) ;
+      range.setLayerCount    ( 1                                 ) ;
+      range.setAspectMask    ( ::vk::ImageAspectFlagBits::eColor ) ;
 
       subresource.setAspectMask    ( ::vk::ImageAspectFlagBits::eColor ) ;
       subresource.setBaseArrayLayer( 0                                 ) ;
@@ -271,6 +281,11 @@ namespace kgl
       extent.setWidth ( this->width  ) ;
       extent.setHeight( this->height ) ;
       extent.setDepth ( 1            ) ;
+      
+      barrier.setOldLayout       ( this->layout ) ;
+      barrier.setNewLayout       ( this->layout ) ;
+      barrier.setImage           ( this->img    ) ;
+      barrier.setSubresourceRange( range        ) ;
       
       offset.setX( 0 ) ;
       offset.setY( 0 ) ;
@@ -286,8 +301,9 @@ namespace kgl
       this->cmd_buffer.record() ;
          
       this->cmd_buffer.buffer( 0 ).copyImage( img, layout, this->img, this->layout, 1, &region ) ;
+      this->cmd_buffer.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eAllGraphics, ::vk::PipelineStageFlagBits::eAllGraphics, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
       this->cmd_buffer.stop() ;
-      this->cmd_buffer.submit() ;
+      return this->cmd_buffer.submit() ;
     }
 
     void ImageData::createBuffer( ::vk::DeviceSize size, ::vk::BufferUsageFlags usage, ::vk::MemoryPropertyFlags properties, ::vk::Buffer& buffer, ::vk::DeviceMemory& mem )
@@ -434,7 +450,7 @@ namespace kgl
       data().device.freeMemory   ( staging_buffer_mem, nullptr ) ;
     }
     
-    void Image::copy( const Image& img )
+    ::vk::Semaphore Image::copy( const Image& img )
     {
       const auto old_layout = img.data().layout ;
 
@@ -449,9 +465,11 @@ namespace kgl
 
           data().transitionLayout( data().format    , data().layout    , ::vk::ImageLayout::eTransferDstOptimal ) ;
       img.data().transitionLayout( img.data().format, img.data().layout, ::vk::ImageLayout::eTransferSrcOptimal ) ;
-      data().copyImageToImage( img.data().img, img.data().layout ) ;
+      auto sem = data().copyImageToImage( img.data().img, img.data().layout ) ;
           data().transitionLayout( data().format    , ::vk::ImageLayout::eTransferDstOptimal, ::vk::ImageLayout::eGeneral ) ;
       img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                  ) ;
+      
+      return sem ;
     }
 
     void Image::copy( const Image& img, Synchronization& sync )

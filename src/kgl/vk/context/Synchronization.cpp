@@ -137,6 +137,11 @@ namespace kgl
       return &data().signal_sem ;
     }
     
+    void Synchronization::addWait( ::vk::Semaphore sem )
+    {
+      data().wait_sems.push_back( sem ) ;
+    }
+    
     const ::vk::Fence Synchronization::fence() const
     {
       return data().fence ;

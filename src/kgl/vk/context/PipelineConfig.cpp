@@ -637,14 +637,14 @@ namespace kgl
     void PipelineConfigurationData::makeColorAttachInfo()
     {
       const ::vk::ColorComponentFlags mask = ::vk::ColorComponentFlagBits::eR | ::vk::ColorComponentFlagBits::eG | ::vk::ColorComponentFlagBits::eB | ::vk::ColorComponentFlagBits::eA ;
-      this->color_blend_attachment.color_blend.setColorWriteMask     ( mask                     ) ;
-      this->color_blend_attachment.color_blend.setBlendEnable        ( false                    ) ;
-      this->color_blend_attachment.color_blend.setSrcColorBlendFactor( ::vk::BlendFactor::eOne  ) ;
-      this->color_blend_attachment.color_blend.setDstColorBlendFactor( ::vk::BlendFactor::eZero ) ;
-      this->color_blend_attachment.color_blend.setColorBlendOp       ( ::vk::BlendOp::eAdd      ) ;
-      this->color_blend_attachment.color_blend.setSrcAlphaBlendFactor( ::vk::BlendFactor::eOne  ) ;
-      this->color_blend_attachment.color_blend.setDstAlphaBlendFactor( ::vk::BlendFactor::eZero ) ;
-      this->color_blend_attachment.color_blend.setAlphaBlendOp       ( ::vk::BlendOp::eAdd      ) ;
+      this->color_blend_attachment.color_blend.setColorWriteMask     ( mask                                  ) ;
+      this->color_blend_attachment.color_blend.setBlendEnable        ( true                                  ) ;
+      this->color_blend_attachment.color_blend.setSrcColorBlendFactor( ::vk::BlendFactor::eSrcAlpha          ) ;
+      this->color_blend_attachment.color_blend.setDstColorBlendFactor( ::vk::BlendFactor::eOneMinusSrc1Alpha ) ;
+      this->color_blend_attachment.color_blend.setColorBlendOp       ( ::vk::BlendOp::eAdd                   ) ;
+      this->color_blend_attachment.color_blend.setSrcAlphaBlendFactor( ::vk::BlendFactor::eOne               ) ;
+      this->color_blend_attachment.color_blend.setDstAlphaBlendFactor( ::vk::BlendFactor::eZero              ) ;
+      this->color_blend_attachment.color_blend.setAlphaBlendOp       ( ::vk::BlendOp::eAdd                   ) ;
     }
 
     void PipelineConfigurationData::makeAssemblyInfo()

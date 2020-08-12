@@ -16,8 +16,8 @@
   {
     "sheet" :
     { 
-       "sprite_width"  : 64,
-       "sprite_height" : 64,
+       "sprite_width"  : 55,
+       "sprite_height" : 94,
        "path"          : "/data/images/sheet.png"
     }
   },

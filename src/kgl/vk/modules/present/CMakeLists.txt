@@ -16,6 +16,7 @@ set( KGL_VK_PRESENT__MODULE_LIBRARIES
      kgl_containers
      kgl_vk_module
      kgl_vk_context
+     kgl_command
      kgl
      karma_data_bus
      karma_log

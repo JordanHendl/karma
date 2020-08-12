@@ -104,6 +104,11 @@ namespace kgl
         const ::vk::Semaphore* signalSems() const ;
         
         /**
+         * @return 
+         */
+        void addWait( ::vk::Semaphore sem ) ;
+
+        /**
          */
         void wait() const ;
         

@@ -1,6 +1,6 @@
 #include "Game.h"
 #include "../../kgl/KGL_Interface.h"
-#include "../../kgl/DrawCommand.h"
+#include "../../kgl/cmd/DrawCommand.h"
 #include "../../kgl/io/Event.h"
 #include "../../data/Bus.h"
 #include "../../data/Signal.h"
@@ -12,7 +12,8 @@ namespace karma
 {
   struct GameData
   {
-    ::kgl::ImageCommand cmd       ;
+    ::kgl::SheetCommand cmd       ;
+    unsigned            sprite    ;
     karma::ms::Timer    timer     ;
     ::KGL_Interface     interface ;
     ::data::module::Bus bus       ;
@@ -38,6 +39,7 @@ namespace karma
       this->xpos_2  = 200.0f  ;
       this->ypos_2  = 200.0f  ;
       this->rot_2   = 0.0f    ;
+      this->sprite  = 0       ;
     }
   };
   
@@ -92,6 +94,10 @@ namespace karma
           this->rot_2 -= delta ;
           break ;
           
+        case ::kgl::io::Event::IOCode::Tab :
+          this->sprite++ ;
+          break ;
+          
         default: break ;
       }
     }
@@ -128,21 +134,23 @@ namespace karma
     {
       data().timer.start() ;
       
-      data().cmd.setImage ( "test"  ) ;
-      data().cmd.setPosX    ( data().xpos ) ;
-      data().cmd.setPosY    ( data().ypos ) ;
-      data().cmd.setRotation( data().rot  ) ;
-      
       if( !data().pause )
       {
+        data().cmd.setSheet   ( "sheet"       ) ;
+        data().cmd.setPosX    ( data().xpos   ) ;
+        data().cmd.setPosY    ( data().ypos   ) ;
+        data().cmd.setRotation( data().rot    ) ;
+        data().cmd.setIndex   ( data().sprite ) ;
+
         data().bus( "render2d::cmd" ).emit( data().cmd ) ;
 
-        data().cmd.setImage ( "test_2"  ) ;
+        data().cmd.setSheet   ( "sheet"      ) ;
         data().cmd.setPosX    ( data().xpos_2 ) ;
         data().cmd.setPosY    ( data().ypos_2 ) ;
         data().cmd.setRotation( data().rot_2  ) ;
+        data().cmd.setIndex   ( data().sprite ) ;
 
-        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
+//        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
       
         data().interface.start() ;
         
