@@ -2,32 +2,35 @@ cmake_minimum_required( VERSION 3.8.0 )
 
 
 #Build Options
-option( OPEPRATING_SYSTEM "The Operating system to build for."                                 "LINUX" )
-option( BUILD_DOC         "Whether or not documentation should be build"                       OFF     ) 
-option( BUILD_UWUMAKER    "Whether or not to build the GLSLANG library & UWUMaker executable." ON      ) 
-option( MAJOR_VERSION     "The major component of the version"                                 0       ) 
-option( MINOR_VERSION     "The minor component of the version"                                 1       ) 
-option( PATCH_VERSION     "The patch component of the version"                                 0       ) 
+option( WERROR         "Whether warnings should be treated as errors."                      ON  )
+option( BUILD_DOC      "Whether or not documentation should be build"                       OFF ) 
+option( BUILD_UWUMAKER "Whether or not to build the GLSLANG library & UWUMaker executable." ON  ) 
+
+set ( MAJOR_VERSION 0 )
+set ( MINOR_VERSION 1 )
+set ( PATCH_VERSION 0 )
+
 set( CMAKE_CXX_STANDARD 17 )
+
+
+MESSAGE( "Warnings as Errors  : ${WERROR}"                                          ) 
+MESSAGE( "Build Documentation : ${BUILD_DOC}"                                       ) 
+MESSAGE( "Build UWUMaker      : ${BUILD_UWUMAKER}"                                  ) 
+MESSAGE( "Version             : ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}" ) 
 
 if( OPERATING_SYSTEM STREQUAL "WINDOWS" )
 
     MESSAGE( "BUILDING FOR WINDOWS" )
-    SET( CMAKE_SYSTEM_NAME Windows)
 
     # which compilers to use for C and C++
-    SET( CMAKE_C_COMPILER   /usr/bin/x86_64-w64-mingw32-gcc )
-    SET( CMAKE_CXX_COMPILER /usr/bin/x86_64-w64-mingw32-g++ )
+    set(CMAKE_C_FLAGS   "-g -fPIC")
+    set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC")
 
-    # here is the target environment located
-    SET(CMAKE_FIND_ROOT_PATH  /usr/i586-mingw32msvc /home/alex/mingw-install )
+else()
+    MESSAGE( " -Building for non-windows systems." )
 
-    # adjust the default behaviour of the FIND_XXX() commands:
-    # search headers and libraries in the target environment, search
-    # programs in the host environment
-#    set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
-#    set( CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY  )
-#    set( CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY  )
+    set(CMAKE_C_FLAGS   "-g -fPIC -Werror -Wall")
+    set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC -Werror -Wall")
 
 endif( OPERATING_SYSTEM STREQUAL "WINDOWS" )
 
@@ -42,9 +45,7 @@ set( LIB_INSTALL_DIR "/usr/local/karma/lib64"      )
 set( BIN_INSTALL_DIR "/usr/local/karma/bin"        )
 set( INC_INSTALL_DIR "/usr/local/karma/include"    )
 
-#C++/C Compiler Flags.
-set(CMAKE_C_FLAGS   "-g -fPIC -Werror -Wall")
-set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC -Werror -Wall")
+
 
 # Set output directories.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib  )
