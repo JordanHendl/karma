@@ -20,9 +20,10 @@
 #include <vk/context/CommandBuffer.h>
 #include <containers/BufferedStack.h>
 #include <containers/List.h>
+#include <containers/Layered.h>
 #include <managers/AssetManager.h>
 #include <vulkan/vulkan.hpp>
-#include <DrawCommand.h>
+#include <cmd/DrawCommand.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <string>
@@ -56,21 +57,24 @@ namespace kgl
         DescriptorSet set     ;
       };
       
-      static constexpr unsigned BUFFERS = 3 ;
-      typedef std::map<std::string, Material>             Materials ;
-      typedef ::kgl::BufferedStack<ImageCommand, BUFFERS> Stack     ;
+      static constexpr unsigned BUFFERS = 3 ; // Todo make this 
+      typedef std::map<std::string, Material>                 Materials  ;
+      typedef ::kgl::BufferedStack<ImageCommand, BUFFERS>     Stack      ;
+      typedef std::array<::kgl::vk::render::CommandBuffer, 2> CmdBuffers ;
+      typedef kgl::containers::Layered<Synchronization, 3>    Syncs      ;
       
       karma::ms::Timer                 profiler          ;
-       Stack                           commands          ;
+      Syncs                            syncs             ;
+      Stack                            commands          ;
+      CmdBuffers                       buffer            ; ///< The command buffer to use for all GPU calls.
+      unsigned                         cmd_buff_index    ; ///< THe index of command buffer currently in use.
+      Materials                        materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
-       Materials                       materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
-      ::kgl::vk::render::CommandBuffer buffer            ; ///< The command buffer to use for all GPU calls.
       ::kgl::vk::render::Pipeline      pipeline          ; ///< The pipeline that is associated with this object's rendering.
       ::kgl::vk::RenderPass            pass              ; ///< The render pass that defines this object's rendering.
       ::kgl::vk::Buffer                vertices          ; ///< The buffer that contains the vertex data that this object uses to render.
       ::kgl::vk::DescriptorPool        pool              ; ///< The object that contains the metadata to make descriptor sets.
-      ::kgl::vk::Synchronization       sync              ; ///< Synchronization object for managing GPU-GPU & GPU-CPU Synchronization.
       ::kgl::man::AssetManager         manager           ; ///< Asset manager object for grabbing loaded images.
       ::data::module::Bus              bus               ; ///< The data bus to use for communication with the rest of the program.
       unsigned                         gpu               ; ///< The GPU to use for this object's operations.
@@ -82,8 +86,6 @@ namespace kgl
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
-      unsigned                         current_cmd_index ; ///< The current index of command being processed.
-
       /** Default Constructor. Initializes member data.
        */
       Render2DData() ;
@@ -116,7 +118,7 @@ namespace kgl
       
       /** Method to output this object's data.
        */
-      void output() ;
+      void output( const Synchronization& sync ) ;
 
       /** Method to set the name of this object's synchronization output.
        */
@@ -125,7 +127,7 @@ namespace kgl
     
     Render2DData::Render2DData()
     {
-      this->current_cmd_index = 0 ;
+      this->cmd_buff_index = 0 ;
     }
     
     void Render2DData::pop()
@@ -205,16 +207,16 @@ namespace kgl
     
     void Render2D::input( const ::kgl::vk::Synchronization& sync )
     {
-      data().sync.copy( sync ) ;
+      data().syncs.value().copy( sync ) ;
       this->semIncrement() ;
     }
 
-    void Render2DData::output()
+    void Render2DData::output( const Synchronization& sync )
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
       this->bus( this->output_image_name.c_str() ).emit( this->pass.image( index ) ) ;
-      this->bus( this->output_name      .c_str() ).emit( this->sync                ) ;
+      this->bus( this->output_name      .c_str() ).emit( sync                      ) ;
     }
 
     void Render2D::setInputName( const char* name )
@@ -269,12 +271,15 @@ namespace kgl
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
       // Initialize vulkan objects.
-      data().vertices.initialize<float>( data().gpu, Buffer::Type::VERTEX, 24                                                   ) ;
-      data().pass    .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer  .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().pipeline.initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
-      data().pool    .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
-      data().sync    .initialize       ( data().gpu                                                                             ) ;
+      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 24                                                   ) ;
+      data().pass           .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer[0]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer[1]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline       .initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      data().pool           .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
+      data().syncs.seek( 0 ).initialize       ( data().gpu                                                                             ) ;
+      data().syncs.seek( 1 ).initialize       ( data().gpu                                                                             ) ;
+      data().syncs.seek( 2 ).initialize       ( data().gpu                                                                             ) ;
       
       // Initialize data.
       data().profiler.initialize() ;
@@ -330,15 +335,18 @@ namespace kgl
         glm::mat4 model ;
         glm::mat4 proj  ;
       };
-
-      Transformation transform ;
       
+      Transformation  transform ;
+      Synchronization sync      ;
+
       data().profiler.start() ;
       data().commands.swap() ;
+      sync = data().syncs.value() ;
+      data().syncs.swap() ;
       
       if( !data().commands.empty() )
       {
-        data().buffer.record( data().pass ) ;
+        data().buffer[ data().cmd_buff_index ].record( data().pass ) ;
         while( !data().commands.empty() )
         {
           // Pop latest draw command off the stack.
@@ -350,31 +358,32 @@ namespace kgl
           auto iter = data().materials.find( data().current_cmd.image() ) ;
 
           // Bind pipeline and descriptor set to the command buffer.
-          data().pipeline.bind( data().buffer, iter->second.set ) ;
+          data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
           // Push Transformations to the GPU.
           transform.model = data().model_matrix ;
           transform.proj  = data().projection   ;
-          data().buffer.pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
+          data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
-          data().buffer.draw( data().vertices.buffer(), 24 ) ;
-          
-          // Increment the index of the current command being processed.
-          data().current_cmd_index++ ;
+          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 24 ) ;
         }
         
         // Stop recording the command buffer & Submit to the graphics queue.
-        data().buffer.stop() ;
-        data().pass.submit( data().sync, data().buffer ) ;
-        
-        // Output our synchronization to next module in the graph & reset command index.
-        data().output() ;
-        data().current_cmd_index = 0 ;
-        data().profiler.stop() ;
-        
-        karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
+        data().buffer[ data().cmd_buff_index ].stop() ;
+        data().pass.submit( sync, data().buffer[ data().cmd_buff_index ] ) ;
       }
+      else
+      {
+        sync.flip() ;
+      }
+      // Output our synchronization to next module in the graph & reset command index.
+      data().output( sync ) ;
+      if( data().cmd_buff_index == 1 ) data().cmd_buff_index-- ;
+      else                             data().cmd_buff_index++ ;
+      data().profiler.stop() ;
+
+      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     Render2DData& Render2D::data()

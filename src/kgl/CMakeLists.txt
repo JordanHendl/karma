@@ -7,15 +7,13 @@ find_package( Vulkan REQUIRED    )
 find_package( SDL2   REQUIRED    )
 
 set( KGL_SOURCES 
-     KGL_Interface.cpp
-     DrawCommand.cpp
      Setup.cpp
+     KGL_Interface.cpp
    )
       
 set( KGL_HEADERS
-     KGL_Interface.h
-     DrawCommand.h
      Setup.h
+     KGL_Interface.h
    )
 
 set( KGL_INCLUDE_DIRS
@@ -34,6 +32,7 @@ set( KGL_LIBRARIES
      kgl_io
      kgl_managers
      kgl_database
+     kgl_command
      karma_configuration
      karma_data_bus
      karma_log
@@ -46,6 +45,7 @@ ADD_SUBDIRECTORY   ( managers   )
 ADD_SUBDIRECTORY   ( vk         )
 ADD_SUBDIRECTORY   ( library    )
 ADD_SUBDIRECTORY   ( containers )
+ADD_SUBDIRECTORY   ( cmd         )
 
 ADD_LIBRARY               ( kgl SHARED  ${KGL_SOURCES} ${KGL_HEADERS} )
 TARGET_LINK_LIBRARIES     ( kgl PRIVATE ${KGL_LIBRARIES}              )

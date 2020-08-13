@@ -53,10 +53,9 @@ namespace kgl
          */
         void initialize( ::vk::Device device ) ;
         
-        /**
-         * @param sync
+        /** Method to flip the semaphores of this object.
          */
-        void swap() ;
+        void flip() ;
 
         /**
          * @param sync
@@ -104,6 +103,11 @@ namespace kgl
          */
         const ::vk::Semaphore* signalSems() const ;
         
+        /**
+         * @return 
+         */
+        void addWait( ::vk::Semaphore sem ) ;
+
         /**
          */
         void wait() const ;

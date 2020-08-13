@@ -149,13 +149,27 @@ namespace kgl
   {
     this->img_cmd_data = new SheetCommandData() ;
   }
+  
+  SheetCommand::SheetCommand( const SheetCommand& cmd )
+  {
+    this->img_cmd_data = new SheetCommandData() ;
+    
+    *this->img_cmd_data = *cmd.img_cmd_data ;
+  }
+  
+  SheetCommand& SheetCommand::operator=( const SheetCommand& cmd )
+  {
+    *this->img_cmd_data = *cmd.img_cmd_data ;
+    
+    return *this ;
+  }
 
   SheetCommand::~SheetCommand()
   {
     delete this->img_cmd_data ;
   }
 
-  void SheetCommand::setImage( const char* name )
+  void SheetCommand::setSheet( const char* name )
   {
     data().image = name ;
   }
@@ -215,7 +229,7 @@ namespace kgl
     return data().rot ;
   }
 
-  const char* SheetCommand::image() const
+  const char* SheetCommand::sheet() const
   {
     return data().image.c_str() ;
   }

@@ -1,16 +1,20 @@
 #include "Game.h"
 #include "../../kgl/KGL_Interface.h"
-#include "../../kgl/DrawCommand.h"
+#include "../../kgl/cmd/DrawCommand.h"
 #include "../../kgl/io/Event.h"
 #include "../../data/Bus.h"
 #include "../../data/Signal.h"
+#include "../../profiling/Timer.h"
+#include "../../log/Log.h"
 #include <string>
 
 namespace karma
 {
   struct GameData
   {
-    ::kgl::ImageCommand cmd       ;
+    ::kgl::SheetCommand cmd       ;
+    unsigned            sprite    ;
+    karma::ms::Timer    timer     ;
     ::KGL_Interface     interface ;
     ::data::module::Bus bus       ;
     bool                running   ;
@@ -22,6 +26,7 @@ namespace karma
     float xpos_2 ;
     float ypos_2 ;
     float rot_2  ;
+    bool pause = false ;
 
     void readInputs( const ::kgl::io::Event& event ) ;
     
@@ -34,6 +39,7 @@ namespace karma
       this->xpos_2  = 200.0f  ;
       this->ypos_2  = 200.0f  ;
       this->rot_2   = 0.0f    ;
+      this->sprite  = 0       ;
     }
   };
   
@@ -53,7 +59,9 @@ namespace karma
         case ::kgl::io::Event::IOCode::Escape :
             this->running = false ;
           break ;
-          
+        case ::kgl::io::Event::IOCode::Space :
+          this->pause = !this->pause ;
+          break ;
         case ::kgl::io::Event::IOCode::Left :
           this->xpos -= delta ;
           break ;
@@ -86,6 +94,10 @@ namespace karma
           this->rot_2 -= delta ;
           break ;
           
+        case ::kgl::io::Event::IOCode::Tab :
+          this->sprite++ ;
+          break ;
+          
         default: break ;
       }
     }
@@ -116,24 +128,36 @@ namespace karma
     data().running = true ;
     
     data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
-
+    
+    data().timer.initialize( "FRAME_TIME" ) ;
     while( data().running )
     {
-      data().cmd.setImage ( "test"  ) ;
-      data().cmd.setPosX    ( data().xpos ) ;
-      data().cmd.setPosY    ( data().ypos ) ;
-      data().cmd.setRotation( data().rot  ) ;
+      data().timer.start() ;
       
-      data().bus( "render2d::cmd" ).emit( data().cmd ) ;
+      if( !data().pause )
+      {
+        data().cmd.setSheet   ( "sheet"       ) ;
+        data().cmd.setPosX    ( data().xpos   ) ;
+        data().cmd.setPosY    ( data().ypos   ) ;
+        data().cmd.setRotation( data().rot    ) ;
+        data().cmd.setIndex   ( data().sprite ) ;
+
+        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
+
+        data().cmd.setSheet   ( "sheet"      ) ;
+        data().cmd.setPosX    ( data().xpos_2 ) ;
+        data().cmd.setPosY    ( data().ypos_2 ) ;
+        data().cmd.setRotation( data().rot_2  ) ;
+        data().cmd.setIndex   ( data().sprite ) ;
+
+//        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
       
-      data().cmd.setImage ( "test"  ) ;
-      data().cmd.setPosX    ( data().xpos_2 ) ;
-      data().cmd.setPosY    ( data().ypos_2 ) ;
-      data().cmd.setRotation( data().rot_2  ) ;
-      
-      data().bus( "render2d::cmd" ).emit( data().cmd ) ;
-      
-      data().interface.start() ;
+        data().interface.start() ;
+        
+        data().timer.stop() ;
+        
+        karma::log::Log::output( data().timer.output(), " in fps: ", 1000.0 / ( data().timer.time() * 60.0 ) ) ;
+      }
       data().interface.pollEvents() ;
     }
     

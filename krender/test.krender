@@ -5,9 +5,16 @@
     "test_2"
   ],
   
-  "required_models"
+  "required_spritesheets" :
+  [
+    "sheet"
+  ],
+
+  "required_models" : 
   [
     "player",
     "thing"
   ]
+
+
 }

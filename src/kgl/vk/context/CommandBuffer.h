@@ -1,13 +1,15 @@
 #ifndef KGL_VK_COMMANDBUFFER_H
 #define KGL_VK_COMMANDBUFFER_H
+#include <mutex>
 
 namespace vk
 {
-  class CommandBuffer  ;
-  class Buffer         ;
-  class Semaphore      ;
-  class PipelineLayout ;
-  class Fence          ;
+  class  CommandBuffer  ;
+  class  Buffer         ;
+  class  Semaphore      ;
+  class  PipelineLayout ;
+  class  Fence          ;
+  struct SubmitInfo     ;
 }
 
 namespace kgl
@@ -27,6 +29,8 @@ namespace kgl
       Primary,
       Secondary
     };
+    
+    std::mutex& queueMutex() ;
     
     namespace render
     {
@@ -121,6 +125,11 @@ namespace kgl
            * @note This is to be done once per frame. Synchronizes with the swapchain's framebuffers.
            */
           void submit() const ;
+          
+          /**
+           * @param info
+           */
+          void submit( const ::vk::SubmitInfo& info, const Synchronization& sync ) const ;
 
           /** Submits this command buffer to the Window to be pushed to the graphics queue.
            * @note This is to be done once per frame. Synchronizes with the swapchain's framebuffers.

@@ -13,7 +13,10 @@ set( KARMA_GAME_INCLUDE_DIRS
 set( KARMA_GAME_LIBRARIES
      kgl
      kgl_io
+     kgl_command
      karma_data_bus
+     karma_profiling
+     karma_log
    )
 
 add_library               ( karma_game SHARED   ${KARMA_GAME_SOURCES} ${KARMA_GAME_HEADERS} )

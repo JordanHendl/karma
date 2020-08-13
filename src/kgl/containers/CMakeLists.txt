@@ -1,11 +1,13 @@
 set( KGL_CONTAINERS_SOURCES 
      BufferedStack.cpp
      List.cpp
+     Layered.cpp
    )
      
 set( KGL_CONTAINERS_HEADERS
      BufferedStack.h
      List.h
+     Layered.h
    )
 
 set( KGL_CONTAINERS_INCLUDE_DIRS

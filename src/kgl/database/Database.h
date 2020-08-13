@@ -37,6 +37,11 @@ namespace kgl
         void loadImage( const char* name ) ;
         
         /**
+         * @param name
+         */
+        void loadSheet( const char* name ) ;
+        
+        /**
          * @param id 
          */
         void subscribe( const char* base_path, unsigned id ) ;

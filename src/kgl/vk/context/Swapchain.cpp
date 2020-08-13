@@ -139,16 +139,16 @@ namespace kgl
       ::vk::SwapchainCreateInfoKHR info  ; 
       ::vk::SwapchainKHR           chain ;
 
-      info.setSurface         ( surface.surface()                                  ) ;
-      info.setMinImageCount   ( data().details.capabilities.minImageCount + 1      ) ;
-      info.setImageFormat     ( format.format                                      ) ;
-      info.setImageColorSpace ( format.colorSpace                                  ) ;
-      info.setImageExtent     ( data().details.chooseExtent( width, height )       ) ;
-      info.setImageArrayLayers( 1                                                  ) ;
-      info.setImageUsage      ( ::vk::ImageUsageFlagBits::eColorAttachment         ) ;
-      info.setPreTransform    ( data().details.capabilities.currentTransform       ) ;
-      info.setCompositeAlpha  ( ::vk::CompositeAlphaFlagBitsKHR::eOpaque           ) ;
-      info.setPresentMode     ( data().details.mode( ::vk::PresentModeKHR::eFifo ) ) ;
+      info.setSurface         ( surface.surface()                                       ) ;
+      info.setMinImageCount   ( data().details.capabilities.minImageCount + 1           ) ;
+      info.setImageFormat     ( format.format                                           ) ;
+      info.setImageColorSpace ( format.colorSpace                                       ) ;
+      info.setImageExtent     ( data().details.chooseExtent( width, height )            ) ;
+      info.setImageArrayLayers( 1                                                       ) ;
+      info.setImageUsage      ( ::vk::ImageUsageFlagBits::eColorAttachment              ) ;
+      info.setPreTransform    ( data().details.capabilities.currentTransform            ) ;
+      info.setCompositeAlpha  ( ::vk::CompositeAlphaFlagBitsKHR::eOpaque                ) ;
+      info.setPresentMode     ( data().details.mode( ::vk::PresentModeKHR::eImmediate ) ) ;
       
 
       if( device.graphicsFamily() != present )

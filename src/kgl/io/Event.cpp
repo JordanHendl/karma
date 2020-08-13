@@ -60,9 +60,10 @@ constexpr static auto codeConversion( uint32_t sdl_key )
     case SDLK_RIGHT  : return ::kgl::io::Event::IOCode::Right  ;
     case SDLK_UP     : return ::kgl::io::Event::IOCode::Up     ;
     case SDLK_DOWN   : return ::kgl::io::Event::IOCode::Down   ;
+    case SDLK_SPACE  : return ::kgl::io::Event::IOCode::Space  ;
+    case SDLK_TAB    : return ::kgl::io::Event::IOCode::Tab    ;
     default          : return ::kgl::io::Event::IOCode::None   ;
   }
-  
 }
 
 

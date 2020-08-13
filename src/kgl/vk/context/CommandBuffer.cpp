@@ -10,6 +10,7 @@
 #include <map>
 #include <array>
 #include <limits.h>
+#include <condition_variable>
 
 namespace kgl
 {
@@ -22,17 +23,13 @@ namespace kgl
     typedef std::map<QueueFamily, ::vk::CommandPool> QueuePoolMap ;
     typedef std::map<GPU, QueuePoolMap             > PoolMap      ;
     
-    /** Static map of command pools to use.
-     */
-    static PoolMap pool_map ;
+    static std::mutex mutex ;
     
-    /** Function to tell whether or not a pool is created for the input device & family.
-     * @param device The device to check on.
-     * @param family The family to check for.
-     * @return Whether or not a pool has been created given the input arguments.
-     */
-    static bool poolCreated( GPU device, QueueFamily family ) ;
-    
+    std::mutex& queueMutex()
+    {
+      return mutex ;
+    }
+
     namespace render
     {
       /** Function to create a command pool on the Render Queue if it is missing.
@@ -51,14 +48,14 @@ namespace kgl
         typedef std::vector<::vk::CommandBuffer      > CommandBuffers  ;
         typedef std::vector<::vk::Fence>               FlightFences    ;
         const unsigned max_frames_in_flight = 5 ;
-        
         mutable ::kgl::vk::Synchronization sync ;
-        RenderPassInfos  render_infos  ; ///< The render info array to use for drawing.
-        CommandBuffers   buffers       ; ///< The buffers that make up this object.
-        unsigned         gpu           ; ///< The gpu to use for all operations.
-        ::vk::ClearValue clear_color   ; ///< The color to use for clearing.
-        std::string      window_name   ; ///< The name of the window this object is attached to.
-        BufferLevel      level         ; ///< The level of buffer.
+        ::vk::CommandPool pool          ;
+        RenderPassInfos   render_infos  ; ///< The render info array to use for drawing.
+        CommandBuffers    buffers       ; ///< The buffers that make up this object.
+        unsigned          gpu           ; ///< The gpu to use for all operations.
+        ::vk::ClearValue  clear_color   ; ///< The color to use for clearing.
+        std::string       window_name   ; ///< The name of the window this object is attached to.
+        BufferLevel       level         ; ///< The level of buffer.
 
         /** Default Constructor.
          */
@@ -105,10 +102,11 @@ namespace kgl
         typedef std::vector<::vk::CommandBuffer> CommandBuffers ;
         
         mutable ::kgl::vk::Synchronization sync ;
-        ::vk::Fence    fence       ;
-        CommandBuffers buffers     ; ///< The buffers that make up this object.
-        unsigned       gpu         ; ///< The gpu to use for all operations.
-        BufferLevel    level       ; ///< The level of buffer.
+        ::vk::Fence       fence       ;
+        ::vk::CommandPool pool        ;
+        CommandBuffers    buffers     ; ///< The buffers that make up this object.
+        unsigned          gpu         ; ///< The gpu to use for all operations.
+        BufferLevel       level       ; ///< The level of buffer.
 
         /** Default constructor.
          */
@@ -138,18 +136,6 @@ namespace kgl
       };
     }
 
-    bool poolCreated( GPU device, QueueFamily family )
-    {
-      const auto gpu_iter = ::kgl::vk::pool_map.find( device ) ;
-      QueuePoolMap::iterator family_iter ;
-      
-      if( gpu_iter == ::kgl::vk::pool_map.end()   ) return false ;
-      family_iter = gpu_iter->second.find( family ) ;
-      if( family_iter  == gpu_iter->second.end()  ) return false ;
-      
-      return true ;
-    }
-
     namespace render
     {
       
@@ -164,7 +150,6 @@ namespace kgl
         
         context.virtualDevice( device ).createCommandPool( &info, nullptr, &cmd_pool ) ;
         
-        ::kgl::vk::pool_map[ device ][ family ] = cmd_pool ;
         return cmd_pool ;
       }
       
@@ -215,12 +200,9 @@ namespace kgl
         
         data().sync.initialize( gpu ) ;
         data().buffers.resize( count ) ;
-        if( !::kgl::vk::poolCreated( gpu, qFamily ) )
-        {
-          ::kgl::vk::render::createPool( gpu, qFamily, static_cast<unsigned>( pool_flags ) ) ;
-        }
+        data().pool = ::kgl::vk::render::createPool( gpu, qFamily, static_cast<unsigned>( pool_flags ) ) ;
         
-        pool = ::kgl::vk::pool_map[ gpu ][ qFamily ] ;
+        pool = data().pool ;
 
         info.setCommandPool       ( pool       ) ;
         info.setLevel             ( buff_level ) ;
@@ -231,7 +213,7 @@ namespace kgl
 
       void CommandBuffer::record() const
       {
-        ::vk::CommandBufferBeginInfo info             ;
+        ::vk::CommandBufferBeginInfo info ;
         
         for( unsigned index = 0; index < data().buffers.size(); index++ )
         {
@@ -333,8 +315,10 @@ namespace kgl
         info.setCommandBufferCount( data().buffers.size() ) ;
         info.setPCommandBuffers   ( data().buffers.data() ) ;
         
+        mutex.lock() ;
         queue.submit( 1, &info, ::vk::Fence() ) ;
         queue.waitIdle() ;
+        mutex.unlock() ;
       }
 
       void CommandBuffer::waitOn( ::vk::Semaphore sem )
@@ -352,6 +336,19 @@ namespace kgl
 //        data().fence = fence ;
       }
 
+      void CommandBuffer::submit( const ::vk::SubmitInfo& info, const Synchronization& sync ) const 
+      {
+        const ::kgl::vk::render::Context context                        ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        const ::vk::Queue queue   = context.graphicsQueue( data().gpu ) ;
+        ::vk::Fence fence = sync.fence() ;
+        
+        mutex.lock() ;
+        device.resetFences( 1, &fence ) ;
+        queue.submit( 1, &info, fence ) ;
+        mutex.unlock() ;
+      }
+      
       void CommandBuffer::submit() const
       {
         const ::kgl::vk::render::Context context                        ;
@@ -369,7 +366,9 @@ namespace kgl
 //          info.setSignalSemaphoreCount( data().signal_sems.size() ) ;
 //          info.setPSignalSemaphores   ( data().signal_sems.data() ) ;
            
+          mutex.lock() ;
           queue.submit( 1, &info, data().sync.fence() ) ;
+          mutex.unlock() ;
         }
       }
 
@@ -439,7 +438,6 @@ namespace kgl
         
         context.virtualDevice( device ).createCommandPool( &info, nullptr, &cmd_pool ) ;
         
-        ::kgl::vk::pool_map[ device ][ family ] = cmd_pool ;
         return cmd_pool ;
       }
 
@@ -489,12 +487,9 @@ namespace kgl
         data().sync.initialize( gpu ) ;
         data().buffers.resize( count ) ;
         
-        if( !::kgl::vk::poolCreated( gpu, qFamily ) )
-        {
-          ::kgl::vk::compute::createPool( gpu, qFamily, static_cast<unsigned>( pool_flags ) ) ;
-        }
+        data().pool = ::kgl::vk::compute::createPool( gpu, qFamily, static_cast<unsigned>( pool_flags ) ) ;
         
-        pool = ::kgl::vk::pool_map[ gpu ][ qFamily ] ;
+        pool = data().pool ;
 
         info.setCommandPool       ( pool       ) ;
         info.setLevel             ( buff_level ) ;
@@ -566,10 +561,14 @@ namespace kgl
           info.setPWaitSemaphores     ( data().sync.waitSems()      ) ;
           info.setCommandBufferCount  ( data().buffers.size()       ) ;
           info.setPCommandBuffers     ( data().buffers.data()       ) ;
-          info.setSignalSemaphoreCount( 0 ) ; //data().sync.numSignalSems() ) ;
+          info.setSignalSemaphoreCount( 0                           ) ;
           info.setPSignalSemaphores   ( data().sync.signalSems()    ) ;
-
+          
+          mutex.lock() ;
           queue.submit( 1, &info, data().sync.fence() ) ;
+          queue.waitIdle() ;
+          mutex.unlock() ;
+          
         }
       }
       
@@ -608,10 +607,9 @@ namespace kgl
       
       void CommandBuffer::reset()
       {
-        const ::kgl::vk::compute::Context context                                ;
-        const ::vk::Device device = context.virtualDevice( data().gpu )          ;
-        const auto qFamily        = context.computeFamily( data().gpu )          ;
-        const auto pool           = ::kgl::vk::pool_map[ data().gpu ][ qFamily ] ;
+        const ::kgl::vk::compute::Context context                       ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        const auto pool           = data().pool                         ;
         
         device.freeCommandBuffers( pool, data().buffers.size(), data().buffers.data() ) ;
         data().buffers.clear() ;

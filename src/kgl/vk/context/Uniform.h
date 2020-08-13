@@ -3,7 +3,8 @@
 
 namespace vk
 {
-  class Buffer ;
+  class Buffer    ;
+  class Semaphore ;
 }
 
 namespace kgl

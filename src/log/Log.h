@@ -30,13 +30,19 @@ namespace karma
      * @param first
      * @param second
      */
-    void operator<<( String& first, unsigned    second ) ;
+    void operator<<( String& first, unsigned second ) ;
     
     /**
      * @param first
      * @param second
      */
-    void operator<<( String& first, float       second ) ;
+    void operator<<( String& first, double second ) ;
+
+    /**
+     * @param first
+     * @param second
+     */
+    void operator<<( String& first, float second ) ;
     
     /**
      * @param first

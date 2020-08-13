@@ -5,6 +5,7 @@ namespace vk
 {
   class Sampler   ;
   class ImageView ;
+  class Semaphore ;
   enum class ImageLayout ;
 }
 

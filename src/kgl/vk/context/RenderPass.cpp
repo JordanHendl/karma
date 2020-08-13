@@ -5,14 +5,17 @@
 #include "Synchronization.h"
 #include "Bus.h"
 #include <vulkan/vulkan.hpp>
+#include <log/Log.h>
 #include <vector>
 #include <string>
 #include <array>
-
+#include <sstream>
+#include <string>
+#include <mutex>
 namespace kgl
 {
   namespace vk
-  {
+  {  
     struct AttachmentDescriptionConf
     {
       ::vk::Format              format          ;
@@ -240,12 +243,9 @@ namespace kgl
     {
       static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
 
-      const ::vk::Queue              queue          = data().context.graphicsQueue( data().gpu            ) ;
       const unsigned                 current_image  = data().context.currentSwap  ( data().window.c_str() ) ;
       const ::vk::CommandBuffer      cmd            = buffer.buffer               ( current_image         ) ;
-      const ::vk::Fence              fence          = sync.fence() ;
       ::vk::SubmitInfo  info  ;
-      
       
       info.setWaitSemaphoreCount  ( sync.numWaitSems()   ) ;
       info.setPWaitSemaphores     ( sync.waitSems()      ) ;
@@ -253,12 +253,10 @@ namespace kgl
       info.setPSignalSemaphores   ( sync.signalSems()    ) ;
       info.setPWaitDstStageMask   (  flags.data()        ) ;
       
-
       info.setCommandBufferCount  ( 1    ) ;
       info.setPCommandBuffers     ( &cmd ) ;
-
-      data().device.resetFences( 1, &fence ) ;
-      queue.submit( 1, &info, sync.fence() ) ;
+      
+      buffer.submit( info, sync ) ;
     }
 
     const ::kgl::vk::Image& RenderPass::image( unsigned id )

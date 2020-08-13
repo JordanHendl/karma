@@ -31,6 +31,7 @@ struct KGL_InterfaceData
   std::string                    database_path      ; ///< The path to the modules on the filesystem.
 
   void fixString( std::string& str ) ;
+  void addSheet( const char* img_name ) ;
   void addImage( const char* img_name ) ;
   void addModel( const char* model_name ) ;
   void setDatabasePath( const char* path ) ;
@@ -39,6 +40,11 @@ struct KGL_InterfaceData
   void setDebugOutput( const char* output ) ;
 };
 
+
+void KGL_InterfaceData::addSheet( const char* img_name )
+{
+  this->database.loadSheet( img_name ) ;
+}
 
 void KGL_InterfaceData::addImage( const char* img_name )
 {
@@ -115,12 +121,13 @@ void KGL_Interface::initialize( const char* base_path )
     data().database.subscribe( base_path, 0 ) ;
     data().setup   .subscribe( 0            ) ;
     
-    data().bus( "required_images"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
-    data().bus( "required_models"   ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
-    data().bus( "database_path"     ).attach( this->kgl_data, &KGL_InterfaceData::setDatabasePath     ) ;
-    data().bus( "modules_path"      ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath       ) ;
-    data().bus( "graph_config_path" ).attach( this->kgl_data, &KGL_InterfaceData::setModuleConfigPath ) ;
-    data().bus( "log_output_path"   ).attach( this->kgl_data, &KGL_InterfaceData::setDebugOutput      ) ;
+    data().bus( "required_images"       ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
+    data().bus( "required_models"       ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
+    data().bus( "required_spritesheets" ).attach( this->kgl_data, &KGL_InterfaceData::addSheet            ) ;
+    data().bus( "database_path"         ).attach( this->kgl_data, &KGL_InterfaceData::setDatabasePath     ) ;
+    data().bus( "modules_path"          ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath       ) ;
+    data().bus( "graph_config_path"     ).attach( this->kgl_data, &KGL_InterfaceData::setModuleConfigPath ) ;
+    data().bus( "log_output_path"       ).attach( this->kgl_data, &KGL_InterfaceData::setDebugOutput      ) ;
 
     kgl_config_path = path + "/setup.json" ;
     
