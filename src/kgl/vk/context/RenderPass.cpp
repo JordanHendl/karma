@@ -189,7 +189,8 @@ namespace kgl
     {
       data().attach_desc_conf.format = format ;
     }
-
+    
+//    void RenderPass::setImageInitialLayout( const ::vk::ImageLayout& layout )
     void RenderPass::setImageFinalLayout( const ::vk::ImageLayout& layout )
     {
       data().attach_desc_conf.final_layout = layout ;

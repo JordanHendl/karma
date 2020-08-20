@@ -47,12 +47,16 @@ namespace kgl
          * @param gpu
          */
         void initialize( unsigned gpu, unsigned count ) ;
-
+        
         /**
          * @param gpu
          */
-        void initialize( ::vk::Device device ) ;
+        void initialize( ::vk::Device device, unsigned count ) ;
         
+        /** Method to clear all wait sems from this object.
+         */
+        void clear() ;
+
         /** Method to flip the semaphores of this object.
          */
         void flip() ;

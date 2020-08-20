@@ -75,39 +75,4 @@ namespace kgl
   }
 }
 
-/** Exported function to retrive the name of this module type.
- * @return The name of this object's type.
- */
-exported_function const char* name()
-{
-  return "Present" ;
-}
-
-/** Exported function to retrieve the version of this module.
- * @return The version of this module.
- */
-exported_function unsigned version()
-{
-  return VERSION ;
-}
-
-/** Exported function to make one instance of this module.
- * @return A single instance of this module.
- */
-exported_function ::kgl::vk::Module* make()
-{
-  return new ::kgl::vk::Present() ;
-}
-
-/** Exported function to destroy an instance of this module.
- * @param module A Pointer to a Module object that is of this type.
- */
-exported_function void destroy( ::kgl::vk::Module* module )
-{
-  ::kgl::vk::Present* mod ;
-  
-  mod = dynamic_cast<::kgl::vk::Present*>( module ) ;
-  delete mod ;
-}
-
 #endif

@@ -25,6 +25,8 @@ set( KGL_VK_RENDER_MODULE_LIBRARIES
      ${Vulkan_LIBRARIES}
    )
 
+set( CMAKE_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}.1" )
+
 add_library               ( render2D SHARED   ${KGL_VK_RENDER_MODULE_SOURCES} ${KGL_VK_RENDER_MODULE_HEADERS} )
 target_include_directories( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_INCLUDE_DIRS}                            )
 target_link_libraries     ( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_LIBRARIES}                               )

@@ -14,11 +14,25 @@
 
   "spritesheets" :
   {
-    "sheet" :
+    "tilesheet" :
     { 
-       "sprite_width"  : 55,
-       "sprite_height" : 94,
-       "path"          : "/data/images/sheet.png"
+       "sprite_width"  : 32,
+       "sprite_height" : 32,
+       "path"          : "/data/images/tilemap.png"
+    },
+
+    "grandma" :
+    { 
+       "sprite_width"  : 64,
+       "sprite_height" : 64,
+       "path"          : "/data/images/spritesheet.png"
+    },
+
+    "background" :
+    { 
+       "sprite_width"  : 32,
+       "sprite_height" : 32,
+       "path"          : "/data/images/background.png"
     }
   },
 

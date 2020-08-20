@@ -47,6 +47,16 @@ namespace kgl
         /** Method to resize the module to accomodate a swap chain resize.
          */
         virtual void resize() = 0 ;
+        
+        /**  Method to retrieve the id of module in this graph.
+         * @return The id of module in this graph.
+         */
+        unsigned id() const ;
+        
+        /** Method to set the id of this module.
+         * @param id The id to associate with this module.
+         */
+        void setId( unsigned id ) ;
 
         /** Method to start operations of this module.
          * @return 

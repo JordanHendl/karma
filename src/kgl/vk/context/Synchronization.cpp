@@ -11,12 +11,11 @@ namespace kgl
     {
       typedef std::vector<::vk::Semaphore> Semaphores ;
       
-      Semaphores   wait_sems   ;
-//      Semaphores   signal_sems ;
-//      ::vk::Semaphore      wait_sem   ;
-      ::vk::Device         device     ;
-      ::vk::Semaphore      signal_sem ;
-      mutable ::vk::Fence  fence      ;
+      Semaphores           wait_sems   ;
+      Semaphores           signal_sems ;
+      ::vk::Device         device      ;
+      mutable ::vk::Fence  fence       ;
+
       bool has_wait = false ;
       
       /**
@@ -51,8 +50,13 @@ namespace kgl
       
       *this->sync_data = *sync.sync_data ;
     }
-
-    void Synchronization::initialize( unsigned gpu )
+    
+    void Synchronization::clear()
+    {
+      data().wait_sems.clear() ;  
+    }
+    
+    void Synchronization::initialize( unsigned gpu, unsigned count )
     {
       const ::kgl::vk::render::Context context ;
       const ::vk::Device               device = context.virtualDevice( gpu ) ;
@@ -61,8 +65,49 @@ namespace kgl
       
       fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
       
+      data().signal_sems.resize( count ) ;
+      
+      for( auto &sem : data().signal_sems ) sem = device.createSemaphore( sem_info  , nullptr ) ;
+
       data().device     = device                                        ;
-      data().signal_sem = device.createSemaphore( sem_info  , nullptr ) ;
+      data().fence      = device.createFence    ( fence_info, nullptr ) ;
+
+      device.resetFences( 1, &data().fence ) ;
+    }
+    
+    void Synchronization::initialize( ::vk::Device device, unsigned count )
+    {
+      ::vk::SemaphoreCreateInfo sem_info   ;
+      ::vk::FenceCreateInfo     fence_info ;
+      
+      fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
+      
+      data().signal_sems.resize( count ) ;
+      
+      for( auto &sem : data().signal_sems ) sem = device.createSemaphore( sem_info  , nullptr ) ;
+
+      data().device     = device                                        ;
+      data().fence      = device.createFence    ( fence_info, nullptr ) ;
+
+      device.resetFences( 1, &data().fence ) ;
+    }
+
+    void Synchronization::initialize( unsigned gpu )
+    {
+      const ::kgl::vk::render::Context context ;
+      const ::vk::Device               device = context.virtualDevice( gpu ) ;
+      const unsigned count = 1 ;
+
+      ::vk::SemaphoreCreateInfo sem_info   ;
+      ::vk::FenceCreateInfo     fence_info ;
+      
+      fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
+      
+      data().signal_sems.resize( count ) ;
+      
+      for( auto &sem : data().signal_sems ) sem = device.createSemaphore( sem_info  , nullptr ) ;
+
+      data().device     = device                                        ;
       data().fence      = device.createFence    ( fence_info, nullptr ) ;
 
       device.resetFences( 1, &data().fence ) ;
@@ -70,30 +115,14 @@ namespace kgl
     
     void Synchronization::flip()
     {
-      const ::vk::Semaphore tmp = data().signal_sem ;
-
-      data().signal_sem     = data().wait_sems[ 0 ] ;
-      data().wait_sems[ 0 ] = tmp                   ;
-    }
-
-    void Synchronization::initialize( ::vk::Device device )
-    {
-      ::vk::SemaphoreCreateInfo sem_info   ;
-      ::vk::FenceCreateInfo     fence_info ;
-      
-      fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
-
-      data().device     = device                                        ;
-      data().signal_sem = device.createSemaphore( sem_info  , nullptr ) ;
-      data().fence      = device.createFence    ( fence_info, nullptr ) ;
-      
-      device.resetFences( 1, &data().fence ) ;
+      data().signal_sems = data().wait_sems ;
     }
 
     void Synchronization::copy( const Synchronization& sync )
     {
       this->data().wait_sems.clear() ;
-      this->data().wait_sems.push_back( sync.data().signal_sem ) ;
+      
+      this->data().wait_sems.push_back( sync.data().signal_sems[ 0 ] ) ;
     }
     
     void Synchronization::copyWaits( const Synchronization& sync )
@@ -114,7 +143,7 @@ namespace kgl
 
     unsigned Synchronization::numSignalSems() const
     {
-      return 1 ;
+      return data().signal_sems.size() ;
     }
 
     const ::vk::Semaphore Synchronization::waitSem( unsigned id ) const
@@ -124,7 +153,7 @@ namespace kgl
 
     const ::vk::Semaphore Synchronization::signalSem( unsigned id ) const
     {
-      return data().signal_sem ;
+      return id < data().signal_sems.size() ? data().signal_sems[ id ] : ::vk::Semaphore() ;
     }
 
     const ::vk::Semaphore* Synchronization::waitSems() const
@@ -134,7 +163,7 @@ namespace kgl
 
     const ::vk::Semaphore* Synchronization::signalSems() const
     {
-      return &data().signal_sem ;
+      return data().signal_sems.data() ;
     }
     
     void Synchronization::addWait( ::vk::Semaphore sem )

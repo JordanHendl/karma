@@ -12,5 +12,5 @@ void main()
   
   color = texture( framebuffer, tex_coords ) ;
 
-  out_color = vec4( color.xyz, 1.0 ) ;
+  out_color = vec4( color ) ;
 }

@@ -17,12 +17,14 @@ namespace kgl
     unsigned    height      ;
     unsigned    gpu         ;
     unsigned    bus_channel ;
+    unsigned    sem_count   ;
     
     WindowSetup() ;
     void subscribe() ;
     void setWidth( unsigned val ) ;
     void setHeight( unsigned val ) ;
     void setGPU( unsigned val ) ;
+    void setNumSems( unsigned val ) ;
   };
   
   struct SetupData
@@ -64,9 +66,10 @@ namespace kgl
     
     bus.setChannel( this->bus_channel ) ;
     
-    bus( "kgl_windows::", this->name.c_str(), "::width"  ).attach( this, &WindowSetup::setWidth  ) ;
-    bus( "kgl_windows::", this->name.c_str(), "::height" ).attach( this, &WindowSetup::setHeight ) ;
-    bus( "kgl_windows::", this->name.c_str(), "::gpu"    ).attach( this, &WindowSetup::setGPU    ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::width"    ).attach( this, &WindowSetup::setWidth   ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::height"   ).attach( this, &WindowSetup::setHeight  ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::gpu"      ).attach( this, &WindowSetup::setGPU     ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::num_sems" ).attach( this, &WindowSetup::setNumSems ) ;
   }
 
   void WindowSetup::setWidth( unsigned val )
@@ -82,6 +85,11 @@ namespace kgl
   void WindowSetup::setGPU( unsigned val )
   {
     this->gpu = val ;
+  }  
+  
+  void WindowSetup::setNumSems( unsigned val )
+  {
+    this->sem_count = val ;
   }  
 
   void SetupData::makeWindow( const char* name )
@@ -115,7 +123,6 @@ namespace kgl
     this->graph_config_dir = path ;
   }
 
-
   Setup::Setup()
   {
     this->setup_data = new SetupData() ;
@@ -129,7 +136,7 @@ namespace kgl
     for( auto setup : data().window_sets )
     {
       auto set = setup.second ;
-      context.addWindow( set.name.c_str(), set.gpu, set.width, set.height ) ;
+      context.addWindow( set.name.c_str(), set.gpu, set.width, set.height, set.sem_count ) ;
     }
   }
 

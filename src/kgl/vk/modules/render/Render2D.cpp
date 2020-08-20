@@ -86,6 +86,7 @@ namespace kgl
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
+      bool                             debug             ; ///< Whether or not this module outputs debug information.
       /** Default Constructor. Initializes member data.
        */
       Render2DData() ;
@@ -123,16 +124,26 @@ namespace kgl
       /** Method to set the name of this object's synchronization output.
        */
       void setOutputName( const char* name ) ;
+      
+      /** Method to set whether or not this module is outputting debug information.
+       */
+      void setDebug( bool val ) ;
     };
     
     Render2DData::Render2DData()
     {
-      this->cmd_buff_index = 0 ;
+      this->cmd_buff_index = 0     ;
+      this->debug          = false ;
     }
     
     void Render2DData::pop()
     {
       this->current_cmd = this->commands.pop() ;
+    }
+    
+    void Render2DData::setDebug( bool val )
+    {
+      this->debug = val ; 
     }
 
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
@@ -207,7 +218,8 @@ namespace kgl
     
     void Render2D::input( const ::kgl::vk::Synchronization& sync )
     {
-      data().syncs.value().copy( sync ) ;
+      data().syncs.value().clear() ;
+      data().syncs.value().addWait( sync.signalSem( this->id() ) ) ;
       this->semIncrement() ;
     }
 
@@ -215,6 +227,7 @@ namespace kgl
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
+      if( this->debug ) karma::log::Log::output( this->name.c_str(), ":: Outputting data." ) ;
       this->bus( this->output_image_name.c_str() ).emit( this->pass.image( index ) ) ;
       this->bus( this->output_name      .c_str() ).emit( sync                      ) ;
     }
@@ -315,8 +328,10 @@ namespace kgl
       
       // Module-specific JSON-parameters.
       data().bus( json_path.c_str(), "::input"        ).attach( this         , &Render2D::setInputName           ) ;
+      data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId    ) ;
       data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &Render2DData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &Render2DData::setOutputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Render2DData::setDebug           ) ;
 
       // Module-specific inputs.
       data().bus( this->name(), "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
@@ -354,23 +369,29 @@ namespace kgl
           
           // Build Transformation Matrix.
           data().setUpModelMatrix() ;
-
+          
           auto iter = data().materials.find( data().current_cmd.image() ) ;
 
+          if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor to pipeline." ) ;
           // Bind pipeline and descriptor set to the command buffer.
           data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
           // Push Transformations to the GPU.
           transform.model = data().model_matrix ;
           transform.proj  = data().projection   ;
+          
+          if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing push constant for transformation to pipeline." ) ;
           data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
+          if( data().debug ) karma::log::Log::output( this->name(), ":: Drawing." ) ;
           data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 24 ) ;
         }
         
         // Stop recording the command buffer & Submit to the graphics queue.
         data().buffer[ data().cmd_buff_index ].stop() ;
+        
+        if( data().debug ) karma::log::Log::output( this->name(), ":: Submitting command buffer." ) ;
         data().pass.submit( sync, data().buffer[ data().cmd_buff_index ] ) ;
       }
       else
@@ -383,7 +404,7 @@ namespace kgl
       else                             data().cmd_buff_index++ ;
       data().profiler.stop() ;
 
-      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     Render2DData& Render2D::data()

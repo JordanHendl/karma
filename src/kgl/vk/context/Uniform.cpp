@@ -1,4 +1,4 @@
-#include "Uniform.h"
+ #include "Uniform.h"
 #include "Context.h"
 #include "Buffer.h"
 #include "Image.h"
@@ -154,7 +154,7 @@ namespace kgl
       }
       
       iter->second->type = Uniform::Type::Sampler ;
-      iter->second->image.copy( image ) ;
+      iter->second->image = ( image ) ;
     }
 
     void Uniform::addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count )

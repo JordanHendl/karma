@@ -101,13 +101,14 @@ namespace kgl
     
     ::vk::AccessFlags accessFromLayout( ::vk::ImageLayout layout )
     {
+      using ::vk::AccessFlagBits ;
       switch( layout ) 
       {
         case ::vk::ImageLayout::eUndefined          : return ::vk::AccessFlagBits::eMemoryRead                                       ;
         case ::vk::ImageLayout::eTransferDstOptimal : return ::vk::AccessFlagBits::eTransferWrite                                    ;
         case ::vk::ImageLayout::eTransferSrcOptimal : return ::vk::AccessFlagBits::eTransferRead                                     ;
         case ::vk::ImageLayout::eGeneral            : return ::vk::AccessFlagBits::eShaderRead | ::vk::AccessFlagBits::eShaderWrite  ;
-        default : return ::vk::AccessFlagBits::eUniformRead ;
+        default : return ::vk::AccessFlagBits::eMemoryRead   | ::vk::AccessFlagBits::eMemoryWrite ;
       };
     }
 
@@ -398,7 +399,12 @@ namespace kgl
       delete this->img_data ;
     }
     
-    void Image::setLayout( const ::vk::ImageLayout& layout )
+    const ::vk::ImageLayout& Image::layout() const
+    {
+      return data().layout ;
+    }
+
+    void Image::setLayout( const ::vk::ImageLayout& layout ) const
     {
       data().transitionLayout( data().format, data().layout, layout ) ;
     }

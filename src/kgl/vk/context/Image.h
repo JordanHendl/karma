@@ -25,7 +25,8 @@ namespace kgl
         bool operator<( const Image& image ) const ;
         const ::vk::Sampler sampler() const ;
         const ::vk::ImageView view() const ;
-        void setLayout( const ::vk::ImageLayout& layout ) ;
+        const ::vk::ImageLayout& layout() const ;
+        void setLayout( const ::vk::ImageLayout& layout ) const ;
         unsigned width() const ;
         unsigned height() const ;
         void copy( const unsigned char* data, unsigned channels ) ;

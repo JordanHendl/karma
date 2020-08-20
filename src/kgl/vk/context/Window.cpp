@@ -1,3 +1,4 @@
+
 #include "Window.h"
 #include "Context.h"
 #include "Device.h"
@@ -60,6 +61,7 @@ namespace kgl
       Syncs                      syncs         ;
       Surface                    surface       ;
       ::vk::PresentInfoKHR       info          ;
+      ::vk::Semaphore            acquire_sem   ;
       Device                     device        ;
       SwapChain                  chain         ;
       WindowConf                 conf          ;
@@ -120,25 +122,27 @@ namespace kgl
       delete this->win_data ;
     }
   
-    void Window::initialize( const char* name, unsigned gpu,  unsigned width, unsigned height )
+    void Window::initialize( const char* name, unsigned gpu,  unsigned width, unsigned height, unsigned num_sems )
     { 
       ::data::module::Bus bus ;
       ::vk::FenceCreateInfo     fence_info ;
-      
+      ::vk::SemaphoreCreateInfo sem_info   ;
       fence_info.setFlags( ::vk::FenceCreateFlagBits::eSignaled ) ;
       
       karma::log::Log::output( "Creating window ", name, " with width: ", width, ", height: ", height, " on GPU ", gpu ) ;
 
       data().window = SDL_CreateWindow( name, 500, 500, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN ) ;
       
-      data().surface .initialize( *data().window                ) ;
-      data().device  .initialize( data().surface.surface(), gpu ) ;
-      data().chain   .initialize( data().surface, data().device ) ;
-      data().syncs[0].initialize( data().device.device()        ) ;
-      data().syncs[1].initialize( data().device.device()        ) ;
+      data().surface .initialize( *data().window                   ) ;
+      data().device  .initialize( data().surface.surface(), gpu    ) ;
+      data().chain   .initialize( data().surface, data().device    ) ;
+      data().syncs[0].initialize( data().device.device(), num_sems ) ;
+      data().syncs[1].initialize( data().device.device(), num_sems ) ;
 
       data().fences.resize( data().conf.max_frames_in_flight ) ;
       
+      data().acquire_sem = data().device.device().createSemaphore( sem_info, nullptr ) ;
+
       for( auto &fence : data().fences )
       {
         fence = data().device.device().createFence( fence_info, nullptr ) ;
@@ -243,11 +247,14 @@ namespace kgl
     
     void Window::start()
     {
-      const unsigned    index = data().sync_index ;
-      const ::vk::Fence dummy                     ;
+      static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eAllCommands ) ;
+      const ::vk::Queue queue = data().device.graphics() ;
+      const unsigned    index = data().sync_index        ;
+      const ::vk::Fence dummy                            ;
       ::vk::Fence         fence ;
       ::data::module::Bus bus   ;
-
+      ::vk::SubmitInfo    info  ;
+      
       if( data().current_frame < 2 )
       {
         if( data().fence_queue.size() != 0 )
@@ -260,7 +267,17 @@ namespace kgl
           data().device.device().waitForFences(1, &fence, true, UINT64_MAX ) ;
         }
         
-        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), 200, data().syncs[ index ].signalSem( 0 ), dummy ) ;
+        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), 200, data().acquire_sem, dummy ) ;
+        
+        info.setWaitSemaphoreCount  ( 1                                     ) ;
+        info.setPWaitSemaphores     ( &data().acquire_sem                   ) ;
+        info.setSignalSemaphoreCount( data().syncs[ index ].numSignalSems() ) ;
+        info.setPSignalSemaphores   ( data().syncs[ index ].signalSems()    ) ;
+        info.setPWaitDstStageMask   ( flags.data()                          ) ;
+      
+        queueMutex().lock() ;
+        queue.submit( 1, &info, nullptr ) ;
+        queueMutex().unlock() ;
 
         img_mutex.lock() ;
         data().images.push( result.value ) ;

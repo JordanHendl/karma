@@ -24,6 +24,8 @@ set( KGL_VK_PRESENT__MODULE_LIBRARIES
      ${Vulkan_LIBRARIES}
    )
 
+set( CMAKE_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}.1" )
+
 add_library               ( present SHARED   ${KGL_VK_PRESENT__MODULE_SOURCES} ${KGL_VK_PRESENT__MODULE_HEADERS} )
 target_include_directories( present PRIVATE  ${KGL_VK_PRESENT__MODULE_INCLUDE_DIRS}                              )
 target_link_libraries     ( present PRIVATE  ${KGL_VK_PRESENT__MODULE_LIBRARIES}                                 )
