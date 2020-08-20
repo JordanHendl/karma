@@ -31,7 +31,7 @@ namespace kgl
         Window( const Window& window ) ;
         ~Window();
         void operator=( const Window& window ) ;
-        void initialize( const char* name, unsigned gpu, unsigned width, unsigned height ) ;
+        void initialize( const char* name, unsigned gpu, unsigned width, unsigned height, unsigned num_sems ) ;
         const Device& device() const ;
         SwapChain& chain() ;
         void present( const Synchronization& sync ) ;

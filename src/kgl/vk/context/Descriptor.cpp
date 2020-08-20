@@ -134,7 +134,7 @@ namespace kgl
     
     void DescriptorSetData::setImage( ::kgl::vk::Image& image, DescriptorBuffer& uni )
     {
-      const auto layout = ::vk::ImageLayout::eGeneral ;
+      const auto layout = image.layout() ;
       ::vk::DescriptorImageInfo info  ;
       ::vk::WriteDescriptorSet  write ;
       
@@ -157,7 +157,10 @@ namespace kgl
 
     void DescriptorSetData::setImage( const ::kgl::vk::Image& image, UniformInformation& uni )
     {
-      const auto layout = ::vk::ImageLayout::eGeneral ;
+//      const auto old_layout = image.layout()                            ;
+      const auto layout     = ::vk::ImageLayout::eShaderReadOnlyOptimal ;
+      image.setLayout( layout ) ;
+      
       ::vk::DescriptorImageInfo info  ;
       ::vk::WriteDescriptorSet  write ;
       
@@ -176,6 +179,7 @@ namespace kgl
         
         this->device.updateDescriptorSets( 1, &write, 0, nullptr ) ;
       }
+//      image.setLayout( old_layout ) ;
     }
 
     void DescriptorSetData::buildBufferMap( UniformMap& map )

@@ -13,6 +13,7 @@ namespace karma
   struct GameData
   {
     ::kgl::SheetCommand cmd       ;
+    ::kgl::ImageCommand img       ;
     unsigned            sprite    ;
     karma::ms::Timer    timer     ;
     ::KGL_Interface     interface ;
@@ -118,8 +119,8 @@ namespace karma
     data().interface.initialize( base_path ) ;
     data().interface.setCurrentWindow( "Main" ) ;
     data().bus( "kgl::input" ).attach( this->game_data, &GameData::readInputs ) ;
-    data().cmd.setWidth ( 502     ) ;
-    data().cmd.setHeight( 502     ) ;
+    data().cmd.setWidth ( 32     ) ;
+    data().cmd.setHeight( 32     ) ;
     data().base_path = base_path ;
   }
 
@@ -136,21 +137,20 @@ namespace karma
       
       if( !data().pause )
       {
-        data().cmd.setSheet   ( "sheet"       ) ;
-        data().cmd.setPosX    ( data().xpos   ) ;
-        data().cmd.setPosY    ( data().ypos   ) ;
-        data().cmd.setRotation( data().rot    ) ;
-        data().cmd.setIndex   ( data().sprite ) ;
+        data().img.setImage   ( "test"        ) ;
+        data().img.setPosX    ( data().xpos   ) ;
+        data().img.setPosY    ( data().ypos   ) ;
+        data().img.setRotation( data().rot    ) ;
 
-        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
 
-        data().cmd.setSheet   ( "sheet"      ) ;
+        data().cmd.setSheet   ( "background"  ) ;
         data().cmd.setPosX    ( data().xpos_2 ) ;
         data().cmd.setPosY    ( data().ypos_2 ) ;
         data().cmd.setRotation( data().rot_2  ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-//        data().bus( "render2d::cmd" ).emit( data().cmd ) ;
+        data().bus( "sprite::cmd" ).emit( data().cmd ) ;
+        data().bus( "image::cmd"  ).emit( data().img ) ;
       
         data().interface.start() ;
         

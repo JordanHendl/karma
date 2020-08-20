@@ -100,16 +100,16 @@ namespace kgl
 
     namespace render
     {
-      void Context::addWindow( const char* name, unsigned gpu, unsigned width, unsigned height )
+      void Context::addWindow( const char* name, unsigned gpu, unsigned width, unsigned height, unsigned num_sems )
       {
         const auto iter = ::kgl::vk::vk_context.window_map.find( name ) ;
         
         if( iter == ::kgl::vk::vk_context.window_map.end() )
         {
-          ::kgl::vk::vk_context.window_map.insert( { std::string( name ), nullptr } )      ;
-          ::kgl::vk::vk_context.window_map[ name ] = new ::kgl::vk::Window()               ;
-          ::kgl::vk::vk_context.window_map[ name ]->initialize( name, gpu, width, height ) ;
-
+          ::kgl::vk::vk_context.window_map.insert( { std::string( name ), nullptr } )                ;
+          ::kgl::vk::vk_context.window_map[ name ] = new ::kgl::vk::Window()                         ;
+          ::kgl::vk::vk_context.window_map[ name ]->initialize( name, gpu, width, height, num_sems ) ;
+          
           if( ::kgl::vk::vk_context.device_map.find( gpu ) == ::kgl::vk::vk_context.device_map.end() )
           {
             ::kgl::vk::vk_context.device_map.insert( { gpu, ::kgl::vk::vk_context.window_map[ name ]->device() } ) ;

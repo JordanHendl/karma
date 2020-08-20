@@ -71,6 +71,6 @@ set( CASPER_DIR         ${CMAKE_WORKING_DIRECTORY}/src/casper  )
 set( VKTEST_DIR         ${CMAKE_WORKING_DIRECTORY}/src/vk_test )
 set( DOXYGEN_CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doxygen    )
 
-find_package(Doxygen)
+find_package( Doxygen )
 
 add_subdirectory( src )

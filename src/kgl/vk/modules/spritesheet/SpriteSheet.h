@@ -72,41 +72,5 @@ namespace kgl
     };
   }
 }
-
-/** Exported function to retrive the name of this module type.
- * @return The name of this object's type.
- */
-exported_function const char* name()
-{
-  return "SpriteSheet" ;
-}
-
-/** Exported function to retrieve the version of this module.
- * @return The version of this module.
- */
-exported_function unsigned version()
-{
-  return 1 ;
-}
-
-/** Exported function to make one instance of this module.
- * @return A single instance of this module.
- */
-exported_function ::kgl::vk::Module* make( unsigned version )
-{
-  return new ::kgl::vk::SpriteSheet() ;
-}
-
-/** Exported function to destroy an instance of this module.
- * @param module A Pointer to a Module object that is of this type.
- */
-exported_function void destroy( ::kgl::vk::Module* module )
-{
-  ::kgl::vk::SpriteSheet* mod ;
-  
-  mod = dynamic_cast<::kgl::vk::SpriteSheet*>( module ) ;
-  delete mod ;
-}
-
 #endif /* RENDER_H */
 

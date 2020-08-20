@@ -26,6 +26,8 @@ set( KGL_VK_SPRITESHEET_MODULE_LIBRARIES
      ${Vulkan_LIBRARIES}
    )
 
+set( CMAKE_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}.1" )
+
 add_library               ( spritesheet SHARED   ${KGL_VK_SPRITESHEET_MODULE_SOURCES} ${KGL_VK_SPRITESHEET_MODULE_HEADERS} )
 target_include_directories( spritesheet PRIVATE  ${KGL_VK_SPRITESHEET_MODULE_INCLUDE_DIRS}                                 )
 target_link_libraries     ( spritesheet PRIVATE  ${KGL_VK_SPRITESHEET_MODULE_LIBRARIES} kgl_command                        )

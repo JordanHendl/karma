@@ -3,6 +3,9 @@
 #include <Signal.h>
 #include <string>
 #include <limits.h>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 namespace kgl
 {
@@ -22,6 +25,7 @@ namespace kgl
       ::data::module::Bus     bus        ; ///< TODO
       unsigned                num_deps   ;
       unsigned                wait_sem   ;
+      unsigned                id         ;
       /**
        */
       ModuleData() ;
@@ -34,6 +38,7 @@ namespace kgl
       this->should_run = false ;
       this->num_deps   = 0     ;
       this->wait_sem   = 0     ;
+      this->id         = 0     ;
     }
 
     Module::Module()
@@ -58,7 +63,7 @@ namespace kgl
       
       while( data().should_run )
       {
-        while ( data().wait_sem < data().num_deps ) {} ;
+        while ( data().wait_sem < data().num_deps ) { std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ; } ;
 
         data().wait_sem = 0 ;
 
@@ -90,6 +95,16 @@ namespace kgl
       data().type = name ;
     }
     
+    unsigned Module::id() const
+    {
+      return data().id ;
+    }
+    
+    void Module::setId( unsigned id )
+    {
+      data().id = id ;
+    }
+
     const char* Module::type() const
     {
       return data().type.c_str() ;
