@@ -175,10 +175,9 @@ namespace kgl
       buff_barrier.setDstQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
       this->cmd_buff.record() ;
       this->cmd_buff.buffer( 0 ).copyBuffer( buffer, this->buffer, 1, &region ) ;
-      this->cmd_buff.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eAllCommands, ::vk::PipelineStageFlagBits::eAllCommands, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
+      this->cmd_buff.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eTopOfPipe, ::vk::PipelineStageFlagBits::eAllCommands, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
       this->cmd_buff.stop() ;
       this->cmd_buff.submit() ;
-      this->cmd_buff.wait() ;
     }
 
     BufferImpl::BufferImpl()
