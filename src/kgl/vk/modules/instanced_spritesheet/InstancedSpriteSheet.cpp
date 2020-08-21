@@ -1,7 +1,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
-#include "SpriteSheet.h"
+#include "InstancedSpriteSheet.h"
 #include "Bus.h"
 #include "Signal.h"
 #include <log/Log.h>
@@ -47,8 +47,12 @@ namespace kgl
       glm::vec2 tl    ;
       glm::vec2 br    ;
     };
+    
 
-    struct SpriteSheetData
+    
+    /** Struct to contain the InstancedSpriteSheet object data.
+     */
+    struct InstancedSpriteSheetData
     {
       struct Material
       {
@@ -56,11 +60,11 @@ namespace kgl
         DescriptorSet set     ;
       };
 
-      static constexpr unsigned BUFFERS = 3 ; // Todo make this 
-      typedef std::map<std::string, Material>                 Materials  ;
-      typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>     Stack      ;
-      typedef std::array<::kgl::vk::render::CommandBuffer, 2> CmdBuffers ;
-      typedef kgl::containers::Layered<Synchronization, 3>    Syncs      ;
+      static constexpr unsigned BUFFERS = 3 ; // Todo make this configurable
+      typedef std::map<std::string, Material>                    Materials    ;
+      typedef std::array<::kgl::vk::render::CommandBuffer, 2>    CmdBuffers   ;
+      typedef kgl::containers::Layered<Synchronization, 3>       Syncs        ;
+      typedef std::map<std::string, std::vector<Transformation>> TransformMap ;
 
       std::vector<float> vert = 
       { 
@@ -73,21 +77,9 @@ namespace kgl
         1.0f, 0.0f
       };
       
-//      std::vector<float> vert = 
-//      { 
-//        // pos      // tex
-//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
-//        1.0f, 0.0f, 1.0f, 0.0f,// Top Right
-//        0.0f, 0.0f, 0.0f, 0.0f,// Top Left
-//       // 
-//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
-//        1.0f, 1.0f, 1.0f, 1.0f,// Bottom Right
-//        1.0f, 0.0f, 1.0f, 0.0f // Top Right
-//      };
-      
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
-      Stack                            commands          ;
+      TransformMap                     transforms        ;
       CmdBuffers                       buffer            ; ///< The command buffer to use for all GPU calls.
       unsigned                         cmd_buff_index    ; ///< THe index of command buffer currently in use.
       Materials                        materials         ; ///< Objects to contain all data to be sent to a uniform.
@@ -107,13 +99,12 @@ namespace kgl
       std::string                      output_name       ; ///< The name of this object's synchronization output.
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
-      SheetCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
       
       /** Default Constructor. Initializes member data.
        */
-      SpriteSheetData() ;
+      InstancedSpriteSheetData() ;
       
       /** Method to set this object's window's name.
        * @param name The name of window this object uses.
@@ -135,15 +126,21 @@ namespace kgl
       
       /** Method to push a command to this object for operation.
       */
-      void setCommand( const ::kgl::SheetCommand& cmd ) ;
-      
+      void setCommand( const kgl::List<::kgl::SheetCommand>& commands ) ;
+
+      /** Method to convert a sheet command to a transformation.
+       * @param cmd The command to convert
+       * @return The transformation object equivalent of the input command.
+       */
+      Transformation transformFromCommand( const SheetCommand& cmd ) ;
+
       /** Method to prepare the transformation matrix of this object for rendering.
        */
       void setUpModelMatrix() ;
       
       /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
        */
-      Transformation setUpTextureCoords( const ::kgl::man::Atlas& sheet ) ;
+      Transformation setUpTextureCoords( const ::kgl::man::Atlas& sheet, unsigned index ) ;
 
       /** Method to output this object's data.
        */
@@ -158,48 +155,94 @@ namespace kgl
       void setDebug( bool val ) ;
     };
     
-    SpriteSheetData::SpriteSheetData()
+    Transformation InstancedSpriteSheetData::transformFromCommand( const SheetCommand& cmd )
+    {
+      const float       x   = cmd.posX()     ;
+      const float       y   = cmd.posY()     ;
+      const float       w   = cmd.width()    ;
+      const float       h   = cmd.height()   ;
+      const float       r   = cmd.rotation() ;
+      const std::string img = cmd.sheet()    ;
+      Transformation trans ;
+      glm::mat4      model ;
+      glm::vec2      size  ;
+     
+      if( this->manager.contains( cmd.sheet() ) )
+      {
+        if( w < 0.1f && h < 0.1f )
+        {
+          const auto image = &this->manager.image( cmd.sheet() ) ;
+          size = glm::vec2( image->width(), image->height() ) ;
+        }
+        else
+        {
+          size = glm::vec2( w, h ) ;
+        }
+  
+        this->model_matrix = glm::mat4( 1.f ) ;
+        
+        glm::vec3 pos( x, y, 0.0f ) ;
+        model = glm::translate( model, pos ) ;
+        model = glm::translate( model, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
+        model = glm::rotate   ( model, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
+        model = glm::translate( model, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
+        model = glm::scale    ( model, glm::vec3( size, 1.0f ) ) ; 
+  
+        
+        trans = this->setUpTextureCoords( this->manager.atlas( cmd.sheet() ), cmd.index() ) ;
+        trans.model = model ;
+      }
+      
+      return trans ;
+    }
+    
+    InstancedSpriteSheetData::InstancedSpriteSheetData()
     {
       this->debug          = false ;
       this->cmd_buff_index = 0     ;
     }
     
-    void SpriteSheetData::setDebug( bool val )
+    void InstancedSpriteSheetData::setDebug( bool val )
     {
       this->debug = val ;
     }
 
-    void SpriteSheetData::pop()
+    void InstancedSpriteSheetData::setCommand( const ::kgl::List<::kgl::SheetCommand>& commands )
     {
-      this->current_cmd = this->commands.pop() ;
-    }
+      this->manager   .clear() ;
+      this->transforms.clear() ;
 
-    void SpriteSheetData::setCommand( const ::kgl::SheetCommand& cmd )
-    {
-      auto iter = this->materials.find( cmd.sheet() ) ;
-      
-      this->commands.insert( cmd, this->commands.next() ) ;
-
-      // If we don't have enough uniform objects for the amount of commands we have, scale up.
-      if( iter == this->materials.end() )
+      for( const auto &command : commands )
       {
-        if( this->manager.contains( cmd.sheet() ) )
+        this->transforms[ command.sheet() ].push_back( this->transformFromCommand( command ) ) ;
+      }
+      
+      for( auto list : this->transforms )
+      {
+        auto iter = this->materials.find( list.first ) ;
+  
+        // If we don't have enough uniform objects for the amount of commands we have, scale up.
+        if( iter == this->materials.end() )
         {
-          auto mat = this->materials.emplace( cmd.sheet(), Material() ) ;
-
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                  ) ;
-          mat.first->second.uniform.initialize( this->gpu                                                ) ;
-          mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( cmd.sheet() ).image() ) ;
-          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection       ) ;
-          mat.first->second.set.set( mat.first->second.uniform ) ;
+          if( this->manager.contains( list.first.c_str() ) )
+          {
+            auto mat = this->materials.emplace( list.first, Material() ) ;
+  
+            mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                                  ) ;
+            mat.first->second.uniform.initialize( this->gpu                                                                ) ;
+            mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( list.first.c_str() ).image()          ) ;
+            mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection                       ) ;
+            mat.first->second.uniform.add       ( "offsets"   , Uniform::Type::UBO, list.second.data(), list.second.size() ) ;
+            mat.first->second.set.set( mat.first->second.uniform ) ;
+          }
         }
       }
     }
 
-    Transformation SpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet )
+    Transformation InstancedSpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet, unsigned index )
     {
       Transformation ret ;
-      const unsigned sprite             = this->current_cmd.index()                        ;
+      const unsigned sprite             = index                                            ;
       const unsigned sprite_width       = sheet.spriteWidth()                              ;
       const unsigned sprite_height      = sheet.spriteHeight()                             ;
       const unsigned image_width        = sheet.image().width()                            ;
@@ -231,56 +274,23 @@ namespace kgl
       return ret ;
     }
 
-    void SpriteSheetData::setUpModelMatrix()
-    {
-      const float       x   = this->current_cmd.posX()     ;
-      const float       y   = this->current_cmd.posY()     ;
-      const float       w   = this->current_cmd.width()    ;
-      const float       h   = this->current_cmd.height()   ;
-      const float       r   = this->current_cmd.rotation() ;
-      const std::string img = this->current_cmd.sheet()    ;
-
-      glm::vec2 size ;
-     
-      if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
-      {
-        const auto image = &this->manager.image( this->current_cmd.sheet() ) ;
-        size = glm::vec2( image->width(), image->height() ) ;
-      }
-      else
-      {
-        size = glm::vec2( w, h ) ;
-      }
-
-      this->model_matrix = glm::mat4( 1.f ) ;
-      
-      glm::vec3 pos( x, y, 0.0f ) ;
-      this->model_matrix = glm::translate( this->model_matrix, pos ) ;
-      
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
-      this->model_matrix = glm::rotate   ( this->model_matrix, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
-
-      this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
-    }
-
-    void SpriteSheetData::setOutputImageName( const char* output ) 
+    void InstancedSpriteSheetData::setOutputImageName( const char* output ) 
     {
       this->output_image_name = output ;
     }
 
-    void SpriteSheetData::setWindowName( const char* name )
+    void InstancedSpriteSheetData::setWindowName( const char* name )
     {
       this->window_name = name ;
     }
 
-    void SpriteSheetData::setGPU( unsigned gpu )
+    void InstancedSpriteSheetData::setGPU( unsigned gpu )
     {
       this->gpu    = gpu                                ;
       this->device = this->context.virtualDevice( gpu ) ;
     }
     
-    void SpriteSheet::input( const ::kgl::vk::Synchronization& sync )
+    void InstancedSpriteSheet::input( const ::kgl::vk::Synchronization& sync )
     {
       data().mutex.lock() ;
       data().syncs.value().clear() ;
@@ -289,7 +299,7 @@ namespace kgl
       data().mutex.unlock() ;
     }
 
-    void SpriteSheetData::output( const Synchronization& sync )
+    void InstancedSpriteSheetData::output( const Synchronization& sync )
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
@@ -298,46 +308,46 @@ namespace kgl
       this->bus( this->output_name      .c_str() ).emit( sync                      ) ;
     }
 
-    void SpriteSheet::setInputName( const char* name )
+    void InstancedSpriteSheet::setInputName( const char* name )
     {
       static bool found_input = false ;
 
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !found_input )
       {
-        data().bus( name ).attach( this, &SpriteSheet::input ) ;
+        data().bus( name ).attach( this, &InstancedSpriteSheet::input ) ;
         
         found_input = true ;
       }
     }
 
-    void SpriteSheetData::setOutputName( const char* name )
+    void InstancedSpriteSheetData::setOutputName( const char* name )
     {
       this->output_name = name ;
     }
 
-    SpriteSheet::SpriteSheet()
+    InstancedSpriteSheet::InstancedSpriteSheet()
     {
-      this->data_2d = new SpriteSheetData() ;
+      this->isprite_data = new InstancedSpriteSheetData() ;
     }
     
-    SpriteSheet::~SpriteSheet()
+    InstancedSpriteSheet::~InstancedSpriteSheet()
     {
-      delete this->data_2d ;
+      delete this->isprite_data ;
     }
 
-    void SpriteSheet::resize()
+    void InstancedSpriteSheet::resize()
     {
       
       data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -1.0f, 1.0f) ;
     }
 
-    void SpriteSheet::initialize()
+    void InstancedSpriteSheet::initialize()
     {
       const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/isprite.uwu"                                  ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -370,7 +380,7 @@ namespace kgl
       data().vertices.copyToDevice( data().vert.data() ) ;
     }
 
-    void SpriteSheet::shutdown()
+    void InstancedSpriteSheet::shutdown()
     {
 //      data().sync    .reset() ; ///TODO
 //      data().uniform .reset() ; ///TODO
@@ -380,7 +390,7 @@ namespace kgl
 //      data().pipeline.reset() ; ///TODO
     }
 
-    void SpriteSheet::subscribe( const char* pipeline, unsigned id )
+    void InstancedSpriteSheet::subscribe( const char* pipeline, unsigned id )
     {
       const std::string json_path = std::string( "Graphs::" ) + std::string( pipeline ) + std::string( "::Modules::" ) + std::string( this->name() ) ;
       data().name = this->name() ;
@@ -389,18 +399,18 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
       
       // Graph-specific JSON-parameters.
-      data().bus( "Graphs::", pipeline, "::window" ).attach( this->data_2d, &SpriteSheetData::setWindowName ) ;
-      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &SpriteSheetData::setGPU        ) ;
+      data().bus( "Graphs::", pipeline, "::window" ).attach( this->isprite_data, &InstancedSpriteSheetData::setWindowName ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->isprite_data, &InstancedSpriteSheetData::setGPU        ) ;
       
       // Module-specific JSON-parameters.
-      data().bus( json_path.c_str(), "::input"        ).attach( this         , &SpriteSheet::setInputName           ) ;
+      data().bus( json_path.c_str(), "::input"        ).attach( this         , &InstancedSpriteSheet::setInputName           ) ;
       data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId       ) ;
-      data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &SpriteSheetData::setOutputName      ) ;
-      data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &SpriteSheetData::setOutputImageName ) ;
-      data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &SpriteSheetData::setDebug           ) ;
+      data().bus( json_path.c_str(), "::output"       ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputName      ) ;
+      data().bus( json_path.c_str(), "::output_image" ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"        ).attach( this->isprite_data, &InstancedSpriteSheetData::setDebug           ) ;
 
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd" ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
+      data().bus( this->name(), "::cmd" ).attach( this->isprite_data, &InstancedSpriteSheetData::setCommand ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -409,49 +419,26 @@ namespace kgl
       data().bus( json_path.c_str(), "::ViewportMaxDepth" ).emit( 0, 1.f ) ;
     }
 
-    void SpriteSheet::execute()
+    void InstancedSpriteSheet::execute()
     {
-
-      
-      Transformation  transform ;
-      Synchronization sync      ;
-
+      Synchronization sync    ;
       data().profiler.start() ;
-      data().commands.swap() ;
+      
       data().mutex.lock() ;
       sync = data().syncs.value() ;
-      data().mutex.unlock() ;
       data().syncs.swap() ;
+      data().mutex.unlock() ;
       
-      if( !data().commands.empty() )
+      if( !data().transforms.empty() )
       {
         data().buffer[ data().cmd_buff_index ].record( data().pass ) ;
-        while( !data().commands.empty() )
+        for( auto transform : data().transforms )
         {
-          // Pop latest draw command off the stack.
-          data().pop() ;
+          auto iter = data().materials.find( transform.first ) ;
           
-          auto iter = data().materials.find( data().current_cmd.sheet() ) ;
-          // Build Transformation Matrix.
-          data().setUpModelMatrix()                                                       ;
-          transform = data().setUpTextureCoords( data().manager.atlas( data().current_cmd.sheet() ) ) ;
-          
-          transform.model = data().model_matrix ;
-
-          // Bind pipeline and descriptor set to the command buffer.
-          if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor set to pipeline." ) ;
-          
-          data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
-          
-          if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing transformation data to the pipeline." ) ;
-          data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
-
-          // Draw using vertices.
-          if( data().debug ) karma::log::Log::output( this->name(), ":: Drawing." ) ;
-          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 12 ) ;
+          data().pipeline                       .bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
+          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 12                             ) ;
         }
-        
-        // Stop recording the command buffer & Submit to the graphics queue.
         data().buffer[ data().cmd_buff_index ].stop() ;
         if( data().debug ) karma::log::Log::output( this->name(), ":: Submitting Command buffer to queue." ) ;
         data().pass.submit( sync, data().buffer[ data().cmd_buff_index ] ) ;
@@ -464,19 +451,20 @@ namespace kgl
       data().output( sync ) ;
       if( data().cmd_buff_index == 1 ) data().cmd_buff_index-- ;
       else                             data().cmd_buff_index++ ;
+      
       data().profiler.stop() ;
 
 //      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
-    SpriteSheetData& SpriteSheet::data()
+    InstancedSpriteSheetData& InstancedSpriteSheet::data()
     {
-      return *this->data_2d ;
+      return *this->isprite_data ;
     }
 
-    const SpriteSheetData& SpriteSheet::data() const
+    const InstancedSpriteSheetData& InstancedSpriteSheet::data() const
     {
-      return *this->data_2d ;
+      return *this->isprite_data ;
     }
   }
 }
@@ -485,7 +473,7 @@ namespace kgl
  */
 exported_function const char* name()
 {
-  return "SpriteSheet" ;
+  return "InstancedSpriteSheet" ;
 }
 
 /** Exported function to retrieve the version of this module.
@@ -501,7 +489,7 @@ exported_function unsigned version()
  */
 exported_function ::kgl::vk::Module* make( unsigned version )
 {
-  return new ::kgl::vk::SpriteSheet() ;
+  return new ::kgl::vk::InstancedSpriteSheet() ;
 }
 
 /** Exported function to destroy an instance of this module.
@@ -509,9 +497,9 @@ exported_function ::kgl::vk::Module* make( unsigned version )
  */
 exported_function void destroy( ::kgl::vk::Module* module )
 {
-  ::kgl::vk::SpriteSheet* mod ;
+  ::kgl::vk::InstancedSpriteSheet* mod ;
   
-  mod = dynamic_cast<::kgl::vk::SpriteSheet*>( module ) ;
+  mod = dynamic_cast<::kgl::vk::InstancedSpriteSheet*>( module ) ;
   delete mod ;
 }
 
