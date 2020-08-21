@@ -3,15 +3,21 @@
 #include "../../kgl/cmd/DrawCommand.h"
 #include "../../kgl/io/Event.h"
 #include "../../data/Bus.h"
+#include "../../config/Configuration.h"
+#include "../../config/Parser.h"
 #include "../../data/Signal.h"
 #include "../../profiling/Timer.h"
 #include "../../log/Log.h"
+#include <vector>
 #include <string>
 
 namespace karma
 {
   struct GameData
   {
+    ::karma::config::Configuration config ;
+    
+    std::vector<::kgl::SheetCommand> cmds ;
     ::kgl::SheetCommand cmd       ;
     ::kgl::ImageCommand img       ;
     unsigned            sprite    ;
@@ -20,6 +26,9 @@ namespace karma
     ::data::module::Bus bus       ;
     bool                running   ;
     std::string         base_path ;
+    
+    unsigned width  ;
+    unsigned height ;
     float xpos ;
     float ypos ;
     float rot  ;
@@ -30,15 +39,15 @@ namespace karma
     bool pause = false ;
 
     void readInputs( const ::kgl::io::Event& event ) ;
-    
+    void loadMap() ;
     GameData()
     {
       this->running = false   ;
       this->xpos    = 0.0f    ;
       this->ypos    = 0.0f    ;
       this->rot     = 0.0f    ;
-      this->xpos_2  = 200.0f  ;
-      this->ypos_2  = 200.0f  ;
+      this->xpos_2  = 0.0f  ;
+      this->ypos_2  = 0.0f  ;
       this->rot_2   = 0.0f    ;
       this->sprite  = 0       ;
     }
@@ -104,6 +113,48 @@ namespace karma
     }
   }
 
+      
+  void GameData::loadMap()
+  {
+    std::string key    ;
+    std::vector<unsigned> tiles ;
+    std::string path = ( this->base_path + "data/maps/cool.json" ) ;
+    this->config.initialize( path.c_str(), 0 ) ;
+    
+    for( auto entry = config.begin(); entry != config.end(); ++entry )
+    {
+      key = entry.key() ;
+      
+      if( key == "layers::data"   ) 
+      {
+        for( unsigned i = 0; i < entry.size(); i++ )
+        {
+          tiles.push_back( entry.number( i ) ) ;
+        }
+      }
+      if( key == "layers::height" ) this->height = entry.number() ;
+      if( key == "layers::width"  ) this->width  = entry.number() ;
+    }
+    
+    ::kgl::SheetCommand cmd ;
+    cmd.setSheet( "background" ) ;
+    unsigned index ;
+    
+    index = 0 ;
+    cmd.setWidth ( 32 ) ;
+    cmd.setHeight( 32 ) ;
+    for( unsigned y = 0; y < this->height; y++ )
+    {
+      cmd.setPosY( (float) ( y * 32 ) ) ;
+      for( unsigned x = 0; x < this->width; x++ )
+      {
+        cmd.setPosX( (float) ( x * 32 ) ) ;
+        cmd.setIndex( tiles[ index ] - 1 ) ;
+        this->cmds.push_back( cmd ) ;
+        index++ ;
+      }
+    }
+  }
   Game::Game()
   {
     this->game_data = new GameData() ;
@@ -129,6 +180,7 @@ namespace karma
     data().running = true ;
     
     data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
+    data().loadMap() ;
     
     data().timer.initialize( "FRAME_TIME" ) ;
     while( data().running )
@@ -149,7 +201,9 @@ namespace karma
         data().cmd.setRotation( data().rot_2  ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-        data().bus( "sprite::cmd" ).emit( data().cmd ) ;
+        for( auto cmd : data().cmds ) data().bus( "sprite::cmd" ).emit( cmd ) ;
+//        data().bus( "sprite::cmd" ).emit( data().cmd ) ;
+        
         data().bus( "image::cmd"  ).emit( data().img ) ;
       
         data().interface.start() ;

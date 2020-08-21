@@ -42,10 +42,10 @@
         {
           "version"         : 0,
           "type"            : "Combiner",
-          "input_one"       : "c1",
-          "input_two"       : "c2",
-          "input_image_one" : "c1i",
-          "input_image_two" : "c2i",
+          "input_one"       : "c2",
+          "input_two"       : "c1",
+          "input_image_one" : "c2i",
+          "input_image_two" : "c1i",
           "output"          : "present",
           "output_image"    : "present_image"
         }

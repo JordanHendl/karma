@@ -14,6 +14,7 @@ set( KARMA_GAME_LIBRARIES
      kgl
      kgl_io
      kgl_command
+     karma_configuration
      karma_data_bus
      karma_profiling
      karma_log

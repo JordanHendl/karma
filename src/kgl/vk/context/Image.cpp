@@ -202,6 +202,8 @@ namespace kgl
       barrier.setNewLayout       ( new_layout ) ;
       barrier.setImage           ( this->img  ) ;
       barrier.setSubresourceRange( range      ) ;
+      barrier.setSrcAccessMask   ( ::vk::AccessFlagBits::eMemoryRead ) ;
+      barrier.setDstAccessMask   ( ::vk::AccessFlagBits::eMemoryWrite ) ;
       
       this->cmd_buffer.record() ;
       

@@ -38,7 +38,16 @@
 namespace kgl
 {
   namespace vk
-  {      
+  {
+    struct Transformation
+    {
+      glm::mat4 model ;
+      glm::vec2 bl    ;
+      glm::vec2 tr    ;
+      glm::vec2 tl    ;
+      glm::vec2 br    ;
+    };
+
     struct SpriteSheetData
     {
       struct Material
@@ -46,25 +55,35 @@ namespace kgl
         Uniform       uniform ;
         DescriptorSet set     ;
       };
-      
+
       static constexpr unsigned BUFFERS = 3 ; // Todo make this 
       typedef std::map<std::string, Material>                 Materials  ;
       typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>     Stack      ;
       typedef std::array<::kgl::vk::render::CommandBuffer, 2> CmdBuffers ;
       typedef kgl::containers::Layered<Synchronization, 3>    Syncs      ;
-      
-      
+
       std::vector<float> vert = 
       { 
-        // pos      // tex
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f, 
-      
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 0.0f
+        // pos    
+        0.0f, 1.0f, 
+        1.0f, 0.0f,
+        0.0f, 0.0f, 
+        0.0f, 1.0f,
+        1.0f, 1.0f, 
+        1.0f, 0.0f
       };
+      
+//      std::vector<float> vert = 
+//      { 
+//        // pos      // tex
+//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
+//        1.0f, 0.0f, 1.0f, 0.0f,// Top Right
+//        0.0f, 0.0f, 0.0f, 0.0f,// Top Left
+//       // 
+//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
+//        1.0f, 1.0f, 1.0f, 1.0f,// Bottom Right
+//        1.0f, 0.0f, 1.0f, 0.0f // Top Right
+//      };
       
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
@@ -124,7 +143,7 @@ namespace kgl
       
       /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
        */
-      void setUpTextureCoords( const ::kgl::man::Atlas& sheet ) ;
+      Transformation setUpTextureCoords( const ::kgl::man::Atlas& sheet ) ;
 
       /** Method to output this object's data.
        */
@@ -168,16 +187,18 @@ namespace kgl
         {
           auto mat = this->materials.emplace( cmd.sheet(), Material() ) ;
 
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()             ) ;
-          mat.first->second.uniform.initialize( this->gpu                                           ) ;
-          mat.first->second.uniform.addImage  ( "image", this->manager.atlas( cmd.sheet() ).image() ) ;
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                  ) ;
+          mat.first->second.uniform.initialize( this->gpu                                                ) ;
+          mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( cmd.sheet() ).image() ) ;
+          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection       ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
     }
 
-    void SpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet )
+    Transformation SpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet )
     {
+      Transformation ret ;
       const unsigned sprite             = this->current_cmd.index()                        ;
       const unsigned sprite_width       = sheet.spriteWidth()                              ;
       const unsigned sprite_height      = sheet.spriteHeight()                             ;
@@ -197,22 +218,17 @@ namespace kgl
       const float bottom_left_y  = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
       const float bottom_right_x = static_cast<float>( sprite_xpixel + sprite_width  ) / static_cast<float>( image_width  ) ;
       const float bottom_right_y = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
-
-      this->vert[ 2  ] = bottom_left_x  ;
-      this->vert[ 3  ] = bottom_left_y  ;
-      this->vert[ 6  ] = top_right_x    ;
-      this->vert[ 7  ] = top_right_y    ;
-      this->vert[ 10 ] = top_left_x     ;
-      this->vert[ 11 ] = top_left_y     ;
       
-      this->vert[ 14 ] = bottom_left_x  ;
-      this->vert[ 15 ] = bottom_left_y  ;
-      this->vert[ 18 ] = bottom_right_x ;
-      this->vert[ 19 ] = bottom_right_y ;
-      this->vert[ 22 ] = top_right_x    ;
-      this->vert[ 23 ] = top_right_y    ;
+      ret.bl.x = bottom_left_x  ;
+      ret.bl.y = bottom_left_y  ;
+      ret.br.x = bottom_right_x ;
+      ret.br.y = bottom_right_y ;
+      ret.tr.x = top_right_x    ;
+      ret.tr.y = top_right_y    ;
+      ret.tl.x = top_left_x     ;
+      ret.tl.y = top_left_y     ;
       
-      this->vertices.copyToDevice( this->vert.data() ) ;
+      return ret ;
     }
 
     void SpriteSheetData::setUpModelMatrix()
@@ -321,7 +337,7 @@ namespace kgl
       const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/combine.uwu"                                  ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -334,7 +350,7 @@ namespace kgl
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
       // Initialize vulkan objects.
-      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 24                                                   ) ;
+      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 12                                                   ) ;
       data().pass           .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffer[0]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffer[1]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
@@ -395,11 +411,7 @@ namespace kgl
 
     void SpriteSheet::execute()
     {
-      struct Transformation
-      {
-        glm::mat4 model ;
-        glm::mat4 proj  ;
-      };
+
       
       Transformation  transform ;
       Synchronization sync      ;
@@ -422,21 +434,21 @@ namespace kgl
           auto iter = data().materials.find( data().current_cmd.sheet() ) ;
           // Build Transformation Matrix.
           data().setUpModelMatrix()                                                       ;
-          data().setUpTextureCoords( data().manager.atlas( data().current_cmd.sheet() ) ) ;
+          transform = data().setUpTextureCoords( data().manager.atlas( data().current_cmd.sheet() ) ) ;
           
+          transform.model = data().model_matrix ;
+
           // Bind pipeline and descriptor set to the command buffer.
           if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor set to pipeline." ) ;
+          
           data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
-          // Push Transformations to the GPU.
-          transform.model = data().model_matrix ;
-          transform.proj  = data().projection   ;
           if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing transformation data to the pipeline." ) ;
           data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
           if( data().debug ) karma::log::Log::output( this->name(), ":: Drawing." ) ;
-          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 24 ) ;
+          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 12 ) ;
         }
         
         // Stop recording the command buffer & Submit to the graphics queue.
