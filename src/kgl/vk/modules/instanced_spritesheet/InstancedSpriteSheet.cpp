@@ -13,6 +13,7 @@
 #include <vk/context/Uniform.h>
 #include <vk/context/Uniform.h>
 #include <vk/context/Descriptor.h>
+#include <vk/context/Shader.h>
 #include <vk/context/RenderPass.h>
 #include <vk/context/Synchronization.h>
 #include <vk/context/Context.h>
@@ -65,17 +66,6 @@ namespace kgl
       typedef std::array<::kgl::vk::render::CommandBuffer, 2>    CmdBuffers   ;
       typedef kgl::containers::Layered<Synchronization, 3>       Syncs        ;
       typedef std::map<std::string, std::vector<Transformation>> TransformMap ;
-
-      std::vector<float> vert = 
-      { 
-        // pos    
-        0.0f, 1.0f, 
-        1.0f, 0.0f,
-        0.0f, 0.0f, 
-        0.0f, 1.0f,
-        1.0f, 1.0f, 
-        1.0f, 0.0f
-      };
       
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
@@ -110,10 +100,6 @@ namespace kgl
        * @param name The name of window this object uses.
        */
       void setWindowName( const char* name ) ;
-      
-      /** Method to pop a command off the stack for processing.
-       */
-      void pop() ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -171,15 +157,15 @@ namespace kgl
       {
         if( w < 0.1f && h < 0.1f )
         {
-          const auto image = &this->manager.image( cmd.sheet() ) ;
-          size = glm::vec2( image->width(), image->height() ) ;
+          const auto image = &this->manager.atlas( cmd.sheet() ) ;
+          size = glm::vec2( image->spriteWidth(), image->spriteHeight() ) ;
         }
         else
         {
           size = glm::vec2( w, h ) ;
         }
   
-        this->model_matrix = glm::mat4( 1.f ) ;
+        model = glm::mat4( 1.f ) ;
         
         glm::vec3 pos( x, y, 0.0f ) ;
         model = glm::translate( model, pos ) ;
@@ -209,7 +195,6 @@ namespace kgl
 
     void InstancedSpriteSheetData::setCommand( const ::kgl::List<::kgl::SheetCommand>& commands )
     {
-      this->manager   .clear() ;
       this->transforms.clear() ;
 
       for( const auto &command : commands )
@@ -228,11 +213,11 @@ namespace kgl
           {
             auto mat = this->materials.emplace( list.first, Material() ) ;
   
-            mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                                  ) ;
-            mat.first->second.uniform.initialize( this->gpu                                                                ) ;
-            mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( list.first.c_str() ).image()          ) ;
-            mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection                       ) ;
-            mat.first->second.uniform.add       ( "offsets"   , Uniform::Type::UBO, list.second.data(), list.second.size() ) ;
+            mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                                   ) ;
+            mat.first->second.uniform.initialize( this->gpu                                                                 ) ;
+            mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( list.first.c_str() ).image()           ) ;
+            mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO , this->projection                       ) ;
+            mat.first->second.uniform.add       ( "offsets"   , Uniform::Type::SSBO, list.second.data(), list.second.size() ) ;
             mat.first->second.set.set( mat.first->second.uniform ) ;
           }
         }
@@ -344,20 +329,30 @@ namespace kgl
 
     void InstancedSpriteSheet::initialize()
     {
-      const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 1024                                                ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
       static const char* path     = "/uwu/isprite.uwu"                                  ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
+      std::vector<float> vert = 
+      { 
+        // pos    
+        0.0f, 1.0f, 
+        1.0f, 0.0f,
+        0.0f, 0.0f, 
+        0.0f, 1.0f,
+        1.0f, 1.0f, 
+        1.0f, 0.0f
+      };
+
       this->setNumDependancies( 1 ) ;
 
       // Build path to this object's shdder.
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
-      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) * 2                                     ) ;
-      data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
+//      data().pipeline.shader().setVertexInputType( ::vk::VertexInputRate::eInstance ) ;
 
       // Initialize vulkan objects.
       data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 12                                                   ) ;
@@ -377,7 +372,7 @@ namespace kgl
       data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
       
       // Copy vertex data to the device.
-      data().vertices.copyToDevice( data().vert.data() ) ;
+      data().vertices.copyToDevice( vert.data() ) ;
     }
 
     void InstancedSpriteSheet::shutdown()
@@ -403,8 +398,8 @@ namespace kgl
       data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->isprite_data, &InstancedSpriteSheetData::setGPU        ) ;
       
       // Module-specific JSON-parameters.
-      data().bus( json_path.c_str(), "::input"        ).attach( this         , &InstancedSpriteSheet::setInputName           ) ;
-      data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId       ) ;
+      data().bus( json_path.c_str(), "::input"        ).attach( this         , &InstancedSpriteSheet::setInputName                ) ;
+      data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId                     ) ;
       data().bus( json_path.c_str(), "::output"       ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputImageName ) ;
       data().bus( json_path.c_str(), "::debug"        ).attach( this->isprite_data, &InstancedSpriteSheetData::setDebug           ) ;
@@ -436,8 +431,8 @@ namespace kgl
         {
           auto iter = data().materials.find( transform.first ) ;
           
-          data().pipeline                       .bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
-          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 12                             ) ;
+          data().pipeline                       .bind( data().buffer[ data().cmd_buff_index ], iter->second.set       ) ;
+          data().buffer[ data().cmd_buff_index ].drawInstanced( data().vertices.buffer(), 12, transform.second.size() ) ;
         }
         data().buffer[ data().cmd_buff_index ].stop() ;
         if( data().debug ) karma::log::Log::output( this->name(), ":: Submitting Command buffer to queue." ) ;

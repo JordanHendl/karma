@@ -7,6 +7,25 @@
 #include <thread>
 #include <chrono>
 
+#ifdef _WIN32
+  #include <windows.h>
+  
+  static inline void setThreadPriority()
+  {
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL ) )
+  }
+
+#elif __linux__ 
+  #include <pthread.h>
+#include <sys/resource.h>
+
+  static inline void setThreadPriority()
+  {
+    setpriority( PRIO_PROCESS, 0, 30 ) ;
+    pthread_setschedprio( pthread_self(), 1 ) ;
+  }
+#endif
+  
 namespace kgl
 {
   namespace vk
@@ -60,6 +79,8 @@ namespace kgl
     {
       data().running    = true ;
       data().should_run = true ;
+      
+      setThreadPriority() ;
       
       while( data().should_run )
       {

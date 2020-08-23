@@ -25,7 +25,7 @@ namespace kgl
           Pipeline() ;
           ~Pipeline() ;
           void initialize( const char* uwu_path, unsigned gpu, unsigned width, unsigned height, const ::vk::RenderPass pass ) ;
-          const Shader& shader() const ;
+          Shader& shader() ;
           const ::vk::PipelineLayout layout() const ;
           void subscribe( const char* name, unsigned channel ) ;
           void bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;

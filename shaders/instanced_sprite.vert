@@ -18,34 +18,45 @@ layout( binding = 1 ) uniform projection
   mat4 proj ;
 };
 
-layout( binding = 2 ) uniform offsets
+layout( binding = 2 ) buffer offsets
 {
-  InstanceData instances[1024] ;
+  InstanceData instances[] ;
 };
 
 void main()
 {
-  uint idx = gl_InstanceIndex ;
+  int  idx          ;
+  bool top_left     ;
+  bool bottom_left  ;
+  bool top_right    ;
+  bool bottom_right ;
+  
 
-  if( gl_VertexIndex == 0 || gl_VertexIndex == 3 ) 
+  bottom_left  = gl_VertexIndex == 0 || gl_VertexIndex == 3 ;
+  bottom_right = gl_VertexIndex == 4                        ;
+  top_left     = gl_VertexIndex == 2                        ;
+  top_right    = gl_VertexIndex == 1 || gl_VertexIndex == 5 ;
+  idx          = gl_InstanceIndex                           ;
+  
+  if( bottom_left ) 
   {
     tex_coords = instances[ idx ].bl ;
   }
 
-  if( gl_VertexIndex == 1 || gl_VertexIndex == 5 ) 
+  if( top_right ) 
   {
     tex_coords = instances[ idx ].tr ;
   }
 
-  if( gl_VertexIndex == 2 ) 
+  if( top_left ) 
   {
     tex_coords = instances[ idx ].tl ;
   }
 
-  if( gl_VertexIndex == 4 ) 
+  if( bottom_right ) 
   {
     tex_coords = instances[ idx ].br ;
   }
-
+  
   gl_Position = proj * instances[ idx ].model_mat * vec4( vertex.xy, 0.0, 1.0 ) ;
 }

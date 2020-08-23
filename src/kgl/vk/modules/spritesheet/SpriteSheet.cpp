@@ -110,6 +110,7 @@ namespace kgl
       SheetCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
+      bool                             found_input       ;
       
       /** Default Constructor. Initializes member data.
        */
@@ -162,6 +163,7 @@ namespace kgl
     {
       this->debug          = false ;
       this->cmd_buff_index = 0     ;
+      this->found_input    = false ;
     }
     
     void SpriteSheetData::setDebug( bool val )
@@ -244,8 +246,8 @@ namespace kgl
      
       if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
       {
-        const auto image = &this->manager.image( this->current_cmd.sheet() ) ;
-        size = glm::vec2( image->width(), image->height() ) ;
+        const auto image = &this->manager.atlas( this->current_cmd.sheet() ) ;
+        size = glm::vec2( image->spriteWidth(), image->spriteHeight() ) ;
       }
       else
       {
@@ -300,14 +302,11 @@ namespace kgl
 
     void SpriteSheet::setInputName( const char* name )
     {
-      static bool found_input = false ;
-
       // We now know what input we're getting. Subscribe & add as a dependancy.
-      if( !found_input )
+      if( !data().found_input )
       {
         data().bus( name ).attach( this, &SpriteSheet::input ) ;
-        
-        found_input = true ;
+        data().found_input = true ;
       }
     }
 
@@ -334,7 +333,7 @@ namespace kgl
 
     void SpriteSheet::initialize()
     {
-      const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
       static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.

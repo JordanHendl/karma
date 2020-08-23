@@ -90,13 +90,13 @@ namespace kgl
 
     Descriptor::~Descriptor()
     {
-      delete this->desc_data ;
+//      delete this->desc_data ;
     }
 
     Descriptor::Descriptor( const Descriptor& desc )
     {
       this->desc_data = new DescriptorData() ;
-      *this = desc ;
+      *this->desc_data = *desc.desc_data ;
     }
 
     void Descriptor::operator=( const Descriptor& desc )
