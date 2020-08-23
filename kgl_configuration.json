@@ -19,17 +19,6 @@
 	  "sem_id"       : 0
         },
 
-        "sprite" :
-        {
-          "version"      : 0,
-          "type"         : "SpriteSheet",
-          "input"        : "start",
-          "output_image" : "c1i",
-          "output"       : "c1",
-	  "debug"        : true,
-	  "sem_id"       : 1
-        },
-        
         "present" :
         {
           "version"     : 0,
@@ -48,6 +37,17 @@
           "input_image_two" : "c1i",
           "output"          : "present",
           "output_image"    : "present_image"
+        },
+
+        "instance_test" :
+        {
+          "version"      : 0,
+          "type"         : "InstancedSpriteSheet",
+          "input"        : "start",
+          "output_image" : "c1i",
+          "output"       : "c1",
+	  "debug"        : true,
+	  "sem_id"       : 1
         }
       }
     }
