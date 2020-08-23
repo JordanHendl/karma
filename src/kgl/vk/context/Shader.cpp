@@ -55,7 +55,7 @@ namespace kgl
       ::tools::shader::UWUShader               compiler    ; ///< TODO
       ::vk::PipelineVertexInputStateCreateInfo vertex_info ; ///< TODO
       ::vk::Device                             gpu         ; ///< TODO
-      
+      ::vk::VertexInputRate                    rate        ;
       /**
        */
       ShaderData() ;
@@ -177,9 +177,9 @@ namespace kgl
         }
       }
 
-      bind.setBinding  ( 0                              ) ;
-      bind.setInputRate( ::vk::VertexInputRate::eVertex ) ;
-      bind.setStride   ( offset                         ) ;
+      bind.setBinding  ( 0          ) ;
+      bind.setInputRate( this->rate ) ;
+      bind.setStride   ( offset     ) ;
       
       this->bind_desc.push_back( bind ) ;
     }
@@ -269,7 +269,7 @@ namespace kgl
 
     ShaderData::ShaderData()
     {
-      
+      rate = ::vk::VertexInputRate::eVertex ;
     }
 
     Shader::Shader()
@@ -335,7 +335,12 @@ namespace kgl
     {
       return data().bind_desc.size() ;
     }
-
+    
+    void Shader::setVertexInputType( const ::vk::VertexInputRate& rate )
+    {
+      data().rate = rate ;
+    }
+    
     const ::vk::PipelineShaderStageCreateInfo* Shader::infos() const
     {
       return data().stage_infos.data() ;

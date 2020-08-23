@@ -608,7 +608,7 @@ namespace kgl
     void Combiner::initialize()
     {
       static const unsigned MAX_SETS  = 200 ;
-      const char*       path          = "/uwu/present.uwu"                                  ;
+      const char*       path          = "/uwu/combine.uwu"                                  ;
       const std::string pipeline_path = data().install_path + path                          ;
       const unsigned     width        = data().context.width ( data().window_name.c_str() ) ;
       const unsigned     height       = data().context.height( data().window_name.c_str() ) ;

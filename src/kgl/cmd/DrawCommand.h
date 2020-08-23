@@ -110,6 +110,42 @@ namespace kgl
        */
       const ImageCommandData& data() const ;
   };
+  
+  /** Object to contain camera information that modules understand.
+   */
+  class Camera
+  {
+    public:
+      Camera() ;
+      Camera( const Camera& camera ) ;
+      ~Camera() ;
+      Camera& operator=( const Camera& camera ) ;
+      void setPosX( float pos ) ;
+      void setPosY( float pos ) ;
+      void setPosZ( float pos ) ;
+      void setPos( float x, float y, float z ) ;
+      float posX() const ;
+      float posY() const ;
+      float posZ() const ;
+      void setFrontX( float x ) ;
+      void setFrontY( float y ) ;
+      void setFrontZ( float z ) ;
+      void setFront( float x, float y, float z ) ;
+      float frontX() const ;
+      float frontY() const ;
+      float frontZ() const ;
+      void setUpX( float x ) ;
+      void setUpY( float y ) ;
+      void setUpZ( float z ) ;
+      void setUp( float x, float y, float z ) ;
+      float upX() const ;
+      float upY() const ;
+      float upZ() const ;
+    private:
+      struct CameraData* cam_data ;
+      CameraData& data() ;
+      const CameraData& data() const ;
+  };
 
   /** Object to contain a command to draw a sprite from a spritesheet. 
    * Used for interaction with the KGL library.

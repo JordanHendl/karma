@@ -18,6 +18,7 @@ namespace vk
   class ShaderModule                    ;
   class DescriptorSetLayout             ;
   class PipelineShaderStageCreateInfo   ;
+  enum class VertexInputRate ;
 }
 
 namespace kgl
@@ -38,6 +39,7 @@ namespace kgl
         unsigned numVertexAttributes() const ;
         unsigned numVertexBindings() const ;
         const ::vk::PipelineShaderStageCreateInfo* infos() const ;
+        void setVertexInputType( const ::vk::VertexInputRate& rate ) ;
         unsigned numShaders() const ;
         const ::tools::shader::ShaderIterator& begin() const ;
         const ::tools::shader::ShaderIterator& end() const ;
