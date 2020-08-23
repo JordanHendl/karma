@@ -18,7 +18,7 @@ MESSAGE( "Build Documentation : ${BUILD_DOC}"                                   
 MESSAGE( "Build UWUMaker      : ${BUILD_UWUMAKER}"                                  ) 
 MESSAGE( "Version             : ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}" ) 
 
-if( OPERATING_SYSTEM STREQUAL "WINDOWS" )
+if( WERROR STREQUAL "OFF" )
 
     MESSAGE( "BUILDING FOR WINDOWS" )
 
@@ -32,7 +32,7 @@ else()
     set(CMAKE_C_FLAGS   "-g -fPIC -Werror -Wall")
     set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC -Werror -Wall")
 
-endif( OPERATING_SYSTEM STREQUAL "WINDOWS" )
+endif( WERROR STREQUAL "OFF" )
 
 project( karma LANGUAGES CXX )
 

@@ -8,7 +8,7 @@ namespace karma
     public:
       Game() ;
       ~Game() ;
-      void initialize( const char* setup_path ) ;
+      void initialize() ;
       bool run() ;
     private:
       struct GameData* game_data ;

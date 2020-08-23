@@ -8,6 +8,7 @@
 #include "../../data/Signal.h"
 #include "../../profiling/Timer.h"
 #include "../../log/Log.h"
+#include "../../kgl/containers/List.h"
 #include <vector>
 #include <string>
 
@@ -17,9 +18,10 @@ namespace karma
   {
     ::karma::config::Configuration config ;
     
-    std::vector<::kgl::SheetCommand> cmds ;
+    ::kgl::List<::kgl::SheetCommand> cmds ;
     ::kgl::SheetCommand cmd       ;
     ::kgl::ImageCommand img       ;
+    ::kgl::Camera       camera    ;
     unsigned            sprite    ;
     karma::ms::Timer    timer     ;
     ::KGL_Interface     interface ;
@@ -35,6 +37,7 @@ namespace karma
     
     float xpos_2 ;
     float ypos_2 ;
+    float zpos_2 ;
     float rot_2  ;
     bool pause = false ;
 
@@ -42,14 +45,15 @@ namespace karma
     void loadMap() ;
     GameData()
     {
-      this->running = false   ;
-      this->xpos    = 0.0f    ;
-      this->ypos    = 0.0f    ;
-      this->rot     = 0.0f    ;
+      this->running = false ;
+      this->xpos    = 0.0f  ;
+      this->ypos    = 0.0f  ;
+      this->rot     = 0.0f  ;
       this->xpos_2  = 0.0f  ;
       this->ypos_2  = 0.0f  ;
-      this->rot_2   = 0.0f    ;
-      this->sprite  = 0       ;
+      this->zpos_2  = 0.0f  ;
+      this->rot_2   = 0.0f  ;
+      this->sprite  = 0     ;
     }
   };
   
@@ -88,6 +92,12 @@ namespace karma
           this->rot += delta ;
           break ;
 
+        case ::kgl::io::Event::IOCode::Q :
+          this->zpos_2 -= delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::E :
+          this->zpos_2 += delta ;
+          break ;
         case ::kgl::io::Event::IOCode::A :
           this->xpos_2 -= delta ;
           break ;
@@ -143,6 +153,9 @@ namespace karma
     index = 0 ;
     cmd.setWidth ( 32 ) ;
     cmd.setHeight( 32 ) ;
+    
+    this->cmds.initialize( this->width * this->height ) ;
+    
     for( unsigned y = 0; y < this->height; y++ )
     {
       cmd.setPosY( (float) ( y * 32 ) ) ;
@@ -150,7 +163,7 @@ namespace karma
       {
         cmd.setPosX( (float) ( x * 32 ) ) ;
         cmd.setIndex( tiles[ index ] - 1 ) ;
-        this->cmds.push_back( cmd ) ;
+        this->cmds[ x + ( y * this->width ) ] = cmd ;
         index++ ;
       }
     }
@@ -165,23 +178,23 @@ namespace karma
     delete this->game_data ;
   }
   
-  void Game::initialize( const char* base_path )
+  void Game::initialize()
   {
-    data().interface.initialize( base_path ) ;
+    data().interface.initialize() ;
     data().interface.setCurrentWindow( "Main" ) ;
     data().bus( "kgl::input" ).attach( this->game_data, &GameData::readInputs ) ;
     data().cmd.setWidth ( 32     ) ;
     data().cmd.setHeight( 32     ) ;
-    data().base_path = base_path ;
   }
 
   bool Game::run()
   {
     data().running = true ;
     
-    data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
+    data().interface.loadPack( "krender/test.krender" ) ;
     data().loadMap() ;
     
+    data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
     while( data().running )
     {
@@ -189,6 +202,8 @@ namespace karma
       
       if( !data().pause )
       {
+        
+        
         data().img.setImage   ( "test"        ) ;
         data().img.setPosX    ( data().xpos   ) ;
         data().img.setPosY    ( data().ypos   ) ;
@@ -196,16 +211,15 @@ namespace karma
 
 
         data().cmd.setSheet   ( "background"  ) ;
-        data().cmd.setPosX    ( data().xpos_2 ) ;
-        data().cmd.setPosY    ( data().ypos_2 ) ;
-        data().cmd.setRotation( data().rot_2  ) ;
+        data().cmd.setPosX    ( data().xpos   ) ;
+        data().cmd.setPosY    ( data().ypos   ) ;
+        data().cmd.setRotation( data().rot    ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-        for( auto cmd : data().cmds ) data().bus( "sprite::cmd" ).emit( cmd ) ;
-//        data().bus( "sprite::cmd" ).emit( data().cmd ) ;
-        
-        data().bus( "image::cmd"  ).emit( data().img ) ;
-      
+        data().bus( "image::cmd"  ).emit( data().cmd ) ;
+        data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
+        data().bus( "instance_test::camera" ).emit( data().camera ) ;
+        data().bus( "image::camera"         ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;
