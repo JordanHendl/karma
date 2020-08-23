@@ -638,7 +638,7 @@ namespace kgl
     {
       const ::vk::ColorComponentFlags mask = ::vk::ColorComponentFlagBits::eR | ::vk::ColorComponentFlagBits::eG | ::vk::ColorComponentFlagBits::eB | ::vk::ColorComponentFlagBits::eA ;
       this->color_blend_attachment.color_blend.setColorWriteMask     ( mask                                  ) ;
-      this->color_blend_attachment.color_blend.setBlendEnable        ( true                                  ) ;
+      this->color_blend_attachment.color_blend.setBlendEnable        ( false                                 ) ;
       this->color_blend_attachment.color_blend.setSrcColorBlendFactor( ::vk::BlendFactor::eSrcAlpha          ) ;
       this->color_blend_attachment.color_blend.setDstColorBlendFactor( ::vk::BlendFactor::eOneMinusSrc1Alpha ) ;
       this->color_blend_attachment.color_blend.setColorBlendOp       ( ::vk::BlendOp::eAdd                   ) ;

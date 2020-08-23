@@ -28,10 +28,10 @@
 #include <glm/glm/gtx/transform.hpp>
 #include <string>
 #include <stack>
-
 #include <sstream>
 #include <iostream>
 #include <map>
+#include <thread>
 
 static inline const float vertex_data[] = 
 { 
@@ -87,6 +87,9 @@ namespace kgl
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ; ///< Whether or not this module outputs debug information.
+      bool                             found_input       ;
+      std::mutex                       mat_mutex         ;
+      
       /** Default Constructor. Initializes member data.
        */
       Render2DData() ;
@@ -132,8 +135,10 @@ namespace kgl
     
     Render2DData::Render2DData()
     {
+      this->materials.clear() ;
       this->cmd_buff_index = 0     ;
       this->debug          = false ;
+      this->found_input    = false ;
     }
     
     void Render2DData::pop()
@@ -148,6 +153,7 @@ namespace kgl
 
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
     {
+      this->mat_mutex.lock() ;
       auto iter = this->materials.find( cmd.image() ) ;
       
       this->commands.insert( cmd, this->commands.next() ) ;
@@ -165,6 +171,7 @@ namespace kgl
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
+      this->mat_mutex.unlock() ;
     }
     
     void Render2DData::setUpModelMatrix()
@@ -234,14 +241,12 @@ namespace kgl
 
     void Render2D::setInputName( const char* name )
     {
-      static bool found_input = false ;
-
       // We now know what input we're getting. Subscribe & add as a dependancy.
-      if( !found_input )
+      if( !data().found_input )
       {
         data().bus( name ).attach( this, &Render2D::input ) ;
         
-        found_input = true ;
+        data().found_input = true ;
       }
     }
 
@@ -268,7 +273,7 @@ namespace kgl
 
     void Render2D::initialize()
     {
-      const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
       static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
@@ -354,10 +359,12 @@ namespace kgl
       Transformation  transform ;
       Synchronization sync      ;
 
+      data().mat_mutex.lock() ;
       data().profiler.start() ;
       data().commands.swap() ;
       sync = data().syncs.value() ;
       data().syncs.swap() ;
+      data().mat_mutex.unlock() ;
       
       if( !data().commands.empty() )
       {
@@ -370,15 +377,20 @@ namespace kgl
           // Build Transformation Matrix.
           data().setUpModelMatrix() ;
           
+          data().mat_mutex.lock() ;
           auto iter = data().materials.find( data().current_cmd.image() ) ;
-
-          if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor to pipeline." ) ;
-          // Bind pipeline and descriptor set to the command buffer.
-          data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
-          // Push Transformations to the GPU.
-          transform.model = data().model_matrix ;
-          transform.proj  = data().projection   ;
+          if( iter != data().materials.end() )
+          {
+            if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor to pipeline." ) ;
+            // Bind pipeline and descriptor set to the command buffer.
+            data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
+            
+            // Push Transformations to the GPU.
+            transform.model = data().model_matrix ;
+            transform.proj  = data().projection   ;
+          }
+          data().mat_mutex.unlock() ;
           
           if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing push constant for transformation to pipeline." ) ;
           data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;

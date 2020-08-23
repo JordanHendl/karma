@@ -8,6 +8,7 @@
 #include "../../data/Signal.h"
 #include "../../profiling/Timer.h"
 #include "../../log/Log.h"
+#include "../../kgl/containers/List.h"
 #include <vector>
 #include <string>
 
@@ -17,7 +18,7 @@ namespace karma
   {
     ::karma::config::Configuration config ;
     
-    std::vector<::kgl::SheetCommand> cmds ;
+    ::kgl::List<::kgl::SheetCommand> cmds ;
     ::kgl::SheetCommand cmd       ;
     ::kgl::ImageCommand img       ;
     unsigned            sprite    ;
@@ -143,6 +144,9 @@ namespace karma
     index = 0 ;
     cmd.setWidth ( 32 ) ;
     cmd.setHeight( 32 ) ;
+    
+    this->cmds.initialize( this->width * this->height ) ;
+    
     for( unsigned y = 0; y < this->height; y++ )
     {
       cmd.setPosY( (float) ( y * 32 ) ) ;
@@ -150,7 +154,7 @@ namespace karma
       {
         cmd.setPosX( (float) ( x * 32 ) ) ;
         cmd.setIndex( tiles[ index ] - 1 ) ;
-        this->cmds.push_back( cmd ) ;
+        this->cmds[ x + ( y * this->width ) ] = cmd ;
         index++ ;
       }
     }
@@ -182,6 +186,7 @@ namespace karma
     data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
     data().loadMap() ;
     
+    data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
     while( data().running )
     {
