@@ -79,7 +79,7 @@ namespace kgl
     template<typename T>
     void Uniform::add( const char* name, Type type, T* const val, unsigned count )
     {
-      this->addBase( name, type, static_cast<const void*>( &val ), sizeof( val ), count ) ;
+      this->addBase( name, type, static_cast<const void*>( val ), sizeof( T ), count ) ;
     }
   }
 }
