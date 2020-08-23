@@ -153,11 +153,9 @@ namespace tools
     else if( type_name == "ivec3"    ) return sizeof( unsigned ) * 3  ;
     else if( type_name == "vec2"     ) return sizeof( float    ) * 2  ;
     else if( type_name == "ivec2"    ) return sizeof( unsigned ) * 2  ;
-    else if( type_name == "uint"     ) return sizeof( unsigned )      ;
-    else if( type_name == "float"    ) return sizeof( float    )      ;
-    else if( type_name == "int"      ) return sizeof( int      )      ;
-    else if( type_name == "bool"     ) return sizeof( bool     )      ;
-    
+    else if( type_name == "unsigned" ) return sizeof( float    ) * 3  ;
+    else if( type_name == "float"    ) return sizeof( float    ) * 3  ;
+    else if( type_name == "bool"     ) return sizeof( float    ) * 3  ;
     else { std::cout << "Unknown type : " << type_name << std::endl ; exit( -1 ) ; } ;
   }
 
@@ -415,7 +413,7 @@ namespace tools
     for( unsigned i = 0; i < static_cast<unsigned>( program.getNumUniformVariables() ); i++ )
     {
       name = std::string( program.getUniformTType( i )->getCompleteString() ) ;
-      if( name.find( "sampler2D" ) != std::string::npos )
+      if( name.find( "sampler2D") != std::string::npos )
       {
         uniform.name    = program.getUniformName( i )    ;
         uniform.binding = program.getUniformBinding( i ) ;
@@ -425,7 +423,7 @@ namespace tools
         shader.uniforms.push_back( uniform ) ;
       }
 
-      if( name.find( "image" ) != std::string::npos )
+      if( name.find( "image") != std::string::npos )
       {
         uniform.name    = program.getUniformName( i )    ;
         uniform.binding = program.getUniformBinding( i ) ;
@@ -446,8 +444,7 @@ namespace tools
       uniform.binding = program.getUniformBlockBinding( i )                                                            ;
       uniform.size    = complete_string.find( " buffer " ) != std::string::npos ? 1 : program.getUniformArraySize( i ) ;
       uniform.type    = complete_string.find( " buffer " ) != std::string::npos ? UniformType::SSBO : UniformType::UBO ;
-      
-      std::cout << name << " BINDING " << uniform.binding << std::endl ;
+
       if( uniform.binding < INT_MAX ) 
       {
         shader.uniforms.push_back( uniform ) ;

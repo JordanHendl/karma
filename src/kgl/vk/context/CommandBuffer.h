@@ -110,11 +110,6 @@ namespace kgl
            */
           void draw( const ::vk::Buffer vertices, unsigned element_size ) ;
           
-          /**
-           * @param vertices
-           */
-          void drawInstanced( const ::vk::Buffer vertices, unsigned element_size, unsigned instance_count ) ;
-          
           /** Method to draw an object with vertices & indices.
            * @param num_indices Number of indices provided.
            * @param indices The vulkan buffer associated with the indices.

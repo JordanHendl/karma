@@ -273,18 +273,6 @@ namespace kgl
           buff.draw( element_size, 1, 0, 0 ) ;
         }
       }
-      
-      void CommandBuffer::drawInstanced( const ::vk::Buffer vertices, unsigned element_size, unsigned instance_count ) // TODO::: write instanced drawing.
-      {
-        ::vk::DeviceSize offset ;
-        
-        offset = 0 ;
-        for( auto buff : data().buffers )
-        {
-          buff.bindVertexBuffers( 0, 1, &vertices, &offset ) ;
-          buff.draw( element_size, instance_count, 0, 0 ) ;
-        }
-      }
 
       void CommandBuffer::drawIndexed( unsigned num_indices, const ::vk::Buffer indices, const ::vk::Buffer vertices ) // TODO:: write instanced drawing.
       {

@@ -28,10 +28,10 @@
 #include <glm/glm/gtx/transform.hpp>
 #include <string>
 #include <stack>
+
 #include <sstream>
 #include <iostream>
 #include <map>
-#include <thread>
 
 static inline const float vertex_data[] = 
 { 
@@ -80,7 +80,6 @@ namespace kgl
       unsigned                         gpu               ; ///< The GPU to use for this object's operations.
       glm::mat4                        model_matrix      ; ///< The transformation matrix for this object to use in rendering.
       glm::mat4                        projection        ; ///< The projection matrix that converts pixel locations to NDC coordinates.
-      glm::mat4                        view              ; ///< The projection matrix that converts pixel locations to NDC coordinates.
       ::vk::Device                     device            ; ///< The handle of vulkan device this object uses.
       std::string                      window_name       ; ///< The name of this object's window.
       std::string                      output_name       ; ///< The name of this object's synchronization output.
@@ -88,9 +87,6 @@ namespace kgl
       std::string                      name              ; ///< The name of this module.
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ; ///< Whether or not this module outputs debug information.
-      bool                             found_input       ;
-      std::mutex                       mat_mutex         ;
-      
       /** Default Constructor. Initializes member data.
        */
       Render2DData() ;
@@ -103,10 +99,6 @@ namespace kgl
       /** Method to pop a command off the stack for processing.
        */
       void pop() ;
-
-      /** Method to retrieve a camera to use for this object's rendering.
-       */
-      void setCamera( const ::kgl::Camera& camera ) ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -140,11 +132,8 @@ namespace kgl
     
     Render2DData::Render2DData()
     {
-      this->materials.clear() ;
-      this->cmd_buff_index = 0                ;
-      this->debug          = false            ;
-      this->found_input    = false            ;
-      this->view           = glm::mat4( 1.f ) ;
+      this->cmd_buff_index = 0     ;
+      this->debug          = false ;
     }
     
     void Render2DData::pop()
@@ -159,7 +148,6 @@ namespace kgl
 
     void Render2DData::setCommand( const ::kgl::ImageCommand& cmd )
     {
-      this->mat_mutex.lock() ;
       auto iter = this->materials.find( cmd.image() ) ;
       
       this->commands.insert( cmd, this->commands.next() ) ;
@@ -171,14 +159,12 @@ namespace kgl
         {
           auto mat = this->materials.emplace( cmd.image(), Material() ) ;
 
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()             ) ;
-          mat.first->second.uniform.initialize( this->gpu                                           ) ;
-          mat.first->second.uniform.addImage  ( "image"     , this->manager.image( cmd.image() )    ) ;
-          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO , this->projection ) ;
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
+          mat.first->second.uniform.initialize( this->gpu                                   ) ;
+          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
-      this->mat_mutex.unlock() ;
     }
     
     void Render2DData::setUpModelMatrix()
@@ -214,15 +200,6 @@ namespace kgl
       this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
     }
 
-    void Render2DData::setCamera( const ::kgl::Camera& camera )
-    {
-      const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
-      const glm::vec3 front = glm::vec3( camera.frontX(), camera.frontY(), camera.frontZ() ) ;
-      const glm::vec3 up    = glm::vec3( camera.upX()   , camera.upY()   , camera.upZ()    ) ;
-      
-      this->view = glm::lookAt( pos, pos + front, up ) ;
-    }
-    
     void Render2DData::setOutputImageName( const char* output ) 
     {
       this->output_image_name = output ;
@@ -257,12 +234,14 @@ namespace kgl
 
     void Render2D::setInputName( const char* name )
     {
+      static bool found_input = false ;
+
       // We now know what input we're getting. Subscribe & add as a dependancy.
-      if( !data().found_input )
+      if( !found_input )
       {
         data().bus( name ).attach( this, &Render2D::input ) ;
         
-        data().found_input = true ;
+        found_input = true ;
       }
     }
 
@@ -289,10 +268,10 @@ namespace kgl
 
     void Render2D::initialize()
     {
-      const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/2dimage.uwu"                                  ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -355,8 +334,7 @@ namespace kgl
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Render2DData::setDebug           ) ;
 
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &Render2DData::setCommand ) ;
-      data().bus( this->name(), "::camera" ).attach( this->data_2d, &Render2DData::setCamera  ) ;
+      data().bus( this->name(), "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -376,12 +354,10 @@ namespace kgl
       Transformation  transform ;
       Synchronization sync      ;
 
-      data().mat_mutex.lock() ;
       data().profiler.start() ;
       data().commands.swap() ;
       sync = data().syncs.value() ;
       data().syncs.swap() ;
-      data().mat_mutex.unlock() ;
       
       if( !data().commands.empty() )
       {
@@ -394,20 +370,15 @@ namespace kgl
           // Build Transformation Matrix.
           data().setUpModelMatrix() ;
           
-          data().mat_mutex.lock() ;
           auto iter = data().materials.find( data().current_cmd.image() ) ;
+
+          if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor to pipeline." ) ;
+          // Bind pipeline and descriptor set to the command buffer.
+          data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
-          if( iter != data().materials.end() )
-          {
-            if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor to pipeline." ) ;
-            // Bind pipeline and descriptor set to the command buffer.
-            data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
-            
-            // Push Transformations to the GPU.
-            transform.model = data().model_matrix ;
-            transform.proj  = data().view         ;
-          }
-          data().mat_mutex.unlock() ;
+          // Push Transformations to the GPU.
+          transform.model = data().model_matrix ;
+          transform.proj  = data().projection   ;
           
           if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing push constant for transformation to pipeline." ) ;
           data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;

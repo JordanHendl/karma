@@ -11,13 +11,6 @@ namespace kgl
 {
   namespace vk
   { 
-    
-    /**
-     * @param type
-     * @return 
-     */
-    static Buffer::Type bufferTypeFromUni( Uniform::Type type ) ;
-    
     struct UniformBuffer 
     {
       ::kgl::vk::Buffer buffer  ;
@@ -39,16 +32,6 @@ namespace kgl
       unsigned     gpu_id ;
     };
 
-    Buffer::Type bufferTypeFromUni( Uniform::Type type )
-    {
-      switch( type )
-      {
-        case Uniform::Type::SSBO    : return Buffer::Type::SSBO    ;
-        case Uniform::Type::UBO     : return Buffer::Type::UNIFORM ;
-        case Uniform::Type::Sampler : return Buffer::Type::UNIFORM ;
-        default                     : return Buffer::Type::UNIFORM ;
-      }
-    }
     UniformIterator::UniformIterator()
     {
       this->iter_data = new UniformIteratorData() ;
@@ -185,7 +168,7 @@ namespace kgl
         
         iter = data().map.find( name ) ;
         
-        iter->second->buffer.initialize<char>( data().gpu_id, bufferTypeFromUni( type ), element_size * count ) ;
+        iter->second->buffer.initialize<void*>( data().gpu_id, Buffer::Type::UNIFORM, element_size * count ) ;
         iter->second->type = type ;
       }
       else

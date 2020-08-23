@@ -136,11 +136,6 @@ namespace kgl
         ListIterator<T> begin() ;
         
         /**
-         * @return 
-         */
-        ListIterator<T> begin() const ;
-        
-        /**
          * @param val
          */
         void fill( T val ) ;
@@ -155,11 +150,6 @@ namespace kgl
          * @return 
          */
         ListIterator<T> end() ;
-        
-        /**
-         * @return 
-         */
-        ListIterator<T> end() const ;
         
         /**
          * @param index
@@ -353,31 +343,7 @@ namespace kgl
     }
     
     template<typename T>
-    ListIterator<T> List<T>::begin() const 
-    {
-      ListIterator<T> iter ;
-      
-      iter.data     = this->data_ptr ;
-      iter.location = 0              ;
-      iter.data_sz     = this->sz    ;
-      
-      return iter ;
-    }
-    
-    template<typename T>
     ListIterator<T> List<T>::end()
-    {
-      ListIterator<T> iter ;
-      
-      iter.data     = this->data_ptr ;
-      iter.location = this->sz       ;
-      iter.data_sz     = this->sz       ;
-      
-      return iter ;
-    }
-    
-    template<typename T>
-    ListIterator<T> List<T>::end() const
     {
       ListIterator<T> iter ;
       

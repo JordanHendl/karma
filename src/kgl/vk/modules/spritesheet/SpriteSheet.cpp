@@ -65,12 +65,12 @@ namespace kgl
       std::vector<float> vert = 
       { 
         // pos    
-        0.0f, 1.0f, 0,
-        1.0f, 0.0f, 1,
-        0.0f, 0.0f, 2,
-        0.0f, 1.0f, 0,
-        1.0f, 1.0f, 3, 
-        1.0f, 0.0f, 1
+        0.0f, 1.0f, 
+        1.0f, 0.0f,
+        0.0f, 0.0f, 
+        0.0f, 1.0f,
+        1.0f, 1.0f, 
+        1.0f, 0.0f
       };
       
 //      std::vector<float> vert = 
@@ -102,7 +102,6 @@ namespace kgl
       unsigned                         gpu               ; ///< The GPU to use for this object's operations.
       glm::mat4                        model_matrix      ; ///< The transformation matrix for this object to use in rendering.
       glm::mat4                        projection        ; ///< The projection matrix that converts pixel locations to NDC coordinates.
-      glm::mat4                        view              ; 
       ::vk::Device                     device            ; ///< The handle of vulkan device this object uses.
       std::string                      window_name       ; ///< The name of this object's window.
       std::string                      output_name       ; ///< The name of this object's synchronization output.
@@ -111,7 +110,6 @@ namespace kgl
       SheetCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
-      bool                             found_input       ;
       
       /** Default Constructor. Initializes member data.
        */
@@ -125,10 +123,6 @@ namespace kgl
       /** Method to pop a command off the stack for processing.
        */
       void pop() ;
-
-      /** Method to retrieve a camera to use for this object's rendering.
-       */
-      void setCamera( const ::kgl::Camera& camera ) ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -168,8 +162,6 @@ namespace kgl
     {
       this->debug          = false ;
       this->cmd_buff_index = 0     ;
-      this->found_input    = false ;
-      this->view           = glm::mat4( 1.f ) ;
     }
     
     void SpriteSheetData::setDebug( bool val )
@@ -182,15 +174,6 @@ namespace kgl
       this->current_cmd = this->commands.pop() ;
     }
 
-    void SpriteSheetData::setCamera( const ::kgl::Camera& camera )
-    {
-      const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
-      const glm::vec3 front = glm::vec3( camera.frontX(), camera.frontY(), camera.frontZ() ) ;
-      const glm::vec3 up    = glm::vec3( camera.upX()   , camera.upY()   , camera.upZ()    ) ;
-      
-        this->view = glm::lookAt( pos, pos + front, up ) ;
-    }
-    
     void SpriteSheetData::setCommand( const ::kgl::SheetCommand& cmd )
     {
       auto iter = this->materials.find( cmd.sheet() ) ;
@@ -208,7 +191,6 @@ namespace kgl
           mat.first->second.uniform.initialize( this->gpu                                                ) ;
           mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( cmd.sheet() ).image() ) ;
           mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection       ) ;
-          mat.first->second.uniform.add       ( "camera", Uniform::Type::UBO , this->view                ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
@@ -262,8 +244,8 @@ namespace kgl
      
       if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
       {
-        const auto image = &this->manager.atlas( this->current_cmd.sheet() ) ;
-        size = glm::vec2( image->spriteWidth(), image->spriteHeight() ) ;
+        const auto image = &this->manager.image( this->current_cmd.sheet() ) ;
+        size = glm::vec2( image->width(), image->height() ) ;
       }
       else
       {
@@ -318,11 +300,14 @@ namespace kgl
 
     void SpriteSheet::setInputName( const char* name )
     {
+      static bool found_input = false ;
+
       // We now know what input we're getting. Subscribe & add as a dependancy.
-      if( !data().found_input )
+      if( !found_input )
       {
         data().bus( name ).attach( this, &SpriteSheet::input ) ;
-        data().found_input = true ;
+        
+        found_input = true ;
       }
     }
 
@@ -349,10 +334,10 @@ namespace kgl
 
     void SpriteSheet::initialize()
     {
-      const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 200                                                 ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/combine.uwu"                                  ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -361,11 +346,11 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
-      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) + ( sizeof( glm::vec2 ) * 4 )           ) ;
+      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) * 2                                     ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
       // Initialize vulkan objects.
-      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 18                                                   ) ;
+      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 12                                                   ) ;
       data().pass           .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffer[0]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffer[1]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
@@ -415,8 +400,7 @@ namespace kgl
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &SpriteSheetData::setDebug           ) ;
 
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
-      data().bus( this->name(), "::camera" ).attach( this->data_2d, &SpriteSheetData::setCamera  ) ;
+      data().bus( this->name(), "::cmd" ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -427,6 +411,8 @@ namespace kgl
 
     void SpriteSheet::execute()
     {
+
+      
       Transformation  transform ;
       Synchronization sync      ;
 
@@ -455,16 +441,14 @@ namespace kgl
           // Bind pipeline and descriptor set to the command buffer.
           if( data().debug ) karma::log::Log::output( this->name(), ":: Binding command buffer & descriptor set to pipeline." ) ;
           
-          iter->second.uniform.add( "camera", Uniform::Type::UBO , data().view ) ;
-
           data().pipeline.bind( data().buffer[ data().cmd_buff_index ], iter->second.set ) ;
           
           if( data().debug ) karma::log::Log::output( this->name(), ":: Pushing transformation data to the pipeline." ) ;
           data().buffer[ data().cmd_buff_index ].pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
-          if( data().debug ) karma::log::Log::output( this->name(), ":: Drawing."   ) ;
-          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 6  ) ;
+          if( data().debug ) karma::log::Log::output( this->name(), ":: Drawing." ) ;
+          data().buffer[ data().cmd_buff_index ].draw( data().vertices.buffer(), 12 ) ;
         }
         
         // Stop recording the command buffer & Submit to the graphics queue.

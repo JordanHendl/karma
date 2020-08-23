@@ -181,7 +181,7 @@ namespace kgl
         }
       }
       
-      Shader& Pipeline::shader()
+      const Shader& Pipeline::shader() const
       {
         return data().shader ;
       }

@@ -165,10 +165,10 @@ namespace kgl
       region.setSrcOffset( offset ) ;
       region.setDstOffset( offset ) ;
       
-      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eMemoryRead  ) ;
-      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eMemoryWrite ) ;
-      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eMemoryRead  ) ;
-      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eMemoryWrite ) ;
+      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eShaderWrite ) ;
+      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eShaderRead  ) ;
+      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eShaderWrite ) ;
+      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eShaderRead  ) ;
       buff_barrier.setBuffer             ( this->buffer                       ) ;
       buff_barrier.setSize               ( size                               ) ;
       buff_barrier.setSrcQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;

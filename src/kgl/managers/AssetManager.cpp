@@ -157,7 +157,7 @@ namespace kgl
 
     bool AssetManager::contains( const char* name ) const
     {
-      return data.images.find( std::string( name ) ) != data.images.end() || data.spritesheet.find( std::string( name ) ) != data.spritesheet.end() ;
+      return data.images.find( name ) != data.images.end() || data.spritesheet.find( name ) != data.spritesheet.end() ;
     }
 
     void AssetManager::remove( const char* name )
