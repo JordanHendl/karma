@@ -13,6 +13,8 @@
 #include <Signal.h>
 #include <string>
 #include <vector>
+#include <filesystem>
+#include <stdlib.h>
 
 struct KGL_InterfaceData
 {
@@ -38,6 +40,7 @@ struct KGL_InterfaceData
   void setModuleConfigPath( const char* path ) ;
   void setModulePath( const char* path ) ; 
   void setDebugOutput( const char* output ) ;
+  void directoryCheck() ;
 };
 
 
@@ -86,6 +89,37 @@ void KGL_InterfaceData::fixString( std::string& str )
   }
 }
 
+void KGL_InterfaceData::directoryCheck()
+{
+  namespace fs = std::filesystem ;
+  
+  fs::path        path   ;
+  fs::file_status status ;
+  bool            valid  ;
+  
+  valid = true ;
+  
+  path = "data" ;
+  if( !fs::exists( path ) ) valid = false ;
+  
+  path = "data/images" ;
+  if( !fs::exists( path ) ) valid = false ;
+  
+  path = "uwu" ;
+  if( !fs::exists( path ) ) valid = false ;
+  
+  path = "krender" ;
+  if( !fs::exists( path ) ) valid = false ;
+  
+  if( !valid )
+  {
+    ::karma::log::Log::output( karma::log::Log::Level::Fatal, "Cannot find required directories. Please execute program in the correct directory." ) ;
+    ::karma::log::Log::write() ;
+    exit( EXIT_FAILURE ) ;
+  }
+    
+}
+
 KGL_Interface::KGL_Interface()
 {
   this->kgl_data = new KGL_InterfaceData() ;
@@ -102,23 +136,24 @@ void KGL_Interface::shutdown()
 //  data().mod_manager.shutdown() ;
 }
 
-void KGL_Interface::initialize( const char* base_path )
+void KGL_Interface::initialize()
 {
   using namespace karma::log ;
-
+  
   std::string path            ;
   std::string kgl_config_path ;
   
-  path = base_path ;
+  
+  path = "./" ;
   
   data().fixString( path ) ;
-  
+  data().directoryCheck() ;
   if( !::kgl::vk::isInitialized() )
   {
-    ::kgl::vk::setBasePath( base_path ) ;
+    ::kgl::vk::setBasePath( "./" ) ;
     ::kgl::vk::initialize() ;
     
-    data().database.subscribe( base_path, 0 ) ;
+    data().database.subscribe( "./", 0 ) ;
     data().setup   .subscribe( 0            ) ;
     
     data().bus( "required_images"       ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;

@@ -16,10 +16,9 @@ class KGL_Interface
     ~KGL_Interface() ;
     
     /** Method to initialize the KGL Library.
-     * @param base_path The base path of the project. 
      * @note The base path is used as a basis for all Asset & JSON lookup.
      */
-    void initialize( const char* base_path ) ;
+    void initialize() ;
     
     /** Method to shutdown the KGL Library's operations & free all allocated data..
      */
