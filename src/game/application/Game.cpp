@@ -21,6 +21,7 @@ namespace karma
     ::kgl::List<::kgl::SheetCommand> cmds ;
     ::kgl::SheetCommand cmd       ;
     ::kgl::ImageCommand img       ;
+    ::kgl::Camera       camera    ;
     unsigned            sprite    ;
     karma::ms::Timer    timer     ;
     ::KGL_Interface     interface ;
@@ -36,6 +37,7 @@ namespace karma
     
     float xpos_2 ;
     float ypos_2 ;
+    float zpos_2 ;
     float rot_2  ;
     bool pause = false ;
 
@@ -43,14 +45,15 @@ namespace karma
     void loadMap() ;
     GameData()
     {
-      this->running = false   ;
-      this->xpos    = 0.0f    ;
-      this->ypos    = 0.0f    ;
-      this->rot     = 0.0f    ;
+      this->running = false ;
+      this->xpos    = 0.0f  ;
+      this->ypos    = 0.0f  ;
+      this->rot     = 0.0f  ;
       this->xpos_2  = 0.0f  ;
       this->ypos_2  = 0.0f  ;
-      this->rot_2   = 0.0f    ;
-      this->sprite  = 0       ;
+      this->zpos_2  = 0.0f  ;
+      this->rot_2   = 0.0f  ;
+      this->sprite  = 0     ;
     }
   };
   
@@ -89,6 +92,12 @@ namespace karma
           this->rot += delta ;
           break ;
 
+        case ::kgl::io::Event::IOCode::Q :
+          this->zpos_2 -= delta ;
+          break ;
+        case ::kgl::io::Event::IOCode::E :
+          this->zpos_2 += delta ;
+          break ;
         case ::kgl::io::Event::IOCode::A :
           this->xpos_2 -= delta ;
           break ;
@@ -194,6 +203,8 @@ namespace karma
       
       if( !data().pause )
       {
+        
+        
         data().img.setImage   ( "test"        ) ;
         data().img.setPosX    ( data().xpos   ) ;
         data().img.setPosY    ( data().ypos   ) ;
@@ -206,11 +217,9 @@ namespace karma
         data().cmd.setRotation( data().rot_2  ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-        for( auto cmd : data().cmds ) data().bus( "sprite::cmd" ).emit( cmd ) ;
-//        data().bus( "sprite::cmd" ).emit( data().cmd ) ;
-        
         data().bus( "image::cmd"  ).emit( data().img ) ;
-      
+        data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
+        data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;

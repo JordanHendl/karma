@@ -18,10 +18,16 @@ layout( binding = 1 ) uniform projection
   mat4 proj ;
 };
 
+layout( push_constant ) uniform matrices 
+{
+  mat4 view ;
+};
+
 layout( binding = 2 ) buffer offsets
 {
   InstanceData instances[] ;
 };
+
 
 void main()
 {
@@ -58,5 +64,5 @@ void main()
     tex_coords = instances[ idx ].br ;
   }
   
-  gl_Position = proj * instances[ idx ].model_mat * vec4( vertex.xy, 0.0, 1.0 ) ;
+  gl_Position = proj * view * instances[ idx ].model_mat * vec4( vertex.xy, 0.0, 1.0 ) ;
 }

@@ -73,7 +73,7 @@ namespace kgl
     this->posz   =  0.0f ;
     this->frontx =  0.0f ;
     this->fronty =  0.0f ;
-    this->frontz = -1.0f ;
+    this->frontz =  1.0f ;
     this->upx    =  0.0f ;
     this->upy    =  1.0f ;
     this->upz    =  0.0f ;

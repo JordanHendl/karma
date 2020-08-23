@@ -49,7 +49,6 @@ namespace kgl
       glm::vec2 br    ;
     };
     
-
     
     /** Struct to contain the InstancedSpriteSheet object data.
      */
@@ -89,6 +88,7 @@ namespace kgl
       std::string                      output_name       ; ///< The name of this object's synchronization output.
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
+      glm::mat4                        view              ;
       bool                             debug             ;
       std::mutex                       mutex             ;
       
@@ -113,6 +113,10 @@ namespace kgl
       /** Method to push a command to this object for operation.
       */
       void setCommand( const kgl::List<::kgl::SheetCommand>& commands ) ;
+      
+      /** Method to retrieve a camera to use for this object's rendering.
+       */
+      void setCamera( const ::kgl::Camera& camera ) ;
 
       /** Method to convert a sheet command to a transformation.
        * @param cmd The command to convert
@@ -181,11 +185,21 @@ namespace kgl
       
       return trans ;
     }
+
+    void InstancedSpriteSheetData::setCamera( const ::kgl::Camera& camera )
+    {
+      const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
+      const glm::vec3 front = glm::vec3( camera.frontX(), camera.frontY(), camera.frontZ() ) ;
+      const glm::vec3 up    = glm::vec3( camera.upX()   , camera.upY()   , camera.upZ()    ) ;
+      
+      this->view = glm::lookAt( pos, pos + front, up ) ;
+    }
     
     InstancedSpriteSheetData::InstancedSpriteSheetData()
     {
-      this->debug          = false ;
-      this->cmd_buff_index = 0     ;
+      this->debug          = false            ;
+      this->cmd_buff_index = 0                ;
+      this->view           = glm::mat4( 1.f ) ;
     }
     
     void InstancedSpriteSheetData::setDebug( bool val )
@@ -324,7 +338,7 @@ namespace kgl
     void InstancedSpriteSheet::resize()
     {
       
-      data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -1.0f, 1.0f) ;
+      data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -100.0f, 100.0f) ;
     }
 
     void InstancedSpriteSheet::initialize()
@@ -345,6 +359,9 @@ namespace kgl
         1.0f, 1.0f, 
         1.0f, 0.0f
       };
+
+      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 )                                         ) ;
+      data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
       this->setNumDependancies( 1 ) ;
 
@@ -368,8 +385,8 @@ namespace kgl
       // Initialize data.
       data().profiler.initialize() ;
 
-      data().window     = &data().context.window( data().window_name.c_str() )                ;
-      data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
+      data().window     = &data().context.window( data().window_name.c_str() )                    ;
+      data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
       
       // Copy vertex data to the device.
       data().vertices.copyToDevice( vert.data() ) ;
@@ -405,7 +422,8 @@ namespace kgl
       data().bus( json_path.c_str(), "::debug"        ).attach( this->isprite_data, &InstancedSpriteSheetData::setDebug           ) ;
 
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd" ).attach( this->isprite_data, &InstancedSpriteSheetData::setCommand ) ;
+      data().bus( this->name(), "::cmd"    ).attach( this->isprite_data, &InstancedSpriteSheetData::setCommand ) ;
+      data().bus( this->name(), "::camera" ).attach( this->isprite_data, &InstancedSpriteSheetData::setCamera  ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -432,6 +450,7 @@ namespace kgl
           auto iter = data().materials.find( transform.first ) ;
           
           data().pipeline                       .bind( data().buffer[ data().cmd_buff_index ], iter->second.set       ) ;
+          data().buffer[ data().cmd_buff_index ].pushConstant( data().view, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
           data().buffer[ data().cmd_buff_index ].drawInstanced( data().vertices.buffer(), 12, transform.second.size() ) ;
         }
         data().buffer[ data().cmd_buff_index ].stop() ;
