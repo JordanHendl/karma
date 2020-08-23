@@ -11,12 +11,12 @@
         "image" :
         {
           "version"      : 0,
-          "type"         : "Render2D",
+          "type"         : "SpriteSheet",
           "input"        : "start",
           "output_image" : "c2i",
           "output"       : "c2",
-	  "debug"        : true,
-	  "sem_id"       : 0
+	      "debug"        : true,
+	      "sem_id"       : 0
         },
 
         "present" :
@@ -46,8 +46,8 @@
           "input"        : "start",
           "output_image" : "c1i",
           "output"       : "c1",
-	  "debug"        : true,
-	  "sem_id"       : 1
+	      "debug"        : true,
+	      "sem_id"       : 1
         }
       }
     }

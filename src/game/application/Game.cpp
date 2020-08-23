@@ -185,14 +185,13 @@ namespace karma
     data().bus( "kgl::input" ).attach( this->game_data, &GameData::readInputs ) ;
     data().cmd.setWidth ( 32     ) ;
     data().cmd.setHeight( 32     ) ;
-    data().base_path = base_path ;
   }
 
   bool Game::run()
   {
     data().running = true ;
     
-    data().interface.loadPack ( (data().base_path + "krender/test.krender").c_str() ) ;
+    data().interface.loadPack( "krender/test.krender" ) ;
     data().loadMap() ;
     
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
@@ -212,14 +211,15 @@ namespace karma
 
 
         data().cmd.setSheet   ( "background"  ) ;
-        data().cmd.setPosX    ( data().xpos_2 ) ;
-        data().cmd.setPosY    ( data().ypos_2 ) ;
-        data().cmd.setRotation( data().rot_2  ) ;
+        data().cmd.setPosX    ( data().xpos   ) ;
+        data().cmd.setPosY    ( data().ypos   ) ;
+        data().cmd.setRotation( data().rot    ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-        data().bus( "image::cmd"  ).emit( data().img ) ;
+        data().bus( "image::cmd"  ).emit( data().cmd ) ;
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
+        data().bus( "image::camera"         ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;

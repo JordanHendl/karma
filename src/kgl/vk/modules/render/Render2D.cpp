@@ -80,6 +80,7 @@ namespace kgl
       unsigned                         gpu               ; ///< The GPU to use for this object's operations.
       glm::mat4                        model_matrix      ; ///< The transformation matrix for this object to use in rendering.
       glm::mat4                        projection        ; ///< The projection matrix that converts pixel locations to NDC coordinates.
+      glm::mat4                        view              ; ///< The projection matrix that converts pixel locations to NDC coordinates.
       ::vk::Device                     device            ; ///< The handle of vulkan device this object uses.
       std::string                      window_name       ; ///< The name of this object's window.
       std::string                      output_name       ; ///< The name of this object's synchronization output.
@@ -102,6 +103,10 @@ namespace kgl
       /** Method to pop a command off the stack for processing.
        */
       void pop() ;
+
+      /** Method to retrieve a camera to use for this object's rendering.
+       */
+      void setCamera( const ::kgl::Camera& camera ) ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -136,9 +141,10 @@ namespace kgl
     Render2DData::Render2DData()
     {
       this->materials.clear() ;
-      this->cmd_buff_index = 0     ;
-      this->debug          = false ;
-      this->found_input    = false ;
+      this->cmd_buff_index = 0                ;
+      this->debug          = false            ;
+      this->found_input    = false            ;
+      this->view           = glm::mat4( 1.f ) ;
     }
     
     void Render2DData::pop()
@@ -165,9 +171,10 @@ namespace kgl
         {
           auto mat = this->materials.emplace( cmd.image(), Material() ) ;
 
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()     ) ;
-          mat.first->second.uniform.initialize( this->gpu                                   ) ;
-          mat.first->second.uniform.addImage  ( "image", this->manager.image( cmd.image() ) ) ;
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()             ) ;
+          mat.first->second.uniform.initialize( this->gpu                                           ) ;
+          mat.first->second.uniform.addImage  ( "image"     , this->manager.image( cmd.image() )    ) ;
+          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO , this->projection ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
         }
       }
@@ -207,6 +214,15 @@ namespace kgl
       this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
     }
 
+    void Render2DData::setCamera( const ::kgl::Camera& camera )
+    {
+      const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
+      const glm::vec3 front = glm::vec3( camera.frontX(), camera.frontY(), camera.frontZ() ) ;
+      const glm::vec3 up    = glm::vec3( camera.upX()   , camera.upY()   , camera.upZ()    ) ;
+      
+      this->view = glm::lookAt( pos, pos + front, up ) ;
+    }
+    
     void Render2DData::setOutputImageName( const char* output ) 
     {
       this->output_image_name = output ;
@@ -276,7 +292,7 @@ namespace kgl
       const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/render2d.uwu"                                 ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/2dimage.uwu"                                  ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -339,7 +355,8 @@ namespace kgl
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Render2DData::setDebug           ) ;
 
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd" ).attach( this->data_2d, &Render2DData::setCommand ) ;
+      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &Render2DData::setCommand ) ;
+      data().bus( this->name(), "::camera" ).attach( this->data_2d, &Render2DData::setCamera  ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -388,7 +405,7 @@ namespace kgl
             
             // Push Transformations to the GPU.
             transform.model = data().model_matrix ;
-            transform.proj  = data().projection   ;
+            transform.proj  = data().view         ;
           }
           data().mat_mutex.unlock() ;
           
