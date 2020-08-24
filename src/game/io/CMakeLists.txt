@@ -22,4 +22,4 @@ set( SAISEI_MANAGER_LIBRARIES
 
 add_library               ( saisei_manager SHARED  ${SAISEI_MANAGER_SOURCES} ${SAISEI_MANAGER_HEADERS} )
 target_include_directories( saisei_manager PRIVATE ${SAISEI_MANAGER_INCLUDES}                          )
-target_link_libraries     ( saisei_manager PRIVATE ${SAISEI_MANAGER_LIBRARIES}                         )
+target_link_libraries     ( saisei_manager PUBLIC ${SAISEI_MANAGER_LIBRARIES}                         )

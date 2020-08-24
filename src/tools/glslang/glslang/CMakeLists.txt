@@ -86,7 +86,7 @@ add_library(glslang ${LIB_TYPE} ${BISON_GLSLParser_OUTPUT_SOURCE} ${SOURCES} ${H
 set_property(TARGET glslang PROPERTY FOLDER glslang)
 set_property(TARGET glslang PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(glslang OGLCompiler OSDependent)
-target_include_directories(glslang PUBLIC 
+target_include_directories(glslang PRIVATE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -99,7 +99,7 @@ if(ENABLE_HLSL)
 endif()
 
 if(WIN32)
-    source_group("Public" REGULAR_EXPRESSION "Public/*")
+    source_group("PRIVATE" REGULAR_EXPRESSION "PRIVATE/*")
     source_group("MachineIndependent" REGULAR_EXPRESSION "MachineIndependent/[^/]*")
     source_group("Include" REGULAR_EXPRESSION "Include/[^/]*")
     source_group("GenericCodeGen" REGULAR_EXPRESSION "GenericCodeGen/*")

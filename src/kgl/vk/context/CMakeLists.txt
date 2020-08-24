@@ -65,6 +65,16 @@ SET( KGL_VK_LIBRARIES
      karma_log
    )
 
+SET( KGL_VK_DEPS
+     karma_data_bus
+     karma_uwushader
+     karma_log
+   )
+
 ADD_LIBRARY               ( kgl_vk_context SHARED   ${KGL_VK_SOURCES} ${KGL_VK_HEADERS} )
 TARGET_INCLUDE_DIRECTORIES( kgl_vk_context PRIVATE  ${KGL_VK_INCLUDE_DIRS}              )
-TARGET_LINK_LIBRARIES     ( kgl_vk_context PRIVATE  ${KGL_VK_LIBRARIES}                 )
+TARGET_LINK_LIBRARIES     ( kgl_vk_context PUBLIC  ${KGL_VK_LIBRARIES}                 )
+ADD_DEPENDENCIES          ( kgl_vk_context          ${KGL_VK_DEPS}                      )
+
+INSTALL( TARGETS kgl_vk_context EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR} )
+INSTALL( TARGETS kgl_vk_context DESTINATION ${KARMA_LIB_INSTALL_DIR}                )
