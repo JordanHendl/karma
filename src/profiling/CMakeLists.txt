@@ -13,3 +13,6 @@ set( KARMA_PROFILING_LIBRARIES
     )
 
 add_library( karma_profiling SHARED ${KARMA_PROFILING_SOURCES} ${KARMA_PROFILING_HEADERS} )
+
+EXPORT ( PACKAGE karma_profiling                                         )
+INSTALL( TARGETS karma_profiling DESTINATION ${KARMA_LIB_INSTALL_DIR}    )

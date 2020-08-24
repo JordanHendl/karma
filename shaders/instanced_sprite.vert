@@ -23,7 +23,7 @@ layout( push_constant ) uniform matrices
   mat4 view ;
 };
 
-layout( binding = 2 ) buffer offsets
+layout( binding = 2 ) readonly buffer offsets
 {
   InstanceData instances[] ;
 };

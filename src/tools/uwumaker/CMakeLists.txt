@@ -7,4 +7,4 @@ set( UWUMAKER_LIBRARIES
     )
 
 add_executable       ( karma_uwumaker main.cpp ArgumentParser.cpp ArgumentParser.h )
-target_link_libraries( karma_uwumaker PRIVATE  ${UWUMAKER_LIBRARIES}               )
+target_link_libraries( karma_uwumaker PUBLIC  ${UWUMAKER_LIBRARIES}               )

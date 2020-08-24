@@ -27,7 +27,9 @@ set( KGL_IO_LIBRARIES
 
 
 add_library               ( kgl_io SHARED ${KGL_IO_SOURCES} ${KGL_IO_HEADERS} )
-target_link_libraries     ( kgl_io PRIVATE ${KGL_IO_LIBRARIES}                )
+target_link_libraries     ( kgl_io PUBLIC ${KGL_IO_LIBRARIES}                )
 target_include_directories( kgl_io PRIVATE ${KGL_IO_INCLUDE_DIRS}             )
 
-
+INSTALL( TARGETS kgl_io EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR} )
+EXPORT ( PACKAGE kgl_io                                      )
+INSTALL( TARGETS kgl_io DESTINATION ${KARMA_LIB_INSTALL_DIR} )

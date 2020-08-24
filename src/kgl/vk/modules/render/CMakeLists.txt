@@ -25,8 +25,23 @@ set( KGL_VK_RENDER_MODULE_LIBRARIES
      ${Vulkan_LIBRARIES}
    )
 
+set( KGL_VK_RENDER_MODULE_DEPS
+     kgl_containers
+     kgl_vk_module
+     kgl_vk_context
+     kgl_managers
+     kgl_command
+     kgl
+     karma_data_bus
+     karma_profiling
+     karma_log
+   )
+
 set( CMAKE_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}.1" )
 
 add_library               ( render2D SHARED   ${KGL_VK_RENDER_MODULE_SOURCES} ${KGL_VK_RENDER_MODULE_HEADERS} )
 target_include_directories( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_INCLUDE_DIRS}                            )
-target_link_libraries     ( render2D PRIVATE  ${KGL_VK_RENDER_MODULE_LIBRARIES}                               )
+target_link_libraries     ( render2D PUBLIC  ${KGL_VK_RENDER_MODULE_LIBRARIES}                               )
+ADD_DEPENDENCIES( render2D ${KGL_VK_RENDER_MODULE_DEPS} ) 
+
+INSTALL( TARGETS render2D     DESTINATION ${KARMA_MODULE_INSTALL_DIR} )

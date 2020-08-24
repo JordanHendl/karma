@@ -60,7 +60,7 @@ if(ENABLE_OPT)
         PRIVATE ${spirv-tools_SOURCE_DIR}/source
     )
     target_link_libraries(SPIRV glslang SPIRV-Tools-opt)
-    target_include_directories(SPIRV PUBLIC
+    target_include_directories(SPIRV PRIVATE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../External>
 		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/External>)
 else()

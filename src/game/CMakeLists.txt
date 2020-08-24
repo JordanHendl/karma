@@ -16,4 +16,4 @@ set( DRIVER_LIBRARIES
 add_subdirectory( application ) 
 add_executable            ( game_driver ${DRIVER_SOURCES} ${DRIVER_HEADERS} )
 target_include_directories( game_driver PRIVATE  ${DRIVER_INCLUDE_DIRS}     )
-target_link_libraries     ( game_driver PRIVATE  ${DRIVER_LIBRARIES}        )
+target_link_libraries     ( game_driver PUBLIC  ${DRIVER_LIBRARIES}        )

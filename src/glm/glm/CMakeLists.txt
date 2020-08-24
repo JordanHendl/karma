@@ -53,7 +53,7 @@ add_library(glm_static STATIC ${ROOT_TEXT} ${ROOT_MD} ${ROOT_NAT}
 	${GTC_SOURCE}     ${GTC_INLINE}     ${GTC_HEADER}
 	${GTX_SOURCE}     ${GTX_INLINE}     ${GTX_HEADER}
 	${SIMD_SOURCE}    ${SIMD_INLINE}    ${SIMD_HEADER})
-	target_link_libraries(glm_static PUBLIC glm)
+	target_link_libraries(glm_static PRIVATE glm)
 	add_library(glm::glm_static ALIAS glm_static)
 endif()
 

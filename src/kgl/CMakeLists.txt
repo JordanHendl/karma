@@ -38,6 +38,18 @@ set( KGL_LIBRARIES
      karma_log
     )
 
+set( KGL_DEPS
+     kgl_vk_context
+     kgl_vk_module
+     kgl_io
+     kgl_managers
+     kgl_database
+     kgl_command
+     karma_configuration
+     karma_data_bus
+     karma_log
+    )
+
 INCLUDE_DIRECTORIES( ${KGL_DIR} )
 ADD_SUBDIRECTORY   ( database   )
 ADD_SUBDIRECTORY   ( io         )
@@ -48,5 +60,11 @@ ADD_SUBDIRECTORY   ( containers )
 ADD_SUBDIRECTORY   ( cmd         )
 
 ADD_LIBRARY               ( kgl SHARED  ${KGL_SOURCES} ${KGL_HEADERS} )
-TARGET_LINK_LIBRARIES     ( kgl PRIVATE ${KGL_LIBRARIES}              )
+TARGET_LINK_LIBRARIES     ( kgl PUBLIC ${KGL_LIBRARIES}              )
 TARGET_INCLUDE_DIRECTORIES( kgl PRIVATE ${KGL_INCLUDE_DIRS}           )
+ADD_DEPENDENCIES          ( kgl ${KGL_DEPS} ) 
+set( CMAKE_EXPORT_PACKAGE_REGISTRY ON )
+
+INSTALL( TARGETS kgl EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR}          )
+INSTALL( EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR} FILE KGLConfig.cmake )
+INSTALL( FILES KGL_Interface.h DESTINATION ${KARMA_HEADER_INSTALL_DIR}            )
