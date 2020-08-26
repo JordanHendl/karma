@@ -90,6 +90,8 @@ namespace kgl
       std::string                      name              ; ///< The name of this module.
       glm::mat4                        view              ;
       bool                             debug             ;
+      unsigned                         resx              ;
+      unsigned                         resy              ;
       std::mutex                       mutex             ;
       
       /** Default Constructor. Initializes member data.
@@ -104,6 +106,16 @@ namespace kgl
       /** Method to set the GPU this object uses for operations.
        */
       void setGPU( unsigned gpu ) ;
+      
+      /** Method to set the x resolution of this object.
+       * @param x The value to set this object's x resolution to.
+       */
+      void setResolutionX( unsigned x ) ;
+      
+      /** Method to set the y resolution of this object.
+       * @param y The value to set this object's y resolution to.
+       */
+      void setResolutionY( unsigned y ) ;
 
       /** Method to set this object's output framebuffer name.
        * @param output The name of this object's framebuffer output.
@@ -195,11 +207,23 @@ namespace kgl
       this->view = glm::lookAt( pos, pos + front, up ) ;
     }
     
+    void InstancedSpriteSheetData::setResolutionX( unsigned x )
+    {
+      this->resx = x ;
+    }
+    
+    void InstancedSpriteSheetData::setResolutionY( unsigned y )
+    {
+      this->resy = y ;
+    }
+    
     InstancedSpriteSheetData::InstancedSpriteSheetData()
     {
       this->debug          = false            ;
       this->cmd_buff_index = 0                ;
       this->view           = glm::mat4( 1.f ) ;
+      this->resx           = 0                ;
+      this->resy           = 0                ;
     }
     
     void InstancedSpriteSheetData::setDebug( bool val )
@@ -337,13 +361,40 @@ namespace kgl
 
     void InstancedSpriteSheet::resize()
     {
+      const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
+      const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
+      static const char* path     = "/uwu/isprite.uwu"                                  ; ///< Path to this object's shader in the local-directory.
+      std::string pipeline_path ;
       
-      data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -100.0f, 100.0f) ;
+      pipeline_path = ::kgl::vk::basePath() ;
+      pipeline_path = pipeline_path + path  ;
+      
+      data().pass     .reset() ;
+      data().buffer[0].reset() ; 
+      data().buffer[1].reset() ; 
+      data().pipeline .reset() ; 
+              
+      // Initialize vulkan objects.
+      data().pass           .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer[0]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer[1]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline       .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      
+      if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
+      }
+      
+      for( auto &uni : data().materials ) uni.second.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
     }
 
     void InstancedSpriteSheet::initialize()
     {
-      const unsigned     MAX_SETS = 1024                                                ; ///< The max number of descriptor sets allowed.
+      const unsigned     MAX_SETS = 20                                                  ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
       static const char* path     = "/uwu/isprite.uwu"                                  ; ///< Path to this object's shader in the local-directory.
@@ -385,8 +436,16 @@ namespace kgl
       // Initialize data.
       data().profiler.initialize() ;
 
-      data().window     = &data().context.window( data().window_name.c_str() )                    ;
-      data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
+      data().window     = &data().context.window( data().window_name.c_str() ) ;
+      
+      if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
+      }
       
       // Copy vertex data to the device.
       data().vertices.copyToDevice( vert.data() ) ;
@@ -420,6 +479,8 @@ namespace kgl
       data().bus( json_path.c_str(), "::output"       ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->isprite_data, &InstancedSpriteSheetData::setOutputImageName ) ;
       data().bus( json_path.c_str(), "::debug"        ).attach( this->isprite_data, &InstancedSpriteSheetData::setDebug           ) ;
+      data().bus( json_path.c_str(), "::resx"         ).attach( this->isprite_data, &InstancedSpriteSheetData::setResolutionX     ) ;
+      data().bus( json_path.c_str(), "::resy"         ).attach( this->isprite_data, &InstancedSpriteSheetData::setResolutionY     ) ;
 
       // Module-specific inputs.
       data().bus( this->name(), "::cmd"    ).attach( this->isprite_data, &InstancedSpriteSheetData::setCommand ) ;

@@ -228,6 +228,21 @@ namespace kgl
       data().framebuffers = std::vector<::vk::Framebuffer>( buffers, buffers + count ) ;
     }
     
+    void RenderPass::reset()
+    {
+      for( auto image : data().images )
+      {
+        image.reset() ;
+      }
+      
+      for( auto buff : this->data().framebuffers )
+      {
+        data().device.destroy( buff ) ;
+      }
+      
+      data().device.destroy( data().render_pass ) ;
+    }
+    
     void RenderPass::setArea( unsigned offx, unsigned offy, unsigned width, unsigned height )
     {
       data().area.extent.width  = width  ;

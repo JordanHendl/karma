@@ -143,7 +143,7 @@ namespace kgl
         info.setImageView  ( image.view()    ) ;
         info.setSampler    ( image.sampler() ) ;
         info.setImageLayout( layout          ) ;
-        
+
         write.setDstSet         ( this->descriptors[ i ]   ) ;
         write.setDstBinding     ( uni.binding              ) ;
         write.setDstArrayElement( 0                        ) ;

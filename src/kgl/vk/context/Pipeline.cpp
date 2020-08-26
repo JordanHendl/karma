@@ -190,7 +190,15 @@ namespace kgl
       {
         return data().layout ;
       }
-
+      
+      void Pipeline::reset()
+      {
+        ::kgl::vk::render::Context context ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        device.destroy( data().pipeline ) ;
+        device.destroy( data().layout   ) ;
+      }
+      
       void Pipeline::subscribe( const char* name, unsigned channel )
       {
         data().config.subscribe( name, channel ) ;

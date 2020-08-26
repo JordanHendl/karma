@@ -316,7 +316,18 @@ namespace kgl
           buff.end()           ;
         }
       }
-
+      
+      void CommandBuffer::reset()
+      {
+        const ::kgl::vk::render::Context context ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        
+        device.freeCommandBuffers( data().pool, data().buffers.size(), data().buffers.data() ) ;
+        
+        device.destroy( data().pool ) ;
+        data().buffers.clear() ;
+      }
+      
       void CommandBuffer::submitSync()
       {
         const ::kgl::vk::render::Context context ;
@@ -480,7 +491,18 @@ namespace kgl
       {
         delete this->cmd_data ;
       }
-
+      
+      void CommandBuffer::reset()
+      {
+        const ::kgl::vk::render::Context context ;
+        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
+        
+        device.freeCommandBuffers( data().pool, data().buffers.size(), data().buffers.data() ) ;
+        
+        device.destroy( data().pool ) ;
+        data().buffers.clear() ;
+      }
+      
       void CommandBuffer::initialize( unsigned gpu, unsigned count, BufferLevel level )
       {
         const auto buff_level = level == BufferLevel::Primary ? ::vk::CommandBufferLevel::ePrimary : ::vk::CommandBufferLevel::eSecondary ;
@@ -615,16 +637,6 @@ namespace kgl
       void CommandBuffer::onFinish( ::vk::Semaphore sem )
       {
 //        data().signal_sems.push_back( sem ) ;
-      }
-      
-      void CommandBuffer::reset()
-      {
-        const ::kgl::vk::compute::Context context                       ;
-        const ::vk::Device device = context.virtualDevice( data().gpu ) ;
-        const auto pool           = data().pool                         ;
-        
-        device.freeCommandBuffers( pool, data().buffers.size(), data().buffers.data() ) ;
-        data().buffers.clear() ;
       }
 
       void CommandBuffer::attach( ::vk::Fence fence )

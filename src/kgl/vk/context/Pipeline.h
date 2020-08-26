@@ -31,7 +31,7 @@ namespace kgl
           void bind( const ::kgl::vk::render::CommandBuffer& buffer, const ::kgl::vk::DescriptorSet& set ) const ;
           void setPushConstantByteSize( unsigned size ) ;
           void setPushConstantStageFlag( unsigned stage ) ;
-          
+          void reset() ;
           const char* name() const ;
         private:
           struct PipelineData *pipe_data ;

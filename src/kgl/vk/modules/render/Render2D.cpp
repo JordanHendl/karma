@@ -89,6 +89,8 @@ namespace kgl
       ImageCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ; ///< Whether or not this module outputs debug information.
       bool                             found_input       ;
+      unsigned                         resx              ;
+      unsigned                         resy              ;
       std::mutex                       mat_mutex         ;
       
       /** Default Constructor. Initializes member data.
@@ -103,6 +105,16 @@ namespace kgl
       /** Method to pop a command off the stack for processing.
        */
       void pop() ;
+      
+      /** Method to set the x-resolution of this module.
+       * @param val The x-res of this module.
+       */
+      void setResolutionX( unsigned val ) ;
+      
+      /** Method to set the y-resolution of this module.
+       * @param val The y-resolution of this module.
+       */
+      void setResolutionY( unsigned val ) ;
 
       /** Method to retrieve a camera to use for this object's rendering.
        */
@@ -145,6 +157,8 @@ namespace kgl
       this->debug          = false            ;
       this->found_input    = false            ;
       this->view           = glm::mat4( 1.f ) ;
+      this->resx           = 0                ;
+      this->resy           = 0                ;
     }
     
     void Render2DData::pop()
@@ -213,7 +227,17 @@ namespace kgl
 
       this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
     }
-
+    
+    void Render2DData::setResolutionX( unsigned val )
+    {
+      this->resx = val ;
+    }
+    
+    void Render2DData::setResolutionY( unsigned val )
+    {
+      this->resy = val ;
+    }
+    
     void Render2DData::setCamera( const ::kgl::Camera& camera )
     {
       const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
@@ -283,8 +307,35 @@ namespace kgl
 
     void Render2D::resize()
     {
+      const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
+      const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
+      static const char* path     = "/uwu/2dimage.uwu"                                  ; ///< Path to this object's shader in the local-directory.
+      std::string pipeline_path ;
       
-      data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -1.0f, 1.0f) ;
+      pipeline_path = ::kgl::vk::basePath() ;
+      pipeline_path = pipeline_path + path  ;
+
+      data().pass       .reset() ;
+      data().buffer[ 0 ].reset() ; 
+      data().buffer[ 1 ].reset() ; 
+      data().pipeline   .reset() ; 
+              
+      // Initialize vulkan objects.
+      data().pass       .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer[ 0 ].initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer[ 1 ].initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline   .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      
+            if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -1.0f, 1.0f ) ;
+      }
+      
+      for( auto &uni : data().materials ) uni.second.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
     }
 
     void Render2D::initialize()
@@ -318,8 +369,16 @@ namespace kgl
       // Initialize data.
       data().profiler.initialize() ;
 
-      data().window     = &data().context.window( data().window_name.c_str() )                ;
-      data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
+      data().window = &data().context.window( data().window_name.c_str() ) ;
+      
+      if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -1.0f, 1.0f ) ;
+      }
       
       // Copy vertex data to the device.
       data().vertices.copyToDevice( vertex_data ) ;
@@ -353,6 +412,8 @@ namespace kgl
       data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &Render2DData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &Render2DData::setOutputImageName ) ;
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Render2DData::setDebug           ) ;
+      data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &Render2DData::setResolutionX     ) ;
+      data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &Render2DData::setResolutionY     ) ;
 
       // Module-specific inputs.
       data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &Render2DData::setCommand ) ;

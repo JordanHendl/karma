@@ -56,6 +56,7 @@ namespace kgl
         const ::vk::Framebuffer buffer( unsigned id ) ;
         const ::kgl::vk::Image& image( unsigned id ) ;
         void submit( Synchronization& sync, const render::CommandBuffer& buffer ) ;
+        void reset() ;
       private:
         
         friend class SwapChain ;

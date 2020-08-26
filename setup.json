@@ -3,10 +3,12 @@
   {
     "Main":
     {
-      "width"    : 1280,
-      "height"   : 1024,
-      "gpu"      : 0,
-      "num_sems" : 2
+      "width"       : 0,
+      "height"      : 0,
+      "gpu"         : 0,
+      "borderlless" : true,
+      "fullscreen"  : true,
+      "num_sems"    : 2
     },
   },
   "database_path"     : "database.json",

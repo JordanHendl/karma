@@ -241,7 +241,12 @@ namespace kgl
 
     void SwapChain::reset()
     {
-    
+      for( auto view : data().views )
+      {
+        data().device.destroy( view, nullptr ) ;
+      }
+      
+      data().device.destroy( data().chain ) ;
     }
 
     SwapChainData& SwapChain::data()

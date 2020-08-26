@@ -126,6 +126,10 @@ namespace kgl
            */
           void stop( bool pass = true ) const ;
           
+          /**
+           */
+          void reset() ;
+          
           /** Submits this command buffer to the Window to be pushed to the graphics queue.
            * @note This is to be done once per frame. Synchronizes with the swapchain's framebuffers.
            */
@@ -229,6 +233,11 @@ namespace kgl
            * @return 
            */
           CommandBuffer& operator=( const CommandBuffer& buff ) ;
+          
+          /**
+           */
+          void reset() ;
+
           /**
            * @param command
            */
@@ -284,10 +293,6 @@ namespace kgl
            */
           void onFinish( ::vk::Semaphore sem ) ;
           
-          /**
-           */
-          void reset() ;
-
           /**
            * @param fence
            */

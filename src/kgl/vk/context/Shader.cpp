@@ -151,7 +151,8 @@ namespace kgl
       unsigned offset ;
       
       offset = 0 ; 
-
+      this->bind_desc.clear() ;
+      this->attr_desc.clear() ;
       for( auto sh = this->compiler.begin(); sh != this->compiler.end(); ++sh )
       {
         if( sh.stage() == ::tools::shader::ShaderStage::VERTEX )
@@ -256,6 +257,7 @@ namespace kgl
       unsigned iter ;
       
       iter = 0 ;
+      this->stage_infos.clear() ;
       this->stage_infos.resize( this->modules.size() ) ;
       for( auto it = this->compiler.begin(); it != this->compiler.end(); ++it )
       {
@@ -284,7 +286,7 @@ namespace kgl
 
     void Shader::load( unsigned gpu, const char* path )
     {
-      const ::kgl::vk::render::Context context ;
+      const ::kgl::vk::compute::Context context ;
       data().gpu = context.virtualDevice( gpu ) ;
       
       data().compiler.load( path ) ;
@@ -296,6 +298,15 @@ namespace kgl
       data().generateShaderModules()      ;
       data().generateAttributeInfo()      ;
       data().generatePipelineShaderInfo() ;
+    }
+    
+    void Shader::reset()
+    {
+      const ::kgl::vk::compute::Context context ;
+      
+      data().gpu.destroy( data().layout ) ;
+      for( auto &module : data().modules ) data().gpu.destroyShaderModule( module.second, nullptr ) ;
+      
     }
 
     unsigned Shader::numModules() const
