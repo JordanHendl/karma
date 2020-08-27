@@ -165,21 +165,21 @@ namespace kgl
       const auto max_anisotropy = 16.0f ;
       ::vk::SamplerCreateInfo info ;
       
-      info.setMagFilter              ( ::vk::Filter::eLinear              ) ;
-      info.setMinFilter              ( ::vk::Filter::eLinear              ) ;
-      info.setAddressModeU           ( ::vk::SamplerAddressMode::eClampToBorder) ;
-      info.setAddressModeV           ( ::vk::SamplerAddressMode::eClampToBorder) ;
-      info.setAddressModeW           ( ::vk::SamplerAddressMode::eClampToBorder) ;
-      info.setBorderColor            ( ::vk::BorderColor::eIntTransparentBlack ) ;
-      info.setCompareOp              ( ::vk::CompareOp::eAlways           ) ;
-      info.setMipmapMode             ( ::vk::SamplerMipmapMode::eLinear   ) ;
-      info.setAnisotropyEnable       ( ::vk::Bool32( true  )              ) ;
-      info.setUnnormalizedCoordinates( ::vk::Bool32( false )              ) ;
-      info.setCompareEnable          ( ::vk::Bool32( false )              ) ;
-      info.setMaxAnisotropy          ( max_anisotropy                     ) ;
-      info.setMipLodBias             ( 0.0f                               ) ;
-      info.setMinLod                 ( 0.0f                               ) ;
-      info.setMaxLod                 ( 0.0f                               ) ;
+      info.setMagFilter              ( ::vk::Filter::eNearest                  ) ;
+      info.setMinFilter              ( ::vk::Filter::eNearest                  ) ;
+      info.setAddressModeU           ( ::vk::SamplerAddressMode::eClampToBorder ) ;
+      info.setAddressModeV           ( ::vk::SamplerAddressMode::eClampToBorder ) ;
+      info.setAddressModeW           ( ::vk::SamplerAddressMode::eClampToBorder ) ;
+      info.setBorderColor            ( ::vk::BorderColor::eIntTransparentBlack  ) ;
+      info.setCompareOp              ( ::vk::CompareOp::eNever                  ) ;
+      info.setMipmapMode             ( ::vk::SamplerMipmapMode::eNearest        ) ;
+      info.setAnisotropyEnable       ( ::vk::Bool32( true  )                    ) ;
+      info.setUnnormalizedCoordinates( ::vk::Bool32( false )                    ) ;
+      info.setCompareEnable          ( ::vk::Bool32( false )                    ) ;
+      info.setMaxAnisotropy          ( max_anisotropy                           ) ;
+      info.setMipLodBias             ( 0.0f                                     ) ;
+      info.setMinLod                 ( 0.0f                                     ) ;
+      info.setMaxLod                 ( 0.0f                                     ) ;
       
       this->sampler = this->device.createSampler( info, nullptr ) ;
     }
@@ -375,13 +375,10 @@ namespace kgl
       const ::kgl::vk::compute::Context context ;
       const ::vk::Device device = context.virtualDevice( data().gpu ) ;
 
-
       device.destroy( data().sampler    ) ;
       device.destroy( data().image_view ) ;
       device.free   ( data().memory     ) ;
       device.destroy( data().img        ) ;
-      
-      data().layout = ::vk::ImageLayout::eUndefined ;
     }
 
     Image::Image()

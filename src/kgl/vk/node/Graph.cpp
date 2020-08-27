@@ -70,7 +70,7 @@ namespace kgl
       ::data::module::Bus             bus        ;
       std::map<std::string, NodeInfo> loaded_map ;
       std::string                     pipeline   ;
-      
+
       NodeLoader()
       {
       }
@@ -107,10 +107,13 @@ namespace kgl
       Loader*             loader      ;
       NodeLoader          node_loader ;
       unsigned            bus_id      ;
-
+      std::string         window      ;
+      
+      void setWindow( const char* name ) ;
       void stop  ( const char* name ) ;
       void remove( const char* name ) ;
       void setName( const char* name ) ;
+      void resize( unsigned width, unsigned height ) ;
     };
 
     void GraphData::setName( const char* name )
@@ -123,13 +126,26 @@ namespace kgl
 
       this->bus( name, "::remove" ).attach( this, &GraphData::remove ) ;
       this->bus( name, "::stop"   ).attach( this, &GraphData::stop   ) ;
-      
-      this->bus( "Graphs::", name, "::Modules" ).attach( &node_loader, &NodeLoader::setName ) ;
+      this->bus( "Graphs::", name, "::window"  ).attach( this        , &GraphData::setWindow ) ;
+      this->bus( "Graphs::", name, "::Modules" ).attach( &node_loader, &NodeLoader::setName  ) ;
       
       
       this->bus( name, "::stop" ).addDependancy( &this->node_loader, &NodeLoader::setName, dependency.c_str() ) ;
     }
 
+    void GraphData::setWindow(const char* name) 
+    {
+      this->window = name ;
+      this->bus( name, "::resize" ).attach( this, &GraphData::resize ) ;
+    }
+
+    void GraphData::resize( unsigned width, unsigned height )
+    {
+      for( auto &module : this->graph )
+      {
+        module.second->resize() ;
+      }
+    }
     void GraphData::stop  ( const char* name )
     {
       auto iter = this->graph.find( name ) ;

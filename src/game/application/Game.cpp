@@ -202,7 +202,7 @@ namespace karma
       
       if( !data().pause )
       {
-        
+        data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
         
         data().img.setImage   ( "test"        ) ;
         data().img.setPosX    ( data().xpos   ) ;
@@ -210,14 +210,13 @@ namespace karma
         data().img.setRotation( data().rot    ) ;
 
 
-        data().cmd.setSheet   ( "background"  ) ;
+        data().cmd.setSheet   ( "grandma"     ) ;
         data().cmd.setPosX    ( data().xpos   ) ;
         data().cmd.setPosY    ( data().ypos   ) ;
         data().cmd.setRotation( data().rot    ) ;
         data().cmd.setIndex   ( data().sprite ) ;
 
-        data().bus( "image::cmd"  ).emit( data().cmd ) ;
-        data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
+        data().bus( "image::cmd"            ).emit( data().cmd ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;
         data().interface.start() ;

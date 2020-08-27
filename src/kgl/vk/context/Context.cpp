@@ -100,7 +100,7 @@ namespace kgl
 
     namespace render
     {
-      void Context::addWindow( const char* name, unsigned gpu, unsigned width, unsigned height, unsigned num_sems )
+      void Context::addWindow( const char* name, const char* display_name, unsigned gpu, unsigned width, unsigned height, bool resizable, bool borderless, unsigned num_sems )
       {
         const auto iter = ::kgl::vk::vk_context.window_map.find( name ) ;
         
@@ -108,7 +108,7 @@ namespace kgl
         {
           ::kgl::vk::vk_context.window_map.insert( { std::string( name ), nullptr } )                ;
           ::kgl::vk::vk_context.window_map[ name ] = new ::kgl::vk::Window()                         ;
-          ::kgl::vk::vk_context.window_map[ name ]->initialize( name, gpu, width, height, num_sems ) ;
+          ::kgl::vk::vk_context.window_map[ name ]->initialize( name, display_name, gpu, width, height, resizable, borderless, num_sems ) ;
           
           if( ::kgl::vk::vk_context.device_map.find( gpu ) == ::kgl::vk::vk_context.device_map.end() )
           {

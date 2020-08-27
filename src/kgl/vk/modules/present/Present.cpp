@@ -204,7 +204,22 @@ namespace kgl
     
     void Present::resize()
     {
+      const unsigned    num_buffers   = data().context.numFrameBuffers( data().window_name.c_str() ) ;
+      const unsigned    width         = data().context.width ( data().window_name.c_str() ) ;
+      const unsigned    height        = data().context.height( data().window_name.c_str() ) ;
+      const char*       path          = "/uwu/present.uwu"                        ;
+      const std::string pipeline_path = data().install_path + path                ;
+
+      data().buffers.seek( 0 ).reset() ;
+      data().buffers.seek( 1 ).reset() ;
+      data().pipeline         .reset() ;
+      data().pass             .reset() ;
       
+      data().pass             .initialize( data().window_name.c_str(), data().gpu, false   ) ;
+      data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass ) ;
+      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
     }
 
     void Present::subscribe( const char* pipeline, unsigned id )

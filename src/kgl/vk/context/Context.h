@@ -69,7 +69,7 @@ namespace kgl
            * @param width
            * @param height
            */
-          void addWindow( const char* name, unsigned gpu, unsigned width, unsigned height, unsigned num_sems ) ;
+          void addWindow( const char* name, const char* display_name, unsigned gpu, unsigned width, unsigned height, bool resizable, bool borderless, unsigned num_sems ) ;
           
           /**
            * @param name

@@ -111,6 +111,8 @@ namespace kgl
       SheetCommand                     current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
+      unsigned                         resx              ;
+      unsigned                         resy              ;
       bool                             found_input       ;
       
       /** Default Constructor. Initializes member data.
@@ -125,6 +127,16 @@ namespace kgl
       /** Method to pop a command off the stack for processing.
        */
       void pop() ;
+
+      /** Method to set the x resolution of this object.
+       * @param x The value to set this object's x resolution to.
+       */
+      void setResolutionX( unsigned x ) ;
+      
+      /** Method to set the y resolution of this object.
+       * @param y The value to set this object's y resolution to.
+       */
+      void setResolutionY( unsigned y ) ;
 
       /** Method to retrieve a camera to use for this object's rendering.
        */
@@ -166,6 +178,8 @@ namespace kgl
     
     SpriteSheetData::SpriteSheetData()
     {
+      this->resx           = 0     ;
+      this->resy           = 0     ;
       this->debug          = false ;
       this->cmd_buff_index = 0     ;
       this->found_input    = false ;
@@ -182,6 +196,16 @@ namespace kgl
       this->current_cmd = this->commands.pop() ;
     }
 
+    void SpriteSheetData::setResolutionX( unsigned x )
+    {
+      this->resx = x ;
+    }
+    
+    void SpriteSheetData::setResolutionY( unsigned y )
+    {
+      this->resy = y ;
+    }
+    
     void SpriteSheetData::setCamera( const ::kgl::Camera& camera )
     {
       const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
@@ -343,8 +367,35 @@ namespace kgl
 
     void SpriteSheet::resize()
     {
+      const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
+      const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
+      static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.
+      std::string pipeline_path ;
       
-      data().projection = glm::ortho(0.0f, (float)data().window->chain().width(), (float)data().window->chain().height(), 0.0f, -1.0f, 1.0f) ;
+      pipeline_path = ::kgl::vk::basePath() ;
+      pipeline_path = pipeline_path + path  ;
+      
+      data().pass     .reset() ;
+      data().buffer[0].reset() ; 
+      data().buffer[1].reset() ; 
+      data().pipeline .reset() ; 
+              
+      // Initialize vulkan objects.
+      data().pass           .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer[0]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer[1]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline       .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      
+      if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
+      }
+      
+      for( auto &uni : data().materials ) uni.second.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
     }
 
     void SpriteSheet::initialize()
@@ -379,7 +430,15 @@ namespace kgl
       data().profiler.initialize() ;
 
       data().window     = &data().context.window( data().window_name.c_str() )                ;
-      data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f ) ;
+
+      if( data().resx == 0 && data().resy == 0 )
+      {
+        data().projection = glm::ortho(  0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f ) ;
+      }
+      else
+      {
+        data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
+      }
       
       // Copy vertex data to the device.
       data().vertices.copyToDevice( data().vert.data() ) ;
@@ -413,7 +472,9 @@ namespace kgl
       data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &SpriteSheetData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &SpriteSheetData::setOutputImageName ) ;
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &SpriteSheetData::setDebug           ) ;
-
+      data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &SpriteSheetData::setResolutionX     ) ;
+      data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &SpriteSheetData::setResolutionY     ) ;
+      
       // Module-specific inputs.
       data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
       data().bus( this->name(), "::camera" ).attach( this->data_2d, &SpriteSheetData::setCamera  ) ;

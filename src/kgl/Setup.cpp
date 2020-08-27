@@ -12,15 +12,20 @@ namespace kgl
 {   
   struct WindowSetup
   {
-    std::string name        ;
-    unsigned    width       ;
-    unsigned    height      ;
-    unsigned    gpu         ;
-    unsigned    bus_channel ;
-    unsigned    sem_count   ;
-    
+    std::string name         ;
+    std::string display_name ;
+    unsigned    width        ;
+    unsigned    height       ;
+    unsigned    gpu          ;
+    unsigned    bus_channel  ;
+    unsigned    sem_count    ;
+    bool        resizable    ;
+    bool        borderless   ;
     WindowSetup() ;
     void subscribe() ;
+    void setResizable( bool val ) ;
+    void setBorderless( bool val ) ;
+    void setDisplayName( const char* name ) ;
     void setWidth( unsigned val ) ;
     void setHeight( unsigned val ) ;
     void setGPU( unsigned val ) ;
@@ -52,7 +57,15 @@ namespace kgl
 
   WindowSetup::WindowSetup()
   {
-    
+    this->name          = ""   ;
+    this->display_name  = ""   ;
+    this->width         = 1280 ;
+    this->height        = 1024 ;
+    this->gpu           = 0    ;
+    this->bus_channel   = 0    ;
+    this->sem_count     = 0    ;
+    this->resizable     = true ;
+    this->borderless    = true ; 
   }
   
   SetupData::SetupData()
@@ -66,12 +79,30 @@ namespace kgl
     
     bus.setChannel( this->bus_channel ) ;
     
-    bus( "kgl_windows::", this->name.c_str(), "::width"    ).attach( this, &WindowSetup::setWidth   ) ;
-    bus( "kgl_windows::", this->name.c_str(), "::height"   ).attach( this, &WindowSetup::setHeight  ) ;
-    bus( "kgl_windows::", this->name.c_str(), "::gpu"      ).attach( this, &WindowSetup::setGPU     ) ;
-    bus( "kgl_windows::", this->name.c_str(), "::num_sems" ).attach( this, &WindowSetup::setNumSems ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::borderless"   ).attach( this, &WindowSetup::setBorderless  ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::display_name" ).attach( this, &WindowSetup::setDisplayName ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::resizable"    ).attach( this, &WindowSetup::setResizable   ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::width"        ).attach( this, &WindowSetup::setWidth       ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::height"       ).attach( this, &WindowSetup::setHeight      ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::gpu"          ).attach( this, &WindowSetup::setGPU         ) ;
+    bus( "kgl_windows::", this->name.c_str(), "::num_sems"     ).attach( this, &WindowSetup::setNumSems     ) ;
   }
 
+  void WindowSetup::setResizable( bool val )
+  {
+    this->resizable = val ;
+  }
+  
+  void WindowSetup::setBorderless( bool val )
+  {
+    this->borderless = val ;
+  }
+  
+  void WindowSetup::setDisplayName( const char* name )\
+  {
+    this->display_name = name ;
+  }
+    
   void WindowSetup::setWidth( unsigned val )
   {
     this->width = val ;
@@ -136,7 +167,7 @@ namespace kgl
     for( auto setup : data().window_sets )
     {
       auto set = setup.second ;
-      context.addWindow( set.name.c_str(), set.gpu, set.width, set.height, set.sem_count ) ;
+      context.addWindow( set.name.c_str(), set.display_name.c_str(), set.gpu, set.width, set.height, set.resizable, set.borderless, set.sem_count ) ;
     }
   }
 

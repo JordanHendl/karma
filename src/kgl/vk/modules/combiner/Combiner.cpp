@@ -602,7 +602,24 @@ namespace kgl
 
     void Combiner::resize()
     {
+      const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
+      const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
+      static const char* path     = "/uwu/combine.uwu"                                  ; ///< Path to this object's shader in the local-directory.
+      std::string pipeline_path ;
       
+      pipeline_path = ::kgl::vk::basePath() ;
+      pipeline_path = pipeline_path + path  ;
+      
+      data().pass              .reset() ;
+      data().buffers.seek ( 0 ).reset() ; 
+      data().buffers.seek ( 1 ).reset() ; 
+      data().pipeline          .reset() ; 
+              
+      // Initialize vulkan objects.
+      data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
     }
 
     void Combiner::initialize()

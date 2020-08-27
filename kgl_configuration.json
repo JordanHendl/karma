@@ -15,8 +15,10 @@
           "input"        : "start",
           "output_image" : "c2i",
           "output"       : "c2",
-	      "debug"        : true,
-	      "sem_id"       : 0
+          "debug"        : true,
+          "sem_id"       : 0,
+          "resx"         : 256,
+          "resy"         : 256
         },
 
         "present" :
@@ -46,8 +48,10 @@
           "input"        : "start",
           "output_image" : "c1i",
           "output"       : "c1",
-	      "debug"        : true,
-	      "sem_id"       : 1
+	  "debug"        : true,
+	  "sem_id"       : 1,
+          "resx"         : 256,
+          "resy"         : 256
         }
       }
     }

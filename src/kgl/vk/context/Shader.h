@@ -31,6 +31,7 @@ namespace kgl
         Shader() ;
         ~Shader() ;
         void load( unsigned gpu, const char* path ) ;
+        void reset() ;
         unsigned numModules() const ;
         const ::vk::ShaderModule module( ::tools::shader::ShaderStage stage ) const ;
         const ::vk::DescriptorSetLayout layout() const ;
