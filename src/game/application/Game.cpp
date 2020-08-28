@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "../../kgl/KGL_Interface.h"
+#include "../../kal/KAL_Interface.h"
 #include "../../kgl/cmd/DrawCommand.h"
 #include "../../kgl/io/Event.h"
 #include "../../data/Bus.h"
@@ -20,16 +21,17 @@ namespace karma
     ::karma::config::Configuration config ;
     
     ::kgl::List<::kgl::SheetCommand> cmds ;
-    ::kgl::anim::Sprite2D anim ;
-    ::kgl::SheetCommand cmd       ;
-    ::kgl::ImageCommand img       ;
-    ::kgl::Camera       camera    ;
-    unsigned            sprite    ;
-    karma::ms::Timer    timer     ;
-    ::KGL_Interface     interface ;
-    ::data::module::Bus bus       ;
-    bool                running   ;
-    std::string         base_path ;
+    ::kgl::anim::Sprite2D anim        ;
+    ::kgl::SheetCommand cmd           ;
+    ::kgl::ImageCommand img           ;
+    ::kgl::Camera       camera        ;
+    unsigned            sprite        ;
+    karma::ms::Timer    timer         ;
+    ::KGL_Interface     interface     ;
+    ::KAL_Interface     kal_interface ;
+    ::data::module::Bus bus           ;
+    bool                running       ;
+    std::string         base_path     ;
     
     unsigned width  ;
     unsigned height ;
@@ -115,6 +117,9 @@ namespace karma
         case ::kgl::io::Event::IOCode::X :
           this->rot_2 -= delta ;
           break ;
+        case ::kgl::io::Event::IOCode::One :
+          this->bus( "kal::sound" ).emit<const char*>( "magic" ) ;
+          break ;
           
         case ::kgl::io::Event::IOCode::Tab :
           this->sprite++ ;
@@ -183,6 +188,7 @@ namespace karma
   void Game::initialize()
   {
     data().interface.initialize() ;
+    data().kal_interface.initialize() ;
     data().interface.setCurrentWindow( "Main" ) ;
     data().bus( "kgl::input" ).attach( this->game_data, &GameData::readInputs ) ;
     data().cmd.setWidth ( 32     ) ;

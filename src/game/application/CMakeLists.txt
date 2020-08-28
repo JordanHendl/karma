@@ -12,6 +12,7 @@ set( KARMA_GAME_INCLUDE_DIRS
 
 set( KARMA_GAME_LIBRARIES
      kgl
+     kal
      kgl_io
      kgl_command
      kgl_animation
