@@ -35,6 +35,11 @@ namespace kgl
         const Device& device() const ;
         SwapChain& chain() ;
         void present( const Synchronization& sync ) ;
+        void setSize( unsigned width, unsigned height ) ;
+        void setTitle( const char* title ) ;
+        void setFullscreen( bool val ) ;
+        void setBorderless( bool val ) ;
+        void reset() ;
         void start() ;
         unsigned currentSwap() const ;
         const ::vk::SurfaceKHR surface() const ;

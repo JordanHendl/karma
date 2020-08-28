@@ -51,10 +51,10 @@ namespace kgl
     struct CombinerData
     { 
       static constexpr unsigned BUFFERS = 3 ;
-      typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS > ImageStack ;
-      typedef std::vector<::kgl::vk::Uniform >                 Uniforms   ;
-      typedef kgl::containers::Layered<Synchronization, 3>     Syncs      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 2> CmdBuffs ;
+      typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS              > ImageStack ;
+      typedef std::vector<::kgl::vk::Uniform                              > Uniforms   ;
+      typedef kgl::containers::Layered<Synchronization, 3                 > Syncs      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffs   ;
       
       std::queue<::kgl::vk::DescriptorSet> sets                  ;
       Syncs                                syncs                 ;
@@ -65,7 +65,6 @@ namespace kgl
       ::kgl::vk::DescriptorPool            pool                  ; ///< TODO
       ::kgl::vk::render::Context           context               ; ///< TODO
       ::kgl::vk::render::Pipeline          pipeline              ; ///< TODO
-//      ::kgl::vk::Uniform                   uniform               ; ///< TODO
       ::kgl::vk::RenderPass                pass                  ; ///< TODO
       ::kgl::vk::Buffer                    vertices              ; ///< TODO
       ::kgl::vk::Buffer                    indices               ; ///< TODO
@@ -613,12 +612,14 @@ namespace kgl
       data().pass              .reset() ;
       data().buffers.seek ( 0 ).reset() ; 
       data().buffers.seek ( 1 ).reset() ; 
+      data().buffers.seek ( 2 ).reset() ; 
       data().pipeline          .reset() ; 
               
       // Initialize vulkan objects.
       data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
     }
 
@@ -650,6 +651,7 @@ namespace kgl
       data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
       data().pool             .initialize( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
 
@@ -744,7 +746,7 @@ namespace kgl
       }
 
       data().buffers.value().stop() ;
-      data().pass.submit( sync, data().buffers.value() ) ;
+      data().pass.submit( sync, data().buffers.value(), data().buffers.current() ) ;
       data().buffers.swap() ;
       
       // Output our synchronization to next module in the graph & reset command index.

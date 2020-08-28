@@ -47,22 +47,22 @@ namespace kgl
   
   ImageCommandData::ImageCommandData()
   {
-    this->x      = 0  ;
-    this->y      = 0  ;
-    this->image  = "" ;
-    this->height = 0  ;
-    this->width  = 0  ;
-    this->rot    = 0  ;
+    this->x      = 0.f ;
+    this->y      = 0.f ;
+    this->image  = ""  ;
+    this->height = 0.f ;
+    this->width  = 0.f ;
+    this->rot    = 0.f ;
   }
   
   SheetCommandData::SheetCommandData()
   {
-    this->x      = 0  ;
-    this->y      = 0  ;
+    this->x      = 0.f ;
+    this->y      = 0.f ;
     this->image  = "" ;
-    this->height = 0  ;
-    this->width  = 0  ;
-    this->rot    = 0  ;
+    this->height = 0.f ;
+    this->width  = 0.f ;
+    this->rot    = 0.f ;
     this->index  = 0  ;
   }
   

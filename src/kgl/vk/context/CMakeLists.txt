@@ -63,6 +63,7 @@ SET( KGL_VK_LIBRARIES
      karma_data_bus
      karma_uwushader
      karma_log
+     karma_profiling
    )
 
 SET( KGL_VK_DEPS

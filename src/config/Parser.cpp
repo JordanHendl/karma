@@ -352,7 +352,7 @@ namespace karma
 
       void ParserData::handleStringValue( std::string parent_key, JSONFile& stream )
       {
-        const std::string str  = getString( stream )                                    ;
+        const std::string str  = getString( stream ) ;
 
         this->map[ parent_key ].push_back( str ) ;
       }
@@ -484,7 +484,10 @@ namespace karma
 
       bool Token::boolean( unsigned index ) const
       {
-        return number( index ) ;
+        if      ( data().it->second[ index ] == "false" ) return false ;
+        else if ( data().it->second[ index ] == "true"  ) return true  ;
+        
+        return false ;
       }
 
       unsigned Token::number( unsigned index ) const

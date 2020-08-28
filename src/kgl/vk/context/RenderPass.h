@@ -55,7 +55,7 @@ namespace kgl
         const ::vk::Rect2D area() const ;
         const ::vk::Framebuffer buffer( unsigned id ) ;
         const ::kgl::vk::Image& image( unsigned id ) ;
-        void submit( Synchronization& sync, const render::CommandBuffer& buffer ) ;
+        void submit( Synchronization& sync, const render::CommandBuffer& buffer, unsigned swap ) ;
         void reset() ;
       private:
         

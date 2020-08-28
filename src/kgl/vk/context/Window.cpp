@@ -10,6 +10,8 @@
 #include "Surface.h"
 #include "Synchronization.h"
 #include "CommandBuffer.h"
+#include "profiling/Timer.h"
+#include "kgl/containers/Layered.h"
 #include <Bus.h>
 #include <Pool.h>
 #include <PoolData.h>
@@ -25,7 +27,9 @@
 #include <vector>
 #include <array>
 #include <queue>
+#include <chrono>
 #include <mutex>
+#include <thread>
 namespace kgl
 {
   namespace vk
@@ -54,17 +58,17 @@ namespace kgl
       }
     };
 
-    std::mutex                 fence_mutex   ;
+    std::mutex fence_mutex   ;
     struct WindowData
     {
-      typedef std::vector<::vk::Fence>                  Fences ;
-      typedef std::array<::kgl::vk::Synchronization, 2> Syncs ;
+      typedef std::vector<::vk::Fence>                                Fences ;
+      typedef kgl::containers::Layered<::kgl::vk::Synchronization, 3> Syncs  ;
       SDL_Window*                window         ; ///< JHTODO
       Fences                     fences         ; ///< TODO
       Syncs                      syncs          ;
+      Syncs                      acquire_sem    ;
       Surface                    surface        ;
       ::vk::PresentInfoKHR       info           ;
-      ::vk::Semaphore            acquire_sem    ;
       Device                     device         ;
       SwapChain                  chain          ;
       WindowConf                 conf           ;
@@ -78,7 +82,6 @@ namespace kgl
       bool                       fullscreen     ; ///< JHTODO
       unsigned                   current_img    ;
       unsigned                   current_frame  ;
-      unsigned                   sync_index     ;
       std::queue<::vk::Fence>    fence_queue    ;
       ::vk::Fence                acquire_fence  ;
       std::queue<unsigned>       images         ;
@@ -103,7 +106,6 @@ namespace kgl
       this->height         = 1024  ;
       this->fullscreen     = false ;
       this->current_frame  = 0     ;
-      this->sync_index     = 0     ;
       this->swapchain_bad  = false ;
       this->frames_to_skip = 0     ;
     }
@@ -160,16 +162,19 @@ namespace kgl
       
       data().window = SDL_CreateWindow( name, 500, 500, width, height, flags ) ;
       
-      data().surface .initialize( *data().window                   ) ;
-      data().device  .initialize( data().surface.surface(), gpu    ) ;
-      data().chain   .initialize( data().surface, data().device    ) ;
-      data().syncs[0].initialize( data().device.device(), num_sems ) ;
-      data().syncs[1].initialize( data().device.device(), num_sems ) ;
+      this->setTitle( display_name ) ;
+      data().surface              .initialize( *data().window                   ) ;
+      data().device               .initialize( data().surface.surface(), gpu    ) ;
+      data().chain                .initialize( data().surface, data().device    ) ;
+      data().syncs      .seek( 0 ).initialize( data().device.device(), num_sems ) ;
+      data().syncs      .seek( 1 ).initialize( data().device.device(), num_sems ) ;
+      data().syncs      .seek( 2 ).initialize( data().device.device(), num_sems ) ;
+      data().acquire_sem.seek( 0 ).initialize( data().device.device(), 1        ) ;
+      data().acquire_sem.seek( 1 ).initialize( data().device.device(), 1        ) ;
+      data().acquire_sem.seek( 2 ).initialize( data().device.device(), 1        ) ;
       
       data().fences.resize( data().conf.max_frames_in_flight ) ;
       
-      data().acquire_sem = data().device.device().createSemaphore( sem_info, nullptr ).value ;
-
       for( auto &fence : data().fences )
       {
         fence = data().device.device().createFence( fence_info, nullptr ).value ;
@@ -188,18 +193,18 @@ namespace kgl
       return data().window != NULL ;
     }
   
-    //void Window::setTitle( const char* title )
-    //{ 
-    //  data().title = title ;
-    //  SDL_SetWindowTitle( data().window, title ) ;
-    //}
+    void Window::setTitle( const char* title )
+    { 
+      data().title = title ;
+      SDL_SetWindowTitle( data().window, title ) ;
+    }
   
-//    void Window::setSize( unsigned width, unsigned height )
-//    { 
-//      data().width  = width  ;
-//      data().height = height ;
-//      SDL_SetWindowSize( data().window, width, height ) ;
-//    }
+    void Window::setSize( unsigned width, unsigned height )
+    { 
+      data().width  = width  ;
+      data().height = height ;
+      SDL_SetWindowSize( data().window, width, height ) ;
+    }
 
      void Window::pollEvents()
     {
@@ -211,11 +216,11 @@ namespace kgl
       }
     }
 
-    //void Window::setFullscreen( bool val )
-    //{
-    //  data().fullscreen = val ;
-    //  SDL_SetWindowFullscreen( data().window, SDL_WINDOW_FULLSCREEN_DESKTOP ) ;
-    //}
+    void Window::setFullscreen( bool val )
+    {
+      data().fullscreen = val ;
+      SDL_SetWindowFullscreen( data().window, SDL_WINDOW_FULLSCREEN_DESKTOP ) ;
+    }
 
     const Device& Window::device() const
     {
@@ -226,10 +231,11 @@ namespace kgl
     {
       return data().chain ;
     }
-    //void Window::reset()
-    //{
-    //  if( data().window ) SDL_DestroyWindow( data().window ) ;  
-    //}
+    
+    void Window::reset()
+    {
+      if( data().window ) SDL_DestroyWindow( data().window ) ;  
+    }
 
     const ::vk::SurfaceKHR Window::surface() const
     {
@@ -239,7 +245,9 @@ namespace kgl
     unsigned Window::currentSwap() const
     {
       return data().current_img ;
-    }static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eAllCommands ) ;
+    }
+    
+    static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eAllCommands ) ;
     
     static std::mutex img_mutex ;
     
@@ -291,17 +299,16 @@ namespace kgl
     
     void Window::start()
     {
-      
-      const ::vk::Queue queue = data().device.graphics() ;
-      const unsigned    index = data().sync_index        ;
-      const ::vk::Fence dummy                            ;
+      auto              wait_sem = data().acquire_sem.value().signalSem( 0 ) ;
+      const ::vk::Queue queue    = data().device.graphics()                  ;
+      const ::vk::Fence dummy                                                ;
       ::vk::Fence         fence ;
       ::data::module::Bus bus   ;
       ::vk::SubmitInfo    info  ;
       
       if( data().current_frame < 2 )
       {
-        if( data().fence_queue.size() != 0 )
+        if( data().fence_queue.size() > 1 )
         {
           fence_mutex.lock() ;
           fence = data().fence_queue.front() ;
@@ -312,8 +319,7 @@ namespace kgl
         }
         
         while( this->data().swapchain_bad ) {} ;
-        data().device.device().resetFences( 1, &data().acquire_fence ) ;
-        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), 200, data().acquire_sem, dummy ) ;
+        auto result = data().device.device().acquireNextImageKHR( data().chain.chain(), UINT64_MAX, wait_sem, dummy ) ;
         
         if( result.result == ::vk::Result::eErrorOutOfDateKHR || result.result == ::vk::Result::eSuboptimalKHR )
         {
@@ -329,12 +335,12 @@ namespace kgl
           return ;
         }
         
-        info.setWaitSemaphoreCount  ( 1                                     ) ;
-        info.setPWaitSemaphores     ( &data().acquire_sem                   ) ;
-        info.setSignalSemaphoreCount( data().syncs[ index ].numSignalSems() ) ;
-        info.setPSignalSemaphores   ( data().syncs[ index ].signalSems()    ) ;
-        info.setPWaitDstStageMask   ( flags.data()                          ) ;
-      
+        info.setWaitSemaphoreCount  ( 1                                          ) ;
+        info.setPWaitSemaphores     ( &wait_sem                                  ) ;
+        info.setSignalSemaphoreCount( data().syncs.value().numSignalSems()       ) ;
+        info.setPSignalSemaphores   ( data().syncs.value().signalSems()          ) ;
+        info.setPWaitDstStageMask   ( flags.data()                               ) ;
+        
         queueMutex().lock() ;
         queue.submit( 1, &info, nullptr ) ;
         queueMutex().unlock() ;
@@ -346,25 +352,21 @@ namespace kgl
         data().current_img = result.value ;
         data().current_frame++ ;
         
-        bus( "start" ).emit( data().syncs[ index ] ) ;
-
-        if( index == 0 ) data().sync_index = 1 ;
-        else             data().sync_index = 0 ;
+        bus( "start"        ).emit( data().syncs.value() ) ;
+        bus( "current_swap" ).emit( data().current_img   ) ;
+        
+        data().syncs      .swap() ;
+        data().acquire_sem.swap() ;
       }
+      while( data().current_frame >= 2 ) { std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ; } ;
       
-      while( data().current_frame >= 2 ) {} ;
     }
     
-//    void Window::setName( const char* name )
-//    {
-//      data().name = name ;
-//    }
-    
-//    void Window::setBorderless( bool val )
-//    {
-//      data().borderless = val ;
-//      SDL_SetWindowBordered( data().window, val ? SDL_TRUE : SDL_FALSE ) ;
-//    }
+    void Window::setBorderless( bool val )
+    {
+      data().borderless = val ;
+      SDL_SetWindowBordered( data().window, val ? SDL_TRUE : SDL_FALSE ) ;
+    }
     
     WindowData& Window::data()
     { 

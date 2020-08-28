@@ -56,7 +56,7 @@ namespace kgl
           {
             if( std::string( prop.layerName ) == std::string( requested ) )
             {
-              layers.push_back( prop.layerName ) ;
+//              layers.push_back( prop.layerName ) ;
               
               karma::log::Log::output( "Using validation layer: ", prop.layerName ) ;
             }

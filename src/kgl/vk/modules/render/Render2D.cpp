@@ -482,7 +482,7 @@ namespace kgl
         data().buffer[ data().cmd_buff_index ].stop() ;
         
         if( data().debug ) karma::log::Log::output( this->name(), ":: Submitting command buffer." ) ;
-        data().pass.submit( sync, data().buffer[ data().cmd_buff_index ] ) ;
+        data().pass.submit( sync, data().buffer[ data().cmd_buff_index ], data().cmd_buff_index ) ;
       }
       else
       {

@@ -23,8 +23,8 @@ target_link_libraries     ( kgl_containers PUBLIC  ${KGL_CONTAINERS_LIBRARIES}  
 add_executable       ( kgl_containers_test test.cpp               )
 target_link_libraries( kgl_containers_test PUBLIC kgl_containers )
 
-EXPORT ( PACKAGE kgl_containers                                                  )
+EXPORT ( PACKAGE kgl_containers                                                     )
 INSTALL( TARGETS kgl_containers EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR} )
-INSTALL( TARGETS kgl_containers          DESTINATION ${KARMA_LIB_INSTALL_DIR}    )
-INSTALL( FILES ${KGL_CONTAINERS_HEADERS} DESTINATION ${KARMA_HEADER_INSTALL_DIR} )
+INSTALL( TARGETS kgl_containers          DESTINATION ${KARMA_LIB_INSTALL_DIR}       )
+INSTALL( FILES ${KGL_CONTAINERS_HEADERS} DESTINATION ${KARMA_HEADER_INSTALL_DIR}    )
 
