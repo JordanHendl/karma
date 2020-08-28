@@ -255,12 +255,11 @@ namespace kgl
     {
     }
 
-    void RenderPass::submit( Synchronization& sync, const render::CommandBuffer& buffer )
+    void RenderPass::submit( Synchronization& sync, const render::CommandBuffer& buffer, unsigned current_image )
     {
       static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
 
-      const unsigned                 current_image  = data().context.currentSwap  ( data().window.c_str() ) ;
-      const ::vk::CommandBuffer      cmd            = buffer.buffer               ( current_image         ) ;
+      const ::vk::CommandBuffer      cmd            = buffer.buffer             ( current_image         ) ;
       ::vk::SubmitInfo  info  ;
       
       info.setWaitSemaphoreCount  ( sync.numWaitSems()   ) ;

@@ -9,6 +9,7 @@
 #include "../../profiling/Timer.h"
 #include "../../log/Log.h"
 #include "../../kgl/containers/List.h"
+#include "../../kgl/animation/Animation2D.h"
 #include <vector>
 #include <string>
 
@@ -19,6 +20,7 @@ namespace karma
     ::karma::config::Configuration config ;
     
     ::kgl::List<::kgl::SheetCommand> cmds ;
+    ::kgl::anim::Sprite2D anim ;
     ::kgl::SheetCommand cmd       ;
     ::kgl::ImageCommand img       ;
     ::kgl::Camera       camera    ;
@@ -194,6 +196,10 @@ namespace karma
     data().interface.loadPack( "krender/test.krender" ) ;
     data().loadMap() ;
     
+    data().anim.initialize( "grandma", 0, 0, 1000.f ) ;
+    data().anim.insertAnimation( 0 ) ;
+    data().anim.insertAnimation( 1 ) ;
+    data().anim.start() ;
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
     while( data().running )
@@ -210,20 +216,14 @@ namespace karma
         data().img.setRotation( data().rot    ) ;
 
 
-        data().cmd.setSheet   ( "grandma"     ) ;
-        data().cmd.setPosX    ( data().xpos   ) ;
-        data().cmd.setPosY    ( data().ypos   ) ;
-        data().cmd.setRotation( data().rot    ) ;
-        data().cmd.setIndex   ( data().sprite ) ;
-
-        data().bus( "image::cmd"            ).emit( data().cmd ) ;
+        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;
         
-        karma::log::Log::output( data().timer.output(), " in fps: ", 1000.0 / ( data().timer.time() * 60.0 ) ) ;
+        karma::log::Log::output( data().timer.output(), "ms. In fps: ", 1000.f / data().timer.time() ) ;
       }
       data().interface.pollEvents() ;
     }

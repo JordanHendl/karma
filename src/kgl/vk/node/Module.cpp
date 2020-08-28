@@ -84,7 +84,7 @@ namespace kgl
       
       while( data().should_run )
       {
-        while ( data().wait_sem < data().num_deps ) { std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ; } ;
+        while ( data().wait_sem < data().num_deps ) { } ;
 
         data().wait_sem = 0 ;
 

@@ -59,12 +59,13 @@ namespace kgl
     struct PresentData
     { 
       static constexpr unsigned BUFFERS = 3 ;
-      typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS > ImageStack ;
-      typedef std::vector<::kgl::vk::Uniform >                 Uniforms   ;
-      typedef kgl::containers::Layered<Synchronization, 3>     Syncs      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 2> CmdBuffs ;
+      typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS >              ImageStack ;
+      typedef std::vector<::kgl::vk::Uniform >                              Uniforms   ;
+      typedef kgl::containers::Layered<Synchronization, 3>                  Syncs      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffs   ;
       
-      std::queue<::kgl::vk::DescriptorSet> sets ;
+      std::queue<::kgl::vk::DescriptorSet> sets  ;
+      std::queue<unsigned>                 swaps ;
       Syncs                            syncs        ;
       Uniforms                         uniforms     ; ///< TODO
       ImageStack                       stack        ; ///< TODO
@@ -84,6 +85,7 @@ namespace kgl
       std::string                      output_name  ; ///< TODO
       std::string                      install_path ; ///< TODO
       std::string                      name         ;
+      std::mutex                       mutex        ;
       
       unsigned current_command ;
 
@@ -91,8 +93,16 @@ namespace kgl
       void setWindowName( const char* window ) ;
       void setInputImageName( const char* name ) ; 
       void setImage( const ::kgl::vk::Image& image ) ;
+      void setCurrentSwap( unsigned index ) ;
     };
-
+    
+    void PresentData::setCurrentSwap( unsigned index )
+    {
+      this->mutex.lock() ;
+      this->swaps.push( index ) ; 
+      this->mutex.unlock() ;
+    }
+    
     void Present::setInputName( const char* name )
     {
       static bool found_input = false ;
@@ -189,7 +199,7 @@ namespace kgl
 
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-//      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
       data().pool             .initialize( data().gpu, MAX_SETS, data().pipeline.shader()                            ) ;
 
@@ -212,6 +222,7 @@ namespace kgl
 
       data().buffers.seek( 0 ).reset() ;
       data().buffers.seek( 1 ).reset() ;
+      data().buffers.seek( 2 ).reset() ;
       data().pipeline         .reset() ;
       data().pass             .reset() ;
       
@@ -219,6 +230,7 @@ namespace kgl
       data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass ) ;
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
     }
 
@@ -283,7 +295,7 @@ namespace kgl
           }
         }
         data().buffers.value().stop() ;
-        data().pass.submit( sync, data().buffers.value() ) ;
+        data().pass.submit( sync, data().buffers.value(), data().buffers.current() ) ;
         data().buffers.swap() ;
       }
 

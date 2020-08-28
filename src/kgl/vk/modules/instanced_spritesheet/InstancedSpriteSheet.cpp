@@ -61,16 +61,15 @@ namespace kgl
       };
 
       static constexpr unsigned BUFFERS = 3 ; // Todo make this configurable
-      typedef std::map<std::string, Material>                    Materials    ;
-      typedef std::array<::kgl::vk::render::CommandBuffer, 2>    CmdBuffers   ;
-      typedef kgl::containers::Layered<Synchronization, 3>       Syncs        ;
-      typedef std::map<std::string, std::vector<Transformation>> TransformMap ;
+      typedef std::map<std::string, Material>                             Materials    ;
+      typedef kgl::containers::Layered<kgl::vk::render::CommandBuffer, 3> CmdBuffers   ;
+      typedef kgl::containers::Layered<Synchronization               , 4> Syncs        ;
+      typedef std::map<std::string, std::vector<Transformation>>          TransformMap ;
       
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
       TransformMap                     transforms        ;
       CmdBuffers                       buffer            ; ///< The command buffer to use for all GPU calls.
-      unsigned                         cmd_buff_index    ; ///< THe index of command buffer currently in use.
       Materials                        materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
@@ -220,7 +219,6 @@ namespace kgl
     InstancedSpriteSheetData::InstancedSpriteSheetData()
     {
       this->debug          = false            ;
-      this->cmd_buff_index = 0                ;
       this->view           = glm::mat4( 1.f ) ;
       this->resx           = 0                ;
       this->resy           = 0                ;
@@ -326,7 +324,6 @@ namespace kgl
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
-      if( this->debug ) karma::log::Log::output( this->name.c_str(), ":: Outputting data." ) ;
       this->bus( this->output_image_name.c_str() ).emit( this->pass.image( index ) ) ;
       this->bus( this->output_name      .c_str() ).emit( sync                      ) ;
     }
@@ -369,16 +366,18 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
-      data().pass     .reset() ;
-      data().buffer[0].reset() ; 
-      data().buffer[1].reset() ; 
-      data().pipeline .reset() ; 
+      data().pass            .reset() ;
+      data().buffer.seek( 0 ).reset() ; 
+      data().buffer.seek( 1 ).reset() ; 
+      data().buffer.seek( 2 ).reset() ; 
+      data().pipeline        .reset() ; 
               
       // Initialize vulkan objects.
-      data().pass           .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer[0]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer[1]      .initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().pipeline       .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      data().pass            .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline        .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
       
       if( data().resx == 0 && data().resy == 0 )
       {
@@ -423,15 +422,17 @@ namespace kgl
 //      data().pipeline.shader().setVertexInputType( ::vk::VertexInputRate::eInstance ) ;
 
       // Initialize vulkan objects.
-      data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 12                                                   ) ;
-      data().pass           .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer[0]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer[1]      .initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().pipeline       .initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
-      data().pool           .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
-      data().syncs.seek( 0 ).initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 1 ).initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 2 ).initialize       ( data().gpu                                                                             ) ;
+      data().vertices        .initialize<float>( data().gpu, Buffer::Type::VERTEX, 12                                                   ) ;
+      data().pass            .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
+      data().buffer.seek( 0 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer.seek( 1 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().buffer.seek( 2 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      data().pipeline        .initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
+      data().pool            .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
+      data().syncs.seek( 0 ) .initialize       ( data().gpu                                                                             ) ;
+      data().syncs.seek( 1 ) .initialize       ( data().gpu                                                                             ) ;
+      data().syncs.seek( 2 ) .initialize       ( data().gpu                                                                             ) ;
+      data().syncs.seek( 3 ) .initialize       ( data().gpu                                                                             ) ;
       
       // Initialize data.
       data().profiler.initialize() ;
@@ -500,23 +501,23 @@ namespace kgl
       
       data().mutex.lock() ;
       sync = data().syncs.value() ;
-      data().syncs.swap() ;
+      data().syncs .swap() ;
+      data().buffer.swap() ;
       data().mutex.unlock() ;
       
       if( !data().transforms.empty() )
       {
-        data().buffer[ data().cmd_buff_index ].record( data().pass ) ;
+        data().buffer.value().record( data().pass ) ;
         for( auto transform : data().transforms )
         {
           auto iter = data().materials.find( transform.first ) ;
           
-          data().pipeline                       .bind( data().buffer[ data().cmd_buff_index ], iter->second.set       ) ;
-          data().buffer[ data().cmd_buff_index ].pushConstant( data().view, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
-          data().buffer[ data().cmd_buff_index ].drawInstanced( data().vertices.buffer(), 12, transform.second.size() ) ;
+          data().pipeline        .bind( data().buffer.value(), iter->second.set                                                                     ) ;
+          data().buffer.value().pushConstant( data().view, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
+          data().buffer.value().drawInstanced( data().vertices.buffer(), 12, transform.second.size() ) ;
         }
-        data().buffer[ data().cmd_buff_index ].stop() ;
-        if( data().debug ) karma::log::Log::output( this->name(), ":: Submitting Command buffer to queue." ) ;
-        data().pass.submit( sync, data().buffer[ data().cmd_buff_index ] ) ;
+        data().buffer.value().stop() ;
+        data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
       }
       else
       {
@@ -524,12 +525,10 @@ namespace kgl
       }
       // Output our synchronization to next module in the graph & reset command index.
       data().output( sync ) ;
-      if( data().cmd_buff_index == 1 ) data().cmd_buff_index-- ;
-      else                             data().cmd_buff_index++ ;
       
       data().profiler.stop() ;
 
-//      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     InstancedSpriteSheetData& InstancedSpriteSheet::data()

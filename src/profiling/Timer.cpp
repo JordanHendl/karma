@@ -90,21 +90,28 @@ namespace karma
 
     double Timer::time() const
     {
-      return data().elapsed.count() ;
+      auto curr = data().running ? std::chrono::duration_cast<std::chrono::microseconds>( data().paused_time + ( std::chrono::steady_clock::now() - data().current_time ) ) 
+                                 : std::chrono::duration_cast<std::chrono::microseconds>( data().elapsed ) ;
+      return curr.count() / 1000.f ;
     }
 
     void Timer::print() const
     {
-      std::cout << data().name << " -> " << data().elapsed.count() ;
+      auto curr = data().running ? std::chrono::duration_cast<std::chrono::microseconds>( data().paused_time + ( std::chrono::steady_clock::now() - data().current_time ) ) 
+                                 : std::chrono::duration_cast<std::chrono::microseconds>( data().elapsed ) ;
+      
+      std::cout << data().name << " -> " << curr.count() / 1000.f << "\n" ;
     }
     
     const char* Timer::output() const
     {
+      const auto curr = data().running ? std::chrono::duration_cast<std::chrono::microseconds>( data().paused_time + ( std::chrono::steady_clock::now() - data().current_time ) ) 
+                                 : std::chrono::duration_cast<std::chrono::microseconds>( data().elapsed ) ;
       std::stringstream str ;
       
-      str << data().name                                                             ;
-      str << " -> "                                                                  ;
-      str << ( data().paused ? data().paused_time.count() : data().elapsed.count() ) ;
+      str << data().name      ;
+      str << " -> "           ;
+      str << ( curr.count() / 1000.f ) ;
       
       data().output = str.str().c_str() ;
       return data().output.c_str() ;
