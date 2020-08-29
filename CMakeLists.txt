@@ -51,6 +51,7 @@ set( KARMA_MODULE_INSTALL_DIR "karma/module"  )
 set( KARMA_UWU_INSTALL_DIR    "karma/uwu"     )
 set( KARMA_INSTALL_DIR        "karma"         )
 
+set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/" )
 
 # Set output directories.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib  )

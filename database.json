@@ -12,6 +12,22 @@
     }
   },
 
+  "music" :
+   {
+     "song" :
+      {
+        "path" : "data/sound/magic.wav"
+      }
+   },
+
+  "sound" :
+   {
+     "magic" :
+      {
+        "path" : "data/sound/magic.wav"
+      }
+   },
+
   "spritesheets" :
   {
     "tilesheet" :
