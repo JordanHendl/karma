@@ -7,6 +7,7 @@ namespace vk
   class ImageView ;
   class Semaphore ;
   enum class ImageLayout ;
+  enum class Format ;
 }
 
 namespace kgl
@@ -27,6 +28,7 @@ namespace kgl
         const ::vk::ImageView view() const ;
         const ::vk::ImageLayout& layout() const ;
         void setLayout( const ::vk::ImageLayout& layout ) const ;
+        void setFormat( const ::vk::Format& format ) ;
         unsigned width() const ;
         unsigned height() const ;
         void copy( const unsigned char* data, unsigned channels ) ;

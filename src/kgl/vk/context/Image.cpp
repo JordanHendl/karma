@@ -154,7 +154,7 @@ namespace kgl
 
       info.setImage           ( this->img                   ) ;
       info.setViewType        ( ::vk::ImageViewType::e2D    ) ;
-      info.setFormat          ( ::vk::Format::eR8G8B8A8Srgb ) ;
+      info.setFormat          ( this->format                ) ;
       info.setSubresourceRange( range                       ) ;
       
       this->image_view = this->device.createImageView( info, nullptr ) ;
@@ -359,7 +359,7 @@ namespace kgl
       info.setExtent       ( extent                        ) ;
       info.setUsage        ( usage                         ) ;
       info.setImageType    ( ::vk::ImageType::e2D          ) ;
-      info.setFormat       ( ::vk::Format::eR8G8B8A8Srgb   ) ;
+      info.setFormat       ( this->format                  ) ;
       info.setTiling       ( ::vk::ImageTiling::eOptimal   ) ;
       info.setInitialLayout( ::vk::ImageLayout::eUndefined ) ;
       info.setSharingMode  ( ::vk::SharingMode::eExclusive ) ;
@@ -402,6 +402,11 @@ namespace kgl
     {
       return data().layout ;
     }
+    
+    void Image::setFormat( const ::vk::Format& format )
+    {
+      data().format = format ;
+    }
 
     void Image::setLayout( const ::vk::ImageLayout& layout ) const
     {
@@ -439,8 +444,8 @@ namespace kgl
       ::vk::DeviceSize     size               ;
       ::vk::MemoryMapFlags flags              ;
 
-      size   = data().width * data().height * 4 ;
-      offset = 0                                ;
+      size   = data().width * data().height * channels ;
+      offset = 0                                       ;
 
       data().createBuffer( size, usage, prop, staging_buffer, staging_buffer_mem ) ;
       data().device.mapMemory( staging_buffer_mem, offset, size, flags, &stage_data ) ;

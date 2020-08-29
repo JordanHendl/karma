@@ -11,23 +11,16 @@
       "path" : "/data/images/test.jpeg"
     }
   },
-
-  "music" :
-   {
-     "song" :
-      {
-        "path" : "data/sound/magic.wav"
-      }
-   },
-
-  "sound" :
-   {
-     "magic" :
-      {
-        "path" : "data/sound/magic.wav"
-      }
-   },
-
+  "font" :
+  {
+    "test" :
+    { 
+       "width"  : 1280,
+       "height" : 1280,
+       "size"   : 32,
+       "path"   : "data/font/font.ttf"
+    }
+  },
   "spritesheets" :
   {
     "tilesheet" :
@@ -51,7 +44,6 @@
        "path"          : "/data/images/background.png"
     }
   },
-
   "models": 
   {
     "player_model":
@@ -65,5 +57,19 @@
         {"type_2":"COOLER_TYPE", "scale":15.0, "thing":false}
       ]
     }
-  }
+  },
+  "music" :
+   {
+     "pso" :
+      {
+        "path" : "data/sound/Healing.wav"
+      }
+   },
+  "sound" :
+   {
+     "magic" :
+      {
+        "path" : "data/sound/magic.wav"
+      }
+   }
 }

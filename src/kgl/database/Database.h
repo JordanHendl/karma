@@ -34,6 +34,11 @@ namespace kgl
         /**
          * @param name
          */
+        void loadFont( const char* name ) ;
+        
+        /**
+         * @param name
+         */
         void loadImage( const char* name ) ;
         
         /**

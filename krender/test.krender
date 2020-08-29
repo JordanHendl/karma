@@ -4,7 +4,6 @@
     "test",
     "test_2"
   ],
-  
   "required_spritesheets" :
   [
     "sheet",
@@ -12,12 +11,13 @@
     "grandma",
     "background"
   ],
-
+  "required_fonts" : 
+  [
+    "test"
+  ],
   "required_models" : 
   [
     "player",
     "thing"
   ]
-
-
 }

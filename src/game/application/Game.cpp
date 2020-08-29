@@ -118,7 +118,10 @@ namespace karma
           this->rot_2 -= delta ;
           break ;
         case ::kgl::io::Event::IOCode::One :
-          this->bus( "kal::sound" ).emit<const char*>( "magic" ) ;
+          this->bus( "kal::music" ).emit<const char*>( 0, "pso" ) ;
+          break ;
+        case ::kgl::io::Event::IOCode::Two :
+          this->bus( "kal::sound" ).emit<const char*>( 0, "magic" ) ;
           break ;
           
         case ::kgl::io::Event::IOCode::Tab :

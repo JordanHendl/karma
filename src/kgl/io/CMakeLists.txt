@@ -3,16 +3,20 @@ set( KGL_IO_SOURCES
      ObjectLoader.cpp
      Input.cpp
      Event.cpp
+     Font.cpp
      ImageLoader.cpp
      stb_image.cpp
+     stb_truetype.cpp
    )
 
 set( KGL_IO_HEADERS
      ObjectLoader.h
      Input.h
      Event.h
+     Font.h
      ImageLoader.h
      stb_image.h
+     stb_truetype.h
    )
 
 set( KGL_IO_INCLUDE_DIRS

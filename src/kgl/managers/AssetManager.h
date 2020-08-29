@@ -28,6 +28,10 @@ namespace kgl
     class Image ;
     class Model ;
   }
+  namespace io
+  {
+    class Font ;
+  }
 
   namespace man
   {
@@ -50,16 +54,19 @@ namespace kgl
         AtlasData& data() ;
         const AtlasData& data() const ;
     };
-
+   
     class AssetManager
     {
       public:
         AssetManager() = default ;
         ~AssetManager() = default ;
+        void addFont( const char* path, const char* name, unsigned width, unsigned height, unsigned size, unsigned gpu ) ;
         void addImage( const char* path, const char* name, unsigned gpu ) ;
         void addAtlas( const char* path, const char* name, unsigned sprite_width, unsigned sprite_height, unsigned gpu ) ;
         void addParticle( const char* image, const char* name ) ;
         void addModel( const char* path, const char* name ) ;
+        const kgl::io::Font& font( const char* name ) const ;
+        const kgl::vk::Image& fontMap( const char* name ) const ;
         const ::kgl::vk::Image& image( const char* name ) const ;
         const Atlas& atlas( const char* name ) const ;
         bool contains( const char* name ) const ;
