@@ -100,13 +100,15 @@ namespace kgl
 
     void AssetManager::addFont( const char* path, const char* name, unsigned width, unsigned height, unsigned size, unsigned gpu )
     {
-      FontContainer f ;
+      FontContainer* f = new FontContainer() ;
       
       karma::log::Log::output( "Loading font ", name, " at path ", path, " on GPU ", gpu ) ;
-      f.font.load      ( path, width, height, size ) ;
-      f.img .setFormat ( ::vk::Format::eR8Sint     ) ;
-      f.img .initialize( gpu, width, height        ) ;
-      f.img .copy      ( f.font.pixels(), 1        ) ;
+      f->font.load      ( path, width, height, size ) ;
+      f->img .setFormat ( ::vk::Format::eR8Srgb     ) ;
+      f->img .initialize( gpu, width, height        ) ;
+      f->img .copy      ( f->font.pixels(), 1       ) ;
+      
+      data.fonts.insert( { std::string( name ), f } ) ;
     }
     
     void AssetManager::addImage( const char* path, const char* name, unsigned gpu )
@@ -195,7 +197,7 @@ namespace kgl
 
     bool AssetManager::contains( const char* name ) const
     {
-      return data.images.find( std::string( name ) ) != data.images.end() || data.spritesheet.find( std::string( name ) ) != data.spritesheet.end() ;
+      return data.images.find( std::string( name ) ) != data.images.end() || data.spritesheet.find( std::string( name ) ) != data.spritesheet.end() || data.fonts.find( std::string( name ) ) != data.fonts.end()  ;
     }
 
     void AssetManager::remove( const char* name )

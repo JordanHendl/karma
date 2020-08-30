@@ -80,11 +80,11 @@ namespace kgl
       data().running    = true ;
       data().should_run = true ;
       
-      setThreadPriority() ;
+//      setThreadPriority() ;
       
       while( data().should_run )
       {
-        while ( data().wait_sem < data().num_deps ) { } ;
+        while ( data().wait_sem < data().num_deps ) { std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) ) ; } ;
 
         data().wait_sem = 0 ;
 

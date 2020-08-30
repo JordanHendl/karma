@@ -347,7 +347,14 @@ namespace kgl
 
     void ImageData::generateVulkanImage()
     {
-      auto usage =  ::vk::ImageUsageFlagBits::eTransferSrc | ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled | ::vk::ImageUsageFlagBits::eColorAttachment ;
+      auto usage =  ::vk::ImageUsageFlagBits::eTransferSrc | ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled ;
+      if( this->format == ::vk::Format::eR8G8B8A8Srgb )
+      {
+        usage |= ::vk::ImageUsageFlagBits::eColorAttachment ;
+      }
+      else
+      {
+      }
 
       ::vk::ImageCreateInfo info   ;
       ::vk::Extent3D        extent ;

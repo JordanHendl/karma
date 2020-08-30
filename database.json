@@ -13,11 +13,11 @@
   },
   "font" :
   {
-    "test" :
+    "test_font" :
     { 
        "width"  : 1280,
        "height" : 1280,
-       "size"   : 32,
+       "size"   : 12,
        "path"   : "data/font/font.ttf"
     }
   },

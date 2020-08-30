@@ -144,6 +144,7 @@ namespace kgl
     void FontSetup::initialize( const char* name )
     {
       this->setName( name ) ;
+      karma::log::Log::output( "Adding font ", this->name.c_str(), " to database." ) ;
       this->bus( "font::", name, "::path"   ).attach( this, &FontSetup::setPath   ) ;
       this->bus( "font::", name, "::gpu"    ).attach( this, &FontSetup::setGPU    ) ;
       this->bus( "font::", name, "::width"  ).attach( this, &FontSetup::setWidth  ) ;

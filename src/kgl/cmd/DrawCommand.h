@@ -111,6 +111,143 @@ namespace kgl
       const ImageCommandData& data() const ;
   };
   
+  /** Object to contain a command to draw text. 
+   * Used for interaction with the KGL library.
+   */
+  class TextCommand
+  {
+    public:
+      
+      /** Default Constructor
+       */
+      TextCommand() ;
+      
+      /** Copy constructor. Copies the parameters from the input.
+       * @param cmd The command to copy.
+       */
+      TextCommand( const TextCommand& cmd ) ;
+      
+      /** Equivalence operator. Copies the parameters from the input command.
+       * @param cmd The command to copy parameters from.
+       */
+      TextCommand& operator=( const TextCommand& cmd ) ;
+      
+      /** Default deconstructor. 
+       */
+      ~TextCommand() ;
+      
+      /** Method to set the name of font to use for this command.
+       * @note The image name correlates to the images loaded by the current krender loaded.
+       * @param name The name of image to be drawn.
+       */
+      void setFont( const char* name ) ;
+      
+      /** Method to set the name of text to be drawn using this command.
+       * @note The image name correlates to the images loaded by the current krender loaded.
+       * @param name The name of image to be drawn.
+       */
+      void setText( const char* text ) ;
+      
+      /** Method to set the red channel color of the text to be drawn by this command.
+       * @param red The red channel to use for this command's color.
+       */
+      void setColorR( float red ) ;
+      
+      /** Method to set the red channel color of the text to be drawn by this command.
+       * @param red The red channel to use for this command's color.
+       */
+      void setColorG( float green ) ;
+      
+      /** Method to set the red channel color of the text to be drawn by this command.
+       * @param red The red channel to use for this command's color.
+       */
+      void setColorB( float blue ) ;
+      
+      /** Method to set the red channel color of the text to be drawn by this command.
+       * @param red The red channel to use for this command's color.
+       */
+      void setColorA( float alpha ) ;
+      
+      /** Method to set the X position in pixels to draw this image.
+       * @note This is assuming the top-left of the image is ( 0, 0 ).
+       * @@param pos The X location to draw the image at.
+       */
+      void setPosX( float pos ) ;
+      
+      /** Method to set the Y position in pixels to draw this image.
+       * @note This is assuming the top-left of the image is ( 0, 0 ).
+       * @@param pos The Y location to draw the image at.
+       */
+      void setPosY( float pos ) ;
+
+      /** Method to set the degree of rotation of the image to be drawn.
+       * @note If left unset, draws the image as if there is no rotation, aka, as it is loaded.
+       * @param rotation The 0-360 degrees of rotation to use when rendering the image.
+       */
+      void setRotation( float rotation ) ;
+      
+      /** Method to retrieve the X-position of this command.
+       * @return The X-postion of this command.
+       */
+      float posX() const ;
+      
+      /** Method to retrieve the Y-position of this command.
+       * @return The Y-postion of this command.
+       */
+      float posY() const ;
+      
+      /** Method to retrieve the degrees of rotation of this command.
+       * @return The 0-360 rotation of this draw command.
+       */
+      float rotation() const ;
+      
+      /** Method to retrieve the red color of this command.
+       * @return The red color channel of this command.
+       */
+      float red() const ;
+      
+      /** Method to retrieve the red color of this command.
+       * @return The red color channel of this command.
+       */
+      float green() const ;
+      
+      /** Method to retrieve the red color of this command.
+       * @return The red color channel of this command.
+       */
+      float blue() const ;
+      
+      /** Method to retrieve the red color of this command.
+       * @return The red color channel of this command.
+       */
+      float alpha() const ;
+      
+      /** Method to retrieve the name of image this command is set to draw.
+       * @return The name of the image this command is set to draw.
+       */
+      const char* font() const ;
+      
+      /** Method to retrieve the contents of this command.
+       * @return The message stored by this command.
+       */
+      const char* text() const ;
+
+    private:
+      
+      /** Forward Declared structure to contain this object's data.
+       */
+      struct TextCommandData* txt_cmd_data ;
+      
+      /** Method to retrieve a reference to this object's underlying data structure.
+       * @return A reference to this object's underlying data structure.
+       */
+      TextCommandData& data() ;
+      
+      /** Method to retrieve a const reference to this object's underlying data structure.
+       * @return A const reference to this object's underlying data structure.
+       */
+      const TextCommandData& data() const ;
+  };
+  
   /** Object to contain camera information that modules understand.
    */
   class Camera

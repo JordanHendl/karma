@@ -31,47 +31,57 @@ namespace kgl
     
     }
 
-    float Glyph::topLeftX()
+    float Glyph::topLeftX() const 
     {
       return this->top_leftx ;
     }
     
-    float Glyph::topLeftY()
+    float Glyph::topLeftY() const
     {
       return this->top_lefty ;
     }
 
-    float Glyph::topRightX()
+    float Glyph::topRightX() const
     {
       return this->top_rightx ;
     }
     
-    float Glyph::topRightY()
+    float Glyph::topRightY() const
     {
       return this->top_righty ;
     }
 
-    float Glyph::bottomLeftX()
+    float Glyph::bottomLeftX() const
     {
       return this->bottom_leftx ;
     }
     
-    float Glyph::bottomLeftY()
+    float Glyph::bottomLeftY() const
     {
       return this->bottom_lefty ;
     }
 
-    float Glyph::bottomRightX()
+    float Glyph::bottomRightX() const
     {
       return this->bottom_rightx ;
     }
     
-    float Glyph::bottomRightY()
+    float Glyph::bottomRightY() const
     {
       return this->bottom_righty ;
     }
 
-    unsigned Glyph::value()
+    float Glyph::xpos() const
+    {
+      return this->x_pos ;
+    }
+    
+    float Glyph::ypos() const
+    {
+      return this->y_pos ;
+    }
+
+    unsigned Glyph::value() const
     {
       return this->val ;
     }
@@ -91,7 +101,7 @@ namespace kgl
       data().pixels.clear() ;
     }
     
-    const Glyph* Font::glyphs( const char* text, float x, float y )
+    const Glyph* Font::glyphs( const char* text, float x, float y ) const
     {
       const std::string  txt = text ;
       
@@ -101,17 +111,26 @@ namespace kgl
       
       for( auto ch : txt )
       {
-        stbtt_GetBakedQuad( data().char_buff.data(), data().width, data().height, ch, &x, &y, &quad, 1 ) ;
-        
-        glyph.bottom_leftx  = quad.x0 ;
-        glyph.bottom_lefty  = quad.y1 ;
-        glyph.bottom_rightx = quad.x1 ;
-        glyph.bottom_righty = quad.y1 ;
-        glyph.top_leftx     = quad.x0 ;
-        glyph.top_lefty     = quad.y0 ;
-        glyph.top_rightx    = quad.x1 ;
-        glyph.top_righty    = quad.y0 ;
-        
+        if(ch >= 32 && ch < 128) 
+        {
+          stbtt_GetBakedQuad( data().char_buff.data(), data().width, data().height, ch - 32, &x, &y, &quad, 1 ) ;
+
+          glyph.bottom_leftx  = quad.s0 ;
+          glyph.bottom_lefty  = quad.t1 ;
+          glyph.bottom_rightx = quad.s1 ;
+          glyph.bottom_righty = quad.t1 ;
+          glyph.top_leftx     = quad.s0 ;
+          glyph.top_lefty     = quad.t0 ;
+          glyph.top_rightx    = quad.s1 ;
+          glyph.top_righty    = quad.t0 ;
+          glyph.v0            = quad.x0 ;
+          glyph.v1            = quad.y0 ;
+          glyph.v2            = quad.x1 ;
+          glyph.v3            = quad.y1 ;
+          glyph.x_pos         = x       ;
+          glyph.y_pos         = y       ;
+        }
+
         glyphs.push_back( glyph ) ;
       }
       

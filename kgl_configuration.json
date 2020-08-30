@@ -11,7 +11,7 @@
         "image" :
         {
           "version"      : 0,
-          "type"         : "SpriteSheet",
+          "type"         : "Text2D",
           "input"        : "start",
           "output_image" : "c2i",
           "output"       : "c2",
@@ -38,7 +38,8 @@
           "input_image_one" : "c2i",
           "input_image_two" : "c1i",
           "output"          : "present",
-          "output_image"    : "present_image"
+          "output_image"    : "present_image",
+          "debug"           : true
         },
 
         "instance_test" :

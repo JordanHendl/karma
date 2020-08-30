@@ -13,6 +13,8 @@
 #include "../../kgl/animation/Animation2D.h"
 #include <vector>
 #include <string>
+#include <sstream>
+#include <queue>
 
 namespace karma
 {
@@ -24,6 +26,7 @@ namespace karma
     ::kgl::anim::Sprite2D anim        ;
     ::kgl::SheetCommand cmd           ;
     ::kgl::ImageCommand img           ;
+    ::kgl::TextCommand  txt           ;
     ::kgl::Camera       camera        ;
     unsigned            sprite        ;
     karma::ms::Timer    timer         ;
@@ -200,39 +203,64 @@ namespace karma
 
   bool Game::run()
   {
+    const unsigned SZ = 50 ;
+    float fpss[ SZ ] ;
+    
+    unsigned index ;
+    std::stringstream str ;
     data().running = true ;
     
     data().interface.loadPack( "krender/test.krender" ) ;
     data().loadMap() ;
     
+    data().txt.setFont( "test_font" ) ;
+    
+
     data().anim.initialize( "grandma", 0, 0, 1000.f ) ;
     data().anim.insertAnimation( 0 ) ;
     data().anim.insertAnimation( 1 ) ;
     data().anim.start() ;
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
+    
+    index = 0 ;
     while( data().running )
     {
       data().timer.start() ;
       
       if( !data().pause )
       {
+        float avg ;
+
+        avg = 0 ;
+        str = std::stringstream() ;
+
+        for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
+        avg = avg / (static_cast<float>( SZ ) ) ;
+        str <<  " " << avg ;
+        
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
         
         data().img.setImage   ( "test"        ) ;
         data().img.setPosX    ( data().xpos   ) ;
         data().img.setPosY    ( data().ypos   ) ;
         data().img.setRotation( data().rot    ) ;
+        data().txt.setPosX( data().xpos       ) ;
+        data().txt.setPosY( data().ypos       ) ;
+        data().txt.setText( str.str().c_str() ) ;
 
-
-        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
+//        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
+        data().bus( "image::cmd"            ).emit( data().txt    ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;
+        data().bus( "text::camera"          ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;
+        fpss[ index % SZ ] = 1000.f / data().timer.time() ;
+        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
         
-        karma::log::Log::output( data().timer.output(), "ms. In fps: ", 1000.f / data().timer.time() ) ;
+        index++ ;
       }
       data().interface.pollEvents() ;
     }

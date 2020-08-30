@@ -14,19 +14,24 @@ namespace kgl
       public:
         Glyph() ;
         ~Glyph() ;
-        unsigned advance() ;
-        float topLeftX() ;
-        float topLeftY() ;
-        float topRightX() ;
-        float topRightY() ;
-        float bottomLeftX() ;
-        float bottomLeftY() ;
-        float bottomRightX() ;
-        float bottomRightY() ;
-        unsigned value() ;
+        float topLeftX() const ;
+        float topLeftY() const ;
+        float topRightX() const ;
+        float topRightY() const ;
+        float bottomLeftX() const ;
+        float bottomLeftY() const ;
+        float bottomRightX() const ;
+        float bottomRightY() const ;
+        float xpos() const ;
+        float ypos() const ;
+        unsigned value() const ;
+        
+        float v0 ;
+        float v1 ;
+        float v2 ;
+        float v3 ;
       private:
         friend class Font ;
-        unsigned adv           ;
         unsigned val           ;
         float    top_leftx     ;
         float    top_lefty     ;
@@ -36,6 +41,8 @@ namespace kgl
         float    bottom_lefty  ;
         float    bottom_rightx ;
         float    bottom_righty ;
+        float    x_pos         ;
+        float    y_pos         ;
     };
 
     /**
@@ -61,7 +68,7 @@ namespace kgl
         /**
          * @return 
          */
-        const Glyph* glyphs( const char* text, float x, float y ) ;
+        const Glyph* glyphs( const char* text, float x, float y ) const ;
         
         /**
          */

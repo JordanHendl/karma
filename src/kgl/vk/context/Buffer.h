@@ -50,10 +50,10 @@ namespace kgl
         void initialize( unsigned device, Type type, unsigned count ) ;
 
         template<typename T>
-        void copyToDevice( const T& data, unsigned offset = 0 ) ;
+        void copyToDevice( const T& data, unsigned count = 0 ) ;
 
         template<typename T>
-        void copyToDevice( T* const data, unsigned offset = 0 ) ;
+        void copyToDevice( T* const data, unsigned count = 0 ) ;
         Type type() const ;
         
         void copy( const Buffer& buffer ) ;
@@ -72,15 +72,15 @@ namespace kgl
     }
 
     template<typename T>
-    void Buffer::copyToDevice( const T& data, unsigned offset )
+    void Buffer::copyToDevice( const T& data, unsigned count )
     {
-      this->impl.copyToDevice( static_cast<const void*>( &data ), offset ) ;
+      this->impl.copyToDevice( static_cast<const void*>( &data ), count ) ;
     }
 
     template<typename T>
-    void Buffer::copyToDevice( T* const data, unsigned offset )
+    void Buffer::copyToDevice( T* const data, unsigned count )
     {
-      this->impl.copyToDevice( static_cast<const void*>( data ), offset ) ;
+      this->impl.copyToDevice( static_cast<const void*>( data ), count ) ;
     }
   }
 }

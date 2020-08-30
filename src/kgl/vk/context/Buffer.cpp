@@ -210,9 +210,9 @@ namespace kgl
       this->data().memory = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent, this->data().buffer            ) ;
     }
 
-    void BufferImpl::copyToDevice( const void* data, unsigned offset )
+    void BufferImpl::copyToDevice( const void* data, unsigned count )
     {
-      const unsigned sz = this->data().element_sz * this->data().count ;
+      const unsigned sz = this->data().element_sz * ( count == 0 ? this->data().count : count ) ;
       ::vk::Buffer         staging_buffer ;
       ::vk::DeviceMemory   staging_mem    ;
       ::vk::MemoryMapFlags flag           ;
@@ -221,7 +221,7 @@ namespace kgl
       staging_buffer = this->data().createBuffer( sz, ::vk::BufferUsageFlagBits::eTransferSrc ) ;
       staging_mem    = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible, staging_buffer ) ;
       
-      this->data().device.mapMemory( staging_mem, offset, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
+      this->data().device.mapMemory( staging_mem, 0, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
       std::memcpy( mapped_data, data, (size_t)sz                                                     ) ;
       this->data().device.unmapMemory( staging_mem                                                   ) ;
       

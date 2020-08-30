@@ -83,6 +83,8 @@ namespace kgl
       std::mutex                           sync_mutex            ; ///< The lock to make sure input is recieved one at a time.
       std::mutex                           image_mutex           ; ///< The lock to make sure input is recieved one at a time.
       unsigned                             current_command       ; ///< The current command being processed.
+      bool                                 debug                 ;
+
       /** Default Constructor. Initializes member data.
        */
       CombinerData() ;
@@ -95,6 +97,11 @@ namespace kgl
       /** Method to reset the input found flags.
        */
       void resetFound() ;
+      
+      /**
+       * @param val
+       */
+      void setDebug( bool val ) ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -137,6 +144,7 @@ namespace kgl
       this->found_image_input[7] = false ;
       this->found_image_input[8] = false ;
       this->found_image_input[9] = false ;
+      this->debug                = false ;
     }
     
     void CombinerData::resetFound() 
@@ -161,6 +169,11 @@ namespace kgl
       this->found_image_input[7] = false ;
       this->found_image_input[8] = false ;
       this->found_image_input[9] = false ;
+    }
+    
+    void CombinerData::setDebug( bool val )
+    {
+      this->debug = val ;
     }
 
     void CombinerData::setOutputImageName( const char* output ) 
@@ -699,6 +712,7 @@ namespace kgl
       data().bus( json_path.c_str(), "::input_image_ten"   ).attach( this         , &Combiner::setInputImageNameTen   ) ;
       data().bus( json_path.c_str(), "::output"            ).attach( this->data_2d, &CombinerData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image"      ).attach( this->data_2d, &CombinerData::setOutputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"             ).attach( this->data_2d, &CombinerData::setDebug           ) ;
       
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -723,7 +737,7 @@ namespace kgl
       data().sync_mutex.unlock() ;
 
       data().image_mutex.lock() ;
-      for( unsigned i = 0; i < 10; i++ ) images[ i ] = ( data().images[ i ] ) ;
+      for( unsigned i = 0; i < data().num_inputs / 2; i++ ) images[ i ] = ( data().images[ i ] ) ;
       data().image_mutex.unlock() ;
       
       data().resetFound() ;
@@ -753,6 +767,7 @@ namespace kgl
       data().output( sync ) ;
       
       data().profiler.stop() ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     CombinerData& Combiner::data()
