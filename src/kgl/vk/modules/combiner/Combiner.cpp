@@ -228,7 +228,8 @@ namespace kgl
     void Combiner::inputImageFour( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 3 ].copy( image );
+      data().images           [ 3 ] = image ;
+      data().found_image_input[ 3 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -236,7 +237,8 @@ namespace kgl
     void Combiner::inputImageFive( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 4 ].copy( image );
+      data().images           [ 4 ] = image ;
+      data().found_image_input[ 4 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -244,7 +246,8 @@ namespace kgl
     void Combiner::inputImageSix( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 5 ].copy( image );
+      data().images           [ 5 ] = image ;
+      data().found_image_input[ 5 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -252,7 +255,8 @@ namespace kgl
     void Combiner::inputImageSeven( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 6 ].copy( image );
+      data().images           [ 6 ] = image ;
+      data().found_image_input[ 6 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -260,7 +264,8 @@ namespace kgl
     void Combiner::inputImageEight( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 7 ].copy( image );
+      data().images           [ 7 ] = image ;
+      data().found_image_input[ 7 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -268,7 +273,8 @@ namespace kgl
     void Combiner::inputImageNine( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 8 ].copy( image );
+      data().images           [ 8 ] = image ;
+      data().found_image_input[ 8 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -276,7 +282,8 @@ namespace kgl
     void Combiner::inputImageTen( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 9 ].copy( image );
+      data().images           [ 9 ] = image ;
+      data().found_image_input[ 9 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -310,6 +317,7 @@ namespace kgl
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
       data().found_input[ 2 ] = true ;
+      this->semIncrement() ;
       data().sync_mutex.unlock() ;
     }
     
@@ -653,6 +661,7 @@ namespace kgl
         data().uniforms[ i ].initialize( data().gpu                ) ;
       }
       
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       data().profiler       .initialize          ( ""                                   ) ;
       data().syncs.seek( 0 ).initialize          ( data().gpu                           ) ;
       data().syncs.seek( 1 ).initialize          ( data().gpu                           ) ;
@@ -660,7 +669,7 @@ namespace kgl
       data().vertices       .initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16 ) ;
       data().indices        .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6  ) ;
       
-      data().pass.setImageFinalLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
+//      data().pass.setImageFinalLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
       data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
@@ -752,7 +761,7 @@ namespace kgl
         data().buffers.value().drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
         data().sets.push( set ) ;
         
-        if( data().sets.size() > 2 )
+        if( data().sets.size() > data().num_inputs / 2 )
         {
           data().sets.front().reset() ;
           data().sets.pop() ;

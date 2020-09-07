@@ -243,6 +243,28 @@ namespace kgl
           data().buffers[ index ].beginRenderPass( &render_pass_info, render_flags ) ;
         }
       }
+      
+      void CommandBuffer::beginRenderPass(::kgl::vk::RenderPass& pass ) const
+      {
+        const std::array<float, 4> clear_colors = { 0.0f, 0.0f, 0.0f, 0.0f } ;
+        const auto                render_flags = ::vk::SubpassContents::eInline ;
+
+        ::vk::ClearValue             clear_val        ;
+        ::vk::RenderPassBeginInfo    render_pass_info ;
+        ::vk::CommandBufferBeginInfo info             ;
+        
+        clear_val.setColor( ::vk::ClearColorValue( clear_colors ) ) ;
+
+        render_pass_info.setRenderPass       ( pass.pass()    ) ;
+        render_pass_info.setRenderArea       ( pass.area()    ) ;
+        render_pass_info.setClearValueCount  ( 1              ) ;
+        render_pass_info.setPClearValues     ( &clear_val     ) ;
+        for( unsigned index = 0; index < data().buffers.size(); index++ )
+        {
+          render_pass_info.setFramebuffer( pass.buffer( index ) ) ;
+          data().buffers[ index ].beginRenderPass( &render_pass_info, render_flags ) ;
+        }
+      }
 
       ::vk::CommandBuffer CommandBuffer::buffer( unsigned id ) const
       {
@@ -262,14 +284,14 @@ namespace kgl
         }
       }
 
-      void CommandBuffer::draw( const ::vk::Buffer vertices, unsigned element_size ) // TODO::: write instanced drawing.
+      void CommandBuffer::draw( const ::vk::Buffer vertices, unsigned element_size, unsigned offset ) // TODO::: write instanced drawing.
       {
-        ::vk::DeviceSize offset ;
+        ::vk::DeviceSize off ;
         
-        offset = 0 ;
+        off = offset ;
         for( auto buff : data().buffers )
         {
-          buff.bindVertexBuffers( 0, 1, &vertices, &offset ) ;
+          buff.bindVertexBuffers( 0, 1, &vertices, &off ) ;
           buff.draw( element_size, 1, 0, 0 ) ;
         }
       }
@@ -313,7 +335,7 @@ namespace kgl
         for( auto buff : data().buffers )
         {
           if( pass ) buff.endRenderPass() ;
-          buff.end()           ;
+          buff.end()                      ;
         }
       }
       
@@ -602,7 +624,6 @@ namespace kgl
           queue.submit( 1, &info, data().sync.fence() ) ;
           queue.waitIdle() ;
           mutex.unlock() ;
-          
         }
       }
       

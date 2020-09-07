@@ -410,6 +410,7 @@ namespace kgl
         1.0f, 0.0f
       };
 
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 )                                         ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 

@@ -354,7 +354,8 @@ namespace kgl
       
       data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) * 2                                     ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
-
+      
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       // Initialize vulkan objects.
       data().vertices       .initialize<float>( data().gpu, Buffer::Type::VERTEX, 24                                                   ) ;
       data().pass           .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;

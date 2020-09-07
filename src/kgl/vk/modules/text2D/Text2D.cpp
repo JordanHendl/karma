@@ -55,7 +55,7 @@ namespace kgl
         DescriptorSet set     ;
       };
 
-      static constexpr unsigned BUFFERS = 3 ; // Todo make this 
+      static constexpr unsigned BUFFERS = 6 ; // Todo make this 
       typedef std::map<std::string, Material>                               Materials  ;
       typedef ::kgl::BufferedStack<TextCommand, BUFFERS>                    Stack      ;
       typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffers ;
@@ -101,6 +101,7 @@ namespace kgl
       std::mutex                       mutex             ;
       unsigned                         resx              ;
       unsigned                         resy              ;
+      unsigned                         buffer_offset     ;
       bool                             found_input       ;
       
       /** Default Constructor. Initializes member data.
@@ -145,7 +146,7 @@ namespace kgl
       
       /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
        */
-      void setUpTextureCoords( const ::kgl::TextCommand& cmd ) ;
+      unsigned setUpTextureCoords( const ::kgl::TextCommand& cmd ) ;
 
       /** Method to output this object's data.
        */
@@ -217,28 +218,30 @@ namespace kgl
           mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection ) ;
           mat.first->second.uniform.add       ( "camera", Uniform::Type::UBO    , this->view       ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
+          this->device.waitIdle() ;
         }
       }
     }
 
-    void Text2DData::setUpTextureCoords( const ::kgl::TextCommand& cmd )
+    unsigned Text2DData::setUpTextureCoords( const ::kgl::TextCommand& cmd )
     {
-      const std::string text   = cmd.text()                                                    ;
+      this->transforms.clear() ;
+      
+      const std::string text   = std::string( " " ) + cmd.text()                               ;
       const auto        ptr    = this->manager.font( cmd.font() ).glyphs( text.c_str(), 0, 0 ) ;
       const float w = 1 ;
       const float h = 1 ;
-      const float r = 0  ;
-      
+      const float r = 0 ;
+
       glm::mat4                   model     ;
       std::vector<kgl::io::Glyph> glyphs    ;
       Transformation              transform ;
-      
+
       glm::vec2 size ;
       size = glm::vec2( w, h ) ;
-      
+
       glyphs.resize( text.size() ) ;
       glyphs.assign( ptr, ptr + text.size() ) ;
-      this->transforms.clear() ;
       for( auto glyph : glyphs )
       {
         model = glm::mat4( 1.f ) ;
@@ -252,31 +255,37 @@ namespace kgl
 
         model = glm::scale( model, glm::vec3( size, 1.0f ) ) ; 
         transform.model = model ;
-        
+
         transform.tex   = glm::vec2( glyph.topLeftX(), glyph.topLeftY() ) ;
         transform.vert  = glm::vec2( glyph.v0, glyph.v1                 ) ;
         this->transforms.push_back( transform ) ;
-        
+
         transform.tex   = glm::vec2( glyph.bottomRightX(), glyph.bottomRightY() ) ;
         transform.vert  = glm::vec2( glyph.v2, glyph.v3                         ) ;
         this->transforms.push_back( transform ) ;
-        
+
         transform.tex   = glm::vec2( glyph.bottomLeftX(), glyph.bottomLeftY() ) ;
         transform.vert  = glm::vec2( glyph.v0, glyph.v3                       ) ;
         this->transforms.push_back( transform ) ;
-        
+
         transform.tex   = glm::vec2( glyph.topLeftX(), glyph.topLeftY() ) ;
         transform.vert  = glm::vec2( glyph.v0, glyph.v1                 ) ;
         this->transforms.push_back( transform ) ;
-        
+
         transform.tex   = glm::vec2( glyph.topRightX(), glyph.topRightY() ) ;
         transform.vert  = glm::vec2( glyph.v2, glyph.v1                   ) ;
         this->transforms.push_back( transform ) ;
-        
+
         transform.tex   = glm::vec2( glyph.bottomRightX(), glyph.bottomRightY() ) ;
         transform.vert  = glm::vec2( glyph.v2, glyph.v3                         ) ;
         this->transforms.push_back( transform ) ;
       }
+
+      this->vertices.copyToDevice( this->transforms.data(), this->transforms.size(), this->buffer_offset ) ;
+      
+      this->buffer_offset += this->transforms.size() * sizeof( Transformation ) ;
+      
+      return this->transforms.size() ;
     }
 
     void Text2DData::setOutputImageName( const char* output ) 
@@ -386,20 +395,21 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
-      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) + ( sizeof( glm::vec2 ) * 4 )           ) ;
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
+      data().pipeline.setPushConstantByteSize ( ( sizeof( glm::vec4 ) )                                     ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
       // Initialize vulkan objects.
-      data().vertices        .initialize<Transformation>( data().gpu, Buffer::Type::VERTEX, 200                                                  ) ;
-      data().pass            .initialize                ( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer.seek( 0 ).initialize                ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 1 ).initialize                ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 2 ).initialize                ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().pipeline        .initialize                ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
-      data().pool            .initialize                ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
-      data().syncs.seek( 0 ) .initialize                ( data().gpu                                                                             ) ;
-      data().syncs.seek( 1 ) .initialize                ( data().gpu                                                                             ) ;
-      data().syncs.seek( 2 ) .initialize                ( data().gpu                                                                             ) ;
+      data().vertices        .initialize<Transformation>( data().gpu, Buffer::Type::VERTEX, 10000, true                        ) ;
+      data().pass            .initialize                ( data().window_name.c_str(), data().gpu                               ) ;
+      data().buffer.seek( 0 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().buffer.seek( 1 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().buffer.seek( 2 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().pipeline        .initialize                ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass() ) ;
+      data().pool            .initialize                ( data().gpu, MAX_SETS, data().pipeline.shader()                       ) ;
+      data().syncs.seek( 0 ) .initialize                ( data().gpu                                                           ) ;
+      data().syncs.seek( 1 ) .initialize                ( data().gpu                                                           ) ;
+      data().syncs.seek( 2 ) .initialize                ( data().gpu                                                           ) ;
       
       // Initialize data.
       data().profiler.initialize() ;
@@ -460,8 +470,11 @@ namespace kgl
 
     void Text2D::execute()
     {
-      Synchronization sync ;
-
+      Synchronization sync  ;
+      glm::vec4       color ;
+      unsigned        index ;
+      unsigned        sz    ;
+      
       data().profiler.start() ;
       data().commands.swap() ;
       data().mutex.lock() ;
@@ -472,35 +485,48 @@ namespace kgl
       
       if( !data().commands.empty() )
       {
-        data().buffer.value().record( data().pass ) ;
+        data().buffer.value().record() ;
+        data().buffer.value().beginRenderPass( data().pass ) ;
+
+        index                = 0 ;
+        data().buffer_offset = 0 ;
+
         while( !data().commands.empty() )
         {
           // Pop latest draw command off the stack.
           data().pop() ;
+
+          color.x = data().current_cmd.red()   ;
+          color.y = data().current_cmd.green() ;
+          color.z = data().current_cmd.blue()  ;
+          color.w = data().current_cmd.alpha() ;
+
+          // Build Transformation Matrix.
+          sz = data().setUpTextureCoords( data().current_cmd ) ;
           
           auto iter = data().materials.find( data().current_cmd.font() ) ;
-          // Build Transformation Matrix.
-          data().setUpTextureCoords( data().current_cmd ) ;
           
-          data().vertices.copyToDevice( data().transforms.data(), data().transforms.size() ) ;
           // Bind pipeline and descriptor set to the command buffer.
           iter->second.uniform.add( "camera", Uniform::Type::UBO , data().view ) ;
 
           data().pipeline.bind( data().buffer.value(), iter->second.set ) ;
-//          data().buffer.value().pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
+          data().buffer.value().pushConstant( color, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
-          data().buffer.value().draw( data().vertices.buffer(), data().transforms.size() ) ;
+          data().buffer.value().draw( data().vertices.buffer(), sz, data().buffer_offset - ( sz * sizeof( Transformation ) ) ) ;
+          index++ ;
         }
+          data().buffer.value().stop() ;
+          data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
+          data().buffer.swap() ;
         
         // Stop recording the command buffer & Submit to the graphics queue.
-        data().buffer.value().stop() ;
-        data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
       }
       else
       {
         sync.flip() ;
       }
+      
       // Output our synchronization to next module in the graph & reset command index.
       data().output( sync ) ;
       data().profiler.stop() ;

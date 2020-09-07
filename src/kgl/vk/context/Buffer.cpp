@@ -3,6 +3,8 @@
 #include "Context.h"
 #include <vulkan/vulkan.hpp>
 #include <iostream>
+#include <vector>
+#include <queue>
 
 namespace kgl
 {
@@ -32,16 +34,21 @@ namespace kgl
 
     struct BufferData
     {
-      Buffer::Type           type       ; ///< TODO
-      ::vk::Buffer           buffer     ; ///< TODO
-      ::vk::DeviceMemory     memory     ; ///< TODO
-      ::vk::Device           device     ; ///< TODO
-      ::vk::Fence            fence      ; ///< TODO
-      compute::CommandBuffer cmd_buff   ; ///< TODO
-      unsigned               gpu        ; ///< TODO
-      unsigned               element_sz ; ///< TODO
-      unsigned               count      ; ///< TODO
-      
+      Buffer::Type           type           ; ///< TODO
+      ::vk::Buffer           buffer         ; ///< TODO
+      ::vk::DeviceMemory     memory         ; ///< TODO
+      ::vk::Buffer           staging_buffer ;
+      ::vk::DeviceMemory     staging_mem    ;
+      ::vk::Device           device         ; ///< TODO
+      ::vk::Fence            fence          ; ///< TODO
+      compute::CommandBuffer cmd_buff       ; ///< TODO
+      bool                   host_local     ;
+      unsigned               gpu            ; ///< TODO
+      unsigned               element_sz     ; ///< TODO
+      unsigned               count          ; ///< TODO
+
+      std::queue<::vk::Buffer>       temp_buffs ;
+      std::queue<::vk::DeviceMemory> temp_mems  ;
       /** TODO
        */
       BufferData() ;
@@ -69,7 +76,13 @@ namespace kgl
        * @param buffer
        * @param size
        */
-      void copy( ::vk::Buffer buffer, unsigned size ) ;
+      void copy( ::vk::Buffer buffer, unsigned size, ::vk::CommandBuffer& buff, unsigned offset = 0 ) ;
+      
+      /**
+       * @param buffer
+       * @param size
+       */
+      void copy( ::vk::Buffer buffer, unsigned size, unsigned offset = 0 ) ;
     };
 
     ::vk::BufferUsageFlags TypeToUsage( Buffer::Type type )
@@ -152,30 +165,53 @@ namespace kgl
       return memory ;
     }
 
-    void BufferData::copy( ::vk::Buffer buffer, unsigned size )
+    void BufferData::copy( ::vk::Buffer buffer, unsigned size, ::vk::CommandBuffer& buff, unsigned offset )
     {
       ::kgl::vk::compute::Context context ;
       ::vk::BufferCopy          region       ;
-      ::vk::DeviceSize          offset       ;
       ::vk::MemoryBarrier       barrier      ;
       ::vk::BufferMemoryBarrier buff_barrier ;
       ::vk::DependencyFlags     flags        ;
-      offset = 0 ;
+      
       region.setSize     ( size   ) ;
       region.setSrcOffset( offset ) ;
       region.setDstOffset( offset ) ;
       
-      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eMemoryRead  ) ;
-      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eMemoryWrite ) ;
-      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eMemoryRead  ) ;
-      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eMemoryWrite ) ;
+      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eMemoryWrite | ::vk::AccessFlagBits::eMemoryRead ) ;
+      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eMemoryRead | ::vk::AccessFlagBits::eVertexAttributeRead ) ;
+      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eMemoryWrite | ::vk::AccessFlagBits::eMemoryRead ) ;
+      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eMemoryRead | ::vk::AccessFlagBits::eVertexAttributeRead ) ;
+      buff_barrier.setBuffer             ( this->buffer                       ) ;
+      buff_barrier.setSize               ( size                               ) ;
+      buff_barrier.setSrcQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
+      buff_barrier.setDstQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
+      buff.copyBuffer( buffer, this->buffer, 1, &region ) ;
+      buff.pipelineBarrier( ::vk::PipelineStageFlagBits::eAllCommands, ::vk::PipelineStageFlagBits::eAllCommands, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
+    }
+    
+    void BufferData::copy( ::vk::Buffer buffer, unsigned size, unsigned offset )
+    {
+      ::kgl::vk::compute::Context context ;
+      ::vk::BufferCopy          region       ;
+      ::vk::MemoryBarrier       barrier      ;
+      ::vk::BufferMemoryBarrier buff_barrier ;
+      ::vk::DependencyFlags     flags        ;
+
+      region.setSize     ( size   ) ;
+      region.setSrcOffset( offset ) ;
+      region.setDstOffset( offset ) ;
+      
+      barrier.setSrcAccessMask           ( ::vk::AccessFlagBits::eMemoryWrite ) ;
+      barrier.setDstAccessMask           ( ::vk::AccessFlagBits::eMemoryRead | ::vk::AccessFlagBits::eVertexAttributeRead ) ;
+      buff_barrier.setSrcAccessMask      ( ::vk::AccessFlagBits::eMemoryWrite ) ;
+      buff_barrier.setDstAccessMask      ( ::vk::AccessFlagBits::eMemoryRead | ::vk::AccessFlagBits::eVertexAttributeRead ) ;
       buff_barrier.setBuffer             ( this->buffer                       ) ;
       buff_barrier.setSize               ( size                               ) ;
       buff_barrier.setSrcQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
       buff_barrier.setDstQueueFamilyIndex( context.computeFamily( this->gpu ) ) ;
       this->cmd_buff.record() ;
       this->cmd_buff.buffer( 0 ).copyBuffer( buffer, this->buffer, 1, &region ) ;
-      this->cmd_buff.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eTopOfPipe, ::vk::PipelineStageFlagBits::eAllCommands, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
+      this->cmd_buff.buffer( 0 ).pipelineBarrier( ::vk::PipelineStageFlagBits::eAllGraphics, ::vk::PipelineStageFlagBits::eAllGraphics, flags, 0, nullptr, 1, &buff_barrier, 0, nullptr ) ;
       this->cmd_buff.stop() ;
       this->cmd_buff.submit() ;
     }
@@ -187,48 +223,68 @@ namespace kgl
 
     BufferImpl::~BufferImpl()
     {
-      delete this->buffer_data ;
+//      delete this->buffer_data ;
     }
 
-    void BufferImpl::initializeBase( unsigned device, unsigned type, unsigned element_sz, unsigned count )
+    void BufferImpl::initializeBase( unsigned device, unsigned type, unsigned element_sz, bool host_local, unsigned count )
     {
       const ::kgl::vk::compute::Context context ;
       const unsigned sz = element_sz * count ;
-      ::vk::DeviceSize      size       ;
-      ::vk::FenceCreateInfo fence_info ;
-      
+      ::vk::DeviceSize             size         ;
+      ::vk::FenceCreateInfo        fence_info   ;
+      ::vk::BufferUsageFlags       buffer_flags ;
+      ::vk::MemoryPropertyFlags    mem_flags    ;
+
       size = sz ;
-      data().device = context.virtualDevice( device ) ;
-      data().gpu    = device                          ;
+
+      data().device     = context.virtualDevice( device ) ;
+      data().gpu        = device                          ;
+      data().host_local = host_local                      ;
 
       this->data().count      = count                             ;
       this->data().type       = static_cast<Buffer::Type>( type ) ; 
       this->data().element_sz = element_sz                        ;
       this->data().device     = context.virtualDevice( device )   ;
       this->data().cmd_buff.initialize( device, 1, ::kgl::vk::BufferLevel::Primary ) ;
-      this->data().buffer = this->data().createBuffer( size, ::vk::BufferUsageFlagBits::eTransferDst | TypeToUsage( data().type ) | ::vk::BufferUsageFlagBits::eTransferSrc ) ;
-      this->data().memory = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent, this->data().buffer            ) ;
+      
+      if( host_local )
+      {
+        buffer_flags = ::vk::BufferUsageFlagBits::eTransferDst | TypeToUsage( data().type ) | ::vk::BufferUsageFlagBits::eTransferSrc  ;
+        mem_flags    = ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible                        ;
+      }
+      else
+      {
+        buffer_flags = ::vk::BufferUsageFlagBits::eTransferDst | TypeToUsage( data().type )                     ;
+        mem_flags    = ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible ;
+        
+        this->data().staging_buffer = this->data().createBuffer( size, ::vk::BufferUsageFlagBits::eTransferSrc ) ;
+        this->data().staging_mem    = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible, this->data().staging_buffer ) ;
+      }
+      
+      this->data().buffer = this->data().createBuffer( size     , buffer_flags        ) ;
+      this->data().memory = this->data().allocate    ( mem_flags, this->data().buffer ) ;
     }
 
-    void BufferImpl::copyToDevice( const void* data, unsigned count )
+    void BufferImpl::copyToDevice( const void* data, unsigned count, unsigned offset )
     {
       const unsigned sz = this->data().element_sz * ( count == 0 ? this->data().count : count ) ;
-      ::vk::Buffer         staging_buffer ;
-      ::vk::DeviceMemory   staging_mem    ;
       ::vk::MemoryMapFlags flag           ;
       void*                mapped_data    ;
-         
-      staging_buffer = this->data().createBuffer( sz, ::vk::BufferUsageFlagBits::eTransferSrc ) ;
-      staging_mem    = this->data().allocate    ( ::vk::MemoryPropertyFlagBits::eHostCoherent | ::vk::MemoryPropertyFlagBits::eHostVisible, staging_buffer ) ;
       
-      this->data().device.mapMemory( staging_mem, 0, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
-      std::memcpy( mapped_data, data, (size_t)sz                                                     ) ;
-      this->data().device.unmapMemory( staging_mem                                                   ) ;
-      
-      this->data().copy( staging_buffer, sz ) ;
-      
-      this->data().device.destroy( staging_buffer ) ;
-      this->data().device.free   ( staging_mem    ) ;
+      if( this->data().host_local )
+      {
+        this->data().device.mapMemory( this->data().memory, offset, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
+        std::memcpy( mapped_data, data, (size_t)sz                                                             ) ;
+        this->data().device.unmapMemory( this->data().memory                                                   ) ;
+      }
+      else
+      {
+        this->data().device.mapMemory( this->data().staging_mem, offset, ::vk::DeviceSize( sz ), flag, &mapped_data ) ;
+        std::memcpy( mapped_data, data, (size_t)sz                                                             ) ;
+        this->data().device.unmapMemory( this->data().staging_mem                                                   ) ;
+        
+        this->data().copy( this->data().staging_buffer, sz, offset ) ;
+      }
     }
 
     BufferData& BufferImpl::data()
@@ -260,7 +316,7 @@ namespace kgl
       if( this_size < input_size )
       {
         this->reset() ;
-        impl.initializeBase( impl.data().gpu, impl.data().type, impl.data().element_sz, needed_size ) ;
+        impl.initializeBase( impl.data().gpu, impl.data().type, impl.data().element_sz, impl.data().host_local, needed_size ) ;
       }
       
       impl.data().copy( buffer.buffer(), input_size ) ;
@@ -281,7 +337,7 @@ namespace kgl
     {
       return impl.data().type ;
     }
-
+    
     unsigned Buffer::byteSize() const
     {
       return impl.data().count * impl.data().element_sz ;

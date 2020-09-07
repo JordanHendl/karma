@@ -71,7 +71,7 @@ namespace kgl
     this->r      = 0.f ;
     this->g      = 0.f ;
     this->b      = 0.f ;
-    this->a      = 0.f ;
+    this->a      = 1.f ;
     this->rot    = 0.f ;
   }
   

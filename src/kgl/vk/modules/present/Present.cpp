@@ -244,6 +244,7 @@ namespace kgl
       
       data().pipeline.subscribe( json_path.c_str(), id ) ;
 
+      data().bus( "current_swap" ).attach( this->present_data, &PresentData::setCurrentSwap ) ;
       data().bus( json_path.c_str(), "::input"       ).attach( this         , &Present::setInputName          ) ;
       data().bus( json_path.c_str(), "::input_image" ).attach( this->present_data, &PresentData::setInputImageName ) ;
       data().bus( json_path.c_str(), "::image"       ).attach( this->present_data, &PresentData::setImage          ) ;
@@ -281,7 +282,7 @@ namespace kgl
         {
           auto img  = data().stack.pop()                                        ;
           set       = data().pool.makeDescriptorSet( data().pass.numBuffers() ) ;
-
+          
           data().uniforms[ data().current_command ].addImage( "framebuffer", img ) ;
           set.set( data().uniforms[ data().current_command ] ) ;
           data().pipeline.bind( data().buffers.value(), set ) ;
@@ -295,7 +296,8 @@ namespace kgl
           }
         }
         data().buffers.value().stop() ;
-        data().pass.submit( sync, data().buffers.value(), data().buffers.current() ) ;
+        data().pass.submit( sync, data().buffers.value(), data().swaps.front() ) ;
+        data().swaps.pop() ;
         data().buffers.swap() ;
       }
 

@@ -18,6 +18,7 @@
 #elif __linux__ 
   #include <pthread.h>
 #include <sys/resource.h>
+#include <condition_variable>
 
   static inline void setThreadPriority()
   {
@@ -45,6 +46,9 @@ namespace kgl
       unsigned                num_deps   ;
       unsigned                wait_sem   ;
       unsigned                id         ;
+      std::mutex              mutex      ;
+      std::condition_variable cv         ;
+
       /**
        */
       ModuleData() ;
@@ -77,15 +81,18 @@ namespace kgl
             
     void Module::start()
     {
+      std::unique_lock<std::mutex> lock ;
+      
       data().running    = true ;
       data().should_run = true ;
       
-//      setThreadPriority() ;
+      setThreadPriority() ;
       
       while( data().should_run )
       {
-        while ( data().wait_sem < data().num_deps ) { std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) ) ; } ;
-
+        lock = std::unique_lock( data().mutex ) ;
+        data().cv.wait( lock, [=]{ return data().wait_sem >= data().num_deps ; } ) ;
+        data().mutex.unlock() ;
         data().wait_sem = 0 ;
 
         this->execute() ;
@@ -144,6 +151,8 @@ namespace kgl
     void Module::semIncrement()
     {
       data().wait_sem++ ;
+      
+      if( data().wait_sem >= data().num_deps ) data().cv.notify_one() ;
     }
 
     const char* Module::name() const

@@ -1,5 +1,5 @@
 #include "BufferedStack.h"
-#include <stack>
+#include <queue>
 #include <vector>
 #include <mutex>
 
@@ -15,7 +15,7 @@ namespace kgl
     struct BufferedStackImplData
     {
       typedef void*                 DataEntry     ;
-      typedef std::stack<DataEntry> Stack         ;
+      typedef std::queue<DataEntry> Stack         ;
       typedef std::vector<Stack>    LayeredStacks ;
       
       std::mutex    mutex        ; ///< TODO
@@ -111,7 +111,7 @@ namespace kgl
     void* BufferedStackImpl::popBase()
     {
       data().mutex.lock() ;
-      void* val = data().curr->top() ;
+      void* val = data().curr->front() ;
       
       data().curr->pop() ;
 

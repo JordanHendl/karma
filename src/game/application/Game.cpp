@@ -133,8 +133,8 @@ namespace karma
           
         default: break ;
       }
-    }
-  }
+    } 
+ }
 
       
   void GameData::loadMap()
@@ -237,23 +237,33 @@ namespace karma
 
         for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
         avg = avg / (static_cast<float>( SZ ) ) ;
-        str <<  " " << avg ;
+        str << avg << " fps" ;
         
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
         
-        data().img.setImage   ( "test"        ) ;
-        data().img.setPosX    ( data().xpos   ) ;
-        data().img.setPosY    ( data().ypos   ) ;
-        data().img.setRotation( data().rot    ) ;
-        data().txt.setPosX( data().xpos       ) ;
-        data().txt.setPosY( data().ypos       ) ;
-        data().txt.setText( str.str().c_str() ) ;
+        data().img.setImage   ( "test"            ) ;
+        data().img.setPosX    ( data().xpos       ) ;
+        data().img.setPosY    ( data().ypos       ) ;
+        data().img.setRotation( data().rot        ) ;
+        data().txt.setPosX    ( 0                 ) ;
+        data().txt.setPosY    ( 32                ) ;
+        data().txt.setText    ( str.str().c_str() ) ;
+        data().txt.setColorR  ( 1.0f              ) ;
+        data().txt.setColorG  ( 1.0f              ) ;
+        data().txt.setColorB  ( 1.0f              ) ;
+        data().txt.setColorA  ( 0.5f              ) ;
 
-//        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
-        data().bus( "image::cmd"            ).emit( data().txt    ) ;
+        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
+        data().bus( "text::cmd"             ).emit( data().txt    ) ;
+        data().txt.setPosY    ( data().ypos        ) ;
+        data().txt.setColorR  ( 1.0f              ) ;
+        data().txt.setColorG  ( 0.0f              ) ;
+        data().txt.setColorB  ( 0.0f              ) ;
+        data().txt.setColorA  ( 0.5f              ) ;
+        data().txt.setText    ( "LMAO LALALALAL "  ) ;
+        data().bus( "text::cmd"             ).emit( data().txt    ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;
-        data().bus( "text::camera"          ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;

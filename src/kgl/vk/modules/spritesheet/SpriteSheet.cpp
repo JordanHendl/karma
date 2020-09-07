@@ -411,9 +411,11 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
+      
       data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) + ( sizeof( glm::vec2 ) * 4 )           ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       // Initialize vulkan objects.
       data().vertices        .initialize<float>( data().gpu, Buffer::Type::VERTEX, 18                                                   ) ;
       data().pass            .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
