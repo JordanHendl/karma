@@ -6,6 +6,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 #ifdef _WIN32
   #include <windows.h>
@@ -44,7 +45,7 @@ namespace kgl
       Flag                    should_run ; ///< TODO
       ::data::module::Bus     bus        ; ///< TODO
       unsigned                num_deps   ;
-      unsigned                wait_sem   ;
+      std::atomic_uint        wait_sem   ;
       unsigned                id         ;
       std::mutex              mutex      ;
       std::condition_variable cv         ;
@@ -150,7 +151,7 @@ namespace kgl
     
     void Module::semIncrement()
     {
-      data().wait_sem++ ;
+      data().wait_sem.fetch_add( 1 ) ;
       
       if( data().wait_sem >= data().num_deps ) data().cv.notify_one() ;
     }

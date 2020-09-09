@@ -3,6 +3,8 @@
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <iostream>
+#include <mutex>
+
 namespace kgl
 {
   namespace vk
@@ -15,12 +17,15 @@ namespace kgl
       Semaphores           signal_sems ;
       ::vk::Device         device      ;
       mutable ::vk::Fence  fence       ;
-
+      std::mutex           mutex       ;
+      
       bool has_wait = false ;
       
       /**
        */
       SynchronizationData() ;
+      
+      SynchronizationData& operator=( const SynchronizationData& data ) ;
     };
 
     SynchronizationData::SynchronizationData()
@@ -28,6 +33,19 @@ namespace kgl
       
     }
 
+    SynchronizationData& SynchronizationData::operator=( const SynchronizationData& data )
+    {
+      this->mutex.lock() ;
+      this->wait_sems   = data.wait_sems   ;
+      this->signal_sems = data.signal_sems ;
+      this->device      = data.device      ;
+      this->fence       = data.fence       ;
+      this->has_wait    = data.has_wait    ;
+      this->mutex.unlock() ;
+
+      return *this ;
+    }
+    
     Synchronization::Synchronization()
     {
       this->sync_data = new SynchronizationData() ;
@@ -40,7 +58,6 @@ namespace kgl
 
     void Synchronization::operator=( const Synchronization& sync )
     {
-      
       *this->sync_data = *sync.sync_data ;
     }
     
@@ -122,7 +139,9 @@ namespace kgl
     {
       this->data().wait_sems.clear() ;
       
+      data().mutex.lock() ;
       this->data().wait_sems.push_back( sync.data().signal_sems[ 0 ] ) ;
+      data().mutex.unlock() ;
     }
     
     void Synchronization::copyWaits( const Synchronization& sync )

@@ -27,6 +27,8 @@ namespace kgl
     float       a    ;
     float       x    ;
     float       y    ;
+    float       w    ;
+    float       h    ;
     float       rot  ;
     
     /**
@@ -66,6 +68,8 @@ namespace kgl
   {
     this->x      = 0.f ;
     this->y      = 0.f ;
+    this->w      = 1.f ;
+    this->h      = 1.f ;
     this->font   = ""  ;
     this->text   = ""  ;
     this->r      = 0.f ;
@@ -290,6 +294,16 @@ namespace kgl
   {
     data().y = pos ;
   }
+  
+  void TextCommand::setWidth( float pos )
+  {
+    data().w = pos ;
+  }
+
+  void TextCommand::setHeight( float pos )
+  {
+    data().h = pos ;
+  }
 
   void TextCommand::setText( const char* text )
   {
@@ -329,6 +343,16 @@ namespace kgl
   float TextCommand::posY() const
   {
     return data().y ;
+  }
+  
+  float TextCommand::width() const
+  {
+    return data().w ;
+  }
+
+  float TextCommand::height() const
+  {
+    return data().h ;
   }
 
   float TextCommand::rotation() const

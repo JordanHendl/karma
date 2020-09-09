@@ -289,7 +289,7 @@ namespace kgl
           data().buffers.value().drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
           
           data().sets.push( set ) ;
-          if( data().sets.size() > 2 )
+          if( data().sets.size() > 6 )
           {
             data().sets.front().reset() ;
             data().sets.pop() ;

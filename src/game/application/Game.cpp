@@ -66,7 +66,7 @@ namespace karma
   
   void GameData::readInputs( const ::kgl::io::Event& event )
   {
-    const float delta = 10.0f ;
+    const float delta = 1.0f ;
     
     if( event.type() == ::kgl::io::Event::Type::Quit )
     {
@@ -84,16 +84,20 @@ namespace karma
           this->pause = !this->pause ;
           break ;
         case ::kgl::io::Event::IOCode::Left :
-          this->xpos -= delta ;
+          this->xpos -= delta  ;
+          this->ypos -= delta / 2    ;
           break ;
         case ::kgl::io::Event::IOCode::Right :
-          this->xpos += delta ;
+          this->xpos += delta  ;
+          this->ypos += delta  / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Up :
-          this->ypos -= delta ;
+          this->xpos += delta ;
+          this->ypos -= delta / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Down :
-          this->ypos += delta ;
+          this->xpos -= delta ;
+          this->ypos += delta / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Z :
           this->rot += delta ;
@@ -141,7 +145,7 @@ namespace karma
   {
     std::string key    ;
     std::vector<unsigned> tiles ;
-    std::string path = ( this->base_path + "data/maps/cool.json" ) ;
+    std::string path = ( this->base_path + "data/maps/map.json" ) ;
     this->config.initialize( path.c_str(), 0 ) ;
     
     for( auto entry = config.begin(); entry != config.end(); ++entry )
@@ -171,10 +175,10 @@ namespace karma
     
     for( unsigned y = 0; y < this->height; y++ )
     {
-      cmd.setPosY( (float) ( y * 32 ) ) ;
+      cmd.setPosY( (float) ( y * 8 ) ) ;
       for( unsigned x = 0; x < this->width; x++ )
       {
-        cmd.setPosX( (float) ( x * 32 ) ) ;
+        cmd.setPosX( (float) ( x * 8 ) ) ;
         cmd.setIndex( tiles[ index ] - 1 ) ;
         this->cmds[ x + ( y * this->width ) ] = cmd ;
         index++ ;
@@ -237,6 +241,7 @@ namespace karma
 
         for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
         avg = avg / (static_cast<float>( SZ ) ) ;
+        str.precision( 3 ) ;
         str << avg << " fps" ;
         
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
@@ -246,21 +251,16 @@ namespace karma
         data().img.setPosY    ( data().ypos       ) ;
         data().img.setRotation( data().rot        ) ;
         data().txt.setPosX    ( 0                 ) ;
-        data().txt.setPosY    ( 32                ) ;
+        data().txt.setPosY    ( 5                 ) ;
+        data().txt.setWidth   ( 0.25              ) ;
+        data().txt.setHeight  ( 0.25              ) ;
         data().txt.setText    ( str.str().c_str() ) ;
         data().txt.setColorR  ( 1.0f              ) ;
         data().txt.setColorG  ( 1.0f              ) ;
         data().txt.setColorB  ( 1.0f              ) ;
         data().txt.setColorA  ( 0.5f              ) ;
-
+        
         data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
-        data().bus( "text::cmd"             ).emit( data().txt    ) ;
-        data().txt.setPosY    ( data().ypos        ) ;
-        data().txt.setColorR  ( 1.0f              ) ;
-        data().txt.setColorG  ( 0.0f              ) ;
-        data().txt.setColorB  ( 0.0f              ) ;
-        data().txt.setColorA  ( 0.5f              ) ;
-        data().txt.setText    ( "LMAO LALALALAL "  ) ;
         data().bus( "text::cmd"             ).emit( data().txt    ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;

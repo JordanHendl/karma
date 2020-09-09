@@ -229,9 +229,9 @@ namespace kgl
       
       const std::string text   = std::string( " " ) + cmd.text()                               ;
       const auto        ptr    = this->manager.font( cmd.font() ).glyphs( text.c_str(), 0, 0 ) ;
-      const float w = 1 ;
-      const float h = 1 ;
-      const float r = 0 ;
+      const float w = cmd.width()    ;
+      const float h = cmd.height()   ;
+      const float r = cmd.rotation() ;
 
       glm::mat4                   model     ;
       std::vector<kgl::io::Glyph> glyphs    ;

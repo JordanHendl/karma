@@ -32,16 +32,16 @@
 
     "grandma" :
     { 
-       "sprite_width"  : 64,
-       "sprite_height" : 64,
-       "path"          : "/data/images/spritesheet.png"
+       "sprite_width"  : 32,
+       "sprite_height" : 32,
+       "path"          : "/data/images/character_spritesheet.png"
     },
 
     "background" :
     { 
        "sprite_width"  : 32,
        "sprite_height" : 32,
-       "path"          : "/data/images/background.png"
+       "path"          : "/data/images/isosheet.png"
     }
   },
   "models": 

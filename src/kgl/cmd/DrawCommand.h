@@ -179,6 +179,18 @@ namespace kgl
        * @@param pos The Y location to draw the image at.
        */
       void setPosY( float pos ) ;
+      
+      /** Method to set the width in pixels to draw this image.
+       * @note This is assuming the top-left of the image is ( 0, 0 ).
+       * @@param pos The X location to draw the image at.
+       */
+      void setWidth( float pos ) ;
+      
+      /** Method to set the height in pixels to draw this image.
+       * @note This is assuming the top-left of the image is ( 0, 0 ).
+       * @@param pos The Y location to draw the image at.
+       */
+      void setHeight( float pos ) ;
 
       /** Method to set the degree of rotation of the image to be drawn.
        * @note If left unset, draws the image as if there is no rotation, aka, as it is loaded.
@@ -195,6 +207,16 @@ namespace kgl
        * @return The Y-postion of this command.
        */
       float posY() const ;
+      
+      /** Method to retrieve the X-position of this command.
+       * @return The X-postion of this command.
+       */
+      float width() const ;
+      
+      /** Method to retrieve the Y-position of this command.
+       * @return The Y-postion of this command.
+       */
+      float height() const ;
       
       /** Method to retrieve the degrees of rotation of this command.
        * @return The 0-360 rotation of this draw command.

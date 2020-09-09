@@ -500,11 +500,9 @@ namespace kgl
       Synchronization sync    ;
       data().profiler.start() ;
       
-//      data().mutex.lock() ;
       sync = data().syncs.value() ;
       data().syncs .swap() ;
       data().buffer.swap() ;
-//      data().mutex.unlock() ;
       
       if( !data().transforms.empty() )
       {
