@@ -17,6 +17,25 @@ namespace kgl
     ImageCommandData() ;
   };
   
+  struct TextCommandData
+  {
+    std::string font ;
+    std::string text ;
+    float       r    ;
+    float       g    ;
+    float       b    ;
+    float       a    ;
+    float       x    ;
+    float       y    ;
+    float       w    ;
+    float       h    ;
+    float       rot  ;
+    
+    /**
+     */
+    TextCommandData() ;
+  };
+  
   struct SheetCommandData
   {
     std::string image  ;
@@ -44,6 +63,21 @@ namespace kgl
     
     CameraData() ;
   };
+  
+  TextCommandData::TextCommandData()
+  {
+    this->x      = 0.f ;
+    this->y      = 0.f ;
+    this->w      = 1.f ;
+    this->h      = 1.f ;
+    this->font   = ""  ;
+    this->text   = ""  ;
+    this->r      = 0.f ;
+    this->g      = 0.f ;
+    this->b      = 0.f ;
+    this->a      = 1.f ;
+    this->rot    = 0.f ;
+  }
   
   ImageCommandData::ImageCommandData()
   {
@@ -222,6 +256,150 @@ namespace kgl
     return *this->cam_data ;
   }
 
+  TextCommand::TextCommand()
+  {
+    this->txt_cmd_data = new TextCommandData() ;
+  }
+
+  TextCommand::TextCommand( const TextCommand& cmd )
+  {
+    this->txt_cmd_data = new TextCommandData() ;
+  
+    *this = cmd ;
+  }
+
+  TextCommand& TextCommand::operator=( const TextCommand& cmd )
+  {
+    *this->txt_cmd_data = *cmd.txt_cmd_data ;
+    
+    return *this ;
+  }
+
+  TextCommand::~TextCommand()
+  {
+    delete this->txt_cmd_data ;
+  }
+
+  void TextCommand::setFont( const char* name )
+  {
+    data().font = name ;
+  }
+
+  void TextCommand::setPosX( float pos )
+  {
+    data().x = pos ;
+  }
+
+  void TextCommand::setPosY( float pos )
+  {
+    data().y = pos ;
+  }
+  
+  void TextCommand::setWidth( float pos )
+  {
+    data().w = pos ;
+  }
+
+  void TextCommand::setHeight( float pos )
+  {
+    data().h = pos ;
+  }
+
+  void TextCommand::setText( const char* text )
+  {
+    data().text = text ;
+  }
+
+  void TextCommand::setColorR( float red )
+  {
+    data().r = red ;
+  }
+
+  void TextCommand::setColorG( float green )
+  {
+    data().g = green ;
+  }
+
+  void TextCommand::setColorB( float blue )
+  {
+    data().b = blue ;
+  }
+
+  void TextCommand::setColorA( float alpha )
+  {
+    data().a = alpha ;
+  }
+
+  void TextCommand::setRotation( float rotation )
+  {
+    data().rot = rotation ;
+  }
+
+  float TextCommand::posX() const
+  {
+    return data().x ;
+  }
+
+  float TextCommand::posY() const
+  {
+    return data().y ;
+  }
+  
+  float TextCommand::width() const
+  {
+    return data().w ;
+  }
+
+  float TextCommand::height() const
+  {
+    return data().h ;
+  }
+
+  float TextCommand::rotation() const
+  {
+    return data().rot ;
+  }
+  
+  float TextCommand::red() const
+  {
+    return data().r ;
+  }
+
+  float TextCommand::green() const
+  {
+    return data().g ;
+  }
+
+  float TextCommand::blue() const
+  {
+    return data().b ;
+  }
+
+  float TextCommand::alpha() const
+  {
+    return data().a ;
+  }
+
+  const char* TextCommand::text() const
+  {
+    return data().text.c_str() ;
+  }
+
+  const char* TextCommand::font() const
+  {
+    return data().font.c_str() ;
+  }
+
+  TextCommandData& TextCommand::data()
+  {
+    return *this->txt_cmd_data ;
+  }
+
+  const TextCommandData& TextCommand::data() const
+  {
+    return *this->txt_cmd_data ;
+  }
+  
   ImageCommand::ImageCommand()
   {
     this->img_cmd_data = new ImageCommandData() ;

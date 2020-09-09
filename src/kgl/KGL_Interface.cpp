@@ -35,6 +35,7 @@ struct KGL_InterfaceData
   void fixString( std::string& str ) ;
   void addSheet( const char* img_name ) ;
   void addImage( const char* img_name ) ;
+  void addFont( const char* font_name ) ;
   void addModel( const char* model_name ) ;
   void setDatabasePath( const char* path ) ;
   void setModuleConfigPath( const char* path ) ;
@@ -47,6 +48,11 @@ struct KGL_InterfaceData
 void KGL_InterfaceData::addSheet( const char* img_name )
 {
   this->database.loadSheet( img_name ) ;
+}
+
+void KGL_InterfaceData::addFont( const char* img_name )
+{
+  this->database.loadFont( img_name ) ;
 }
 
 void KGL_InterfaceData::addImage( const char* img_name )
@@ -159,6 +165,7 @@ void KGL_Interface::initialize()
     data().bus( "required_images"       ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
     data().bus( "required_models"       ).attach( this->kgl_data, &KGL_InterfaceData::addImage            ) ;
     data().bus( "required_spritesheets" ).attach( this->kgl_data, &KGL_InterfaceData::addSheet            ) ;
+    data().bus( "required_fonts"        ).attach( this->kgl_data, &KGL_InterfaceData::addFont             ) ;
     data().bus( "database_path"         ).attach( this->kgl_data, &KGL_InterfaceData::setDatabasePath     ) ;
     data().bus( "modules_path"          ).attach( this->kgl_data, &KGL_InterfaceData::setModulePath       ) ;
     data().bus( "graph_config_path"     ).attach( this->kgl_data, &KGL_InterfaceData::setModuleConfigPath ) ;

@@ -11,23 +11,16 @@
       "path" : "/data/images/test.jpeg"
     }
   },
-
-  "music" :
-   {
-     "song" :
-      {
-        "path" : "data/sound/magic.wav"
-      }
-   },
-
-  "sound" :
-   {
-     "magic" :
-      {
-        "path" : "data/sound/magic.wav"
-      }
-   },
-
+  "font" :
+  {
+    "test_font" :
+    { 
+       "width"  : 1280,
+       "height" : 1280,
+       "size"   : 32,
+       "path"   : "data/font/font.ttf"
+    }
+  },
   "spritesheets" :
   {
     "tilesheet" :
@@ -39,19 +32,18 @@
 
     "grandma" :
     { 
-       "sprite_width"  : 64,
-       "sprite_height" : 64,
-       "path"          : "/data/images/spritesheet.png"
+       "sprite_width"  : 32,
+       "sprite_height" : 32,
+       "path"          : "/data/images/character_spritesheet.png"
     },
 
     "background" :
     { 
        "sprite_width"  : 32,
        "sprite_height" : 32,
-       "path"          : "/data/images/background.png"
+       "path"          : "/data/images/isosheet.png"
     }
   },
-
   "models": 
   {
     "player_model":
@@ -65,5 +57,19 @@
         {"type_2":"COOLER_TYPE", "scale":15.0, "thing":false}
       ]
     }
-  }
+  },
+  "music" :
+   {
+     "pso" :
+      {
+        "path" : "data/sound/Healing.wav"
+      }
+   },
+  "sound" :
+   {
+     "magic" :
+      {
+        "path" : "data/sound/magic.wav"
+      }
+   }
 }

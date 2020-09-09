@@ -13,6 +13,8 @@
 #include "../../kgl/animation/Animation2D.h"
 #include <vector>
 #include <string>
+#include <sstream>
+#include <queue>
 
 namespace karma
 {
@@ -24,6 +26,7 @@ namespace karma
     ::kgl::anim::Sprite2D anim        ;
     ::kgl::SheetCommand cmd           ;
     ::kgl::ImageCommand img           ;
+    ::kgl::TextCommand  txt           ;
     ::kgl::Camera       camera        ;
     unsigned            sprite        ;
     karma::ms::Timer    timer         ;
@@ -63,7 +66,7 @@ namespace karma
   
   void GameData::readInputs( const ::kgl::io::Event& event )
   {
-    const float delta = 10.0f ;
+    const float delta = 1.0f ;
     
     if( event.type() == ::kgl::io::Event::Type::Quit )
     {
@@ -81,16 +84,20 @@ namespace karma
           this->pause = !this->pause ;
           break ;
         case ::kgl::io::Event::IOCode::Left :
-          this->xpos -= delta ;
+          this->xpos -= delta  ;
+          this->ypos -= delta / 2    ;
           break ;
         case ::kgl::io::Event::IOCode::Right :
-          this->xpos += delta ;
+          this->xpos += delta  ;
+          this->ypos += delta  / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Up :
-          this->ypos -= delta ;
+          this->xpos += delta ;
+          this->ypos -= delta / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Down :
-          this->ypos += delta ;
+          this->xpos -= delta ;
+          this->ypos += delta / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Z :
           this->rot += delta ;
@@ -118,7 +125,10 @@ namespace karma
           this->rot_2 -= delta ;
           break ;
         case ::kgl::io::Event::IOCode::One :
-          this->bus( "kal::sound" ).emit<const char*>( "magic" ) ;
+          this->bus( "kal::music" ).emit<const char*>( 0, "pso" ) ;
+          break ;
+        case ::kgl::io::Event::IOCode::Two :
+          this->bus( "kal::sound" ).emit<const char*>( 0, "magic" ) ;
           break ;
           
         case ::kgl::io::Event::IOCode::Tab :
@@ -127,15 +137,15 @@ namespace karma
           
         default: break ;
       }
-    }
-  }
+    } 
+ }
 
       
   void GameData::loadMap()
   {
     std::string key    ;
     std::vector<unsigned> tiles ;
-    std::string path = ( this->base_path + "data/maps/cool.json" ) ;
+    std::string path = ( this->base_path + "data/maps/map.json" ) ;
     this->config.initialize( path.c_str(), 0 ) ;
     
     for( auto entry = config.begin(); entry != config.end(); ++entry )
@@ -165,10 +175,10 @@ namespace karma
     
     for( unsigned y = 0; y < this->height; y++ )
     {
-      cmd.setPosY( (float) ( y * 32 ) ) ;
+      cmd.setPosY( (float) ( y * 8 ) ) ;
       for( unsigned x = 0; x < this->width; x++ )
       {
-        cmd.setPosX( (float) ( x * 32 ) ) ;
+        cmd.setPosX( (float) ( x * 8 ) ) ;
         cmd.setIndex( tiles[ index ] - 1 ) ;
         this->cmds[ x + ( y * this->width ) ] = cmd ;
         index++ ;
@@ -197,39 +207,70 @@ namespace karma
 
   bool Game::run()
   {
+    const unsigned SZ = 50 ;
+    float fpss[ SZ ] ;
+    
+    unsigned index ;
+    std::stringstream str ;
     data().running = true ;
     
     data().interface.loadPack( "krender/test.krender" ) ;
     data().loadMap() ;
     
+    data().txt.setFont( "test_font" ) ;
+    
+
     data().anim.initialize( "grandma", 0, 0, 1000.f ) ;
     data().anim.insertAnimation( 0 ) ;
     data().anim.insertAnimation( 1 ) ;
     data().anim.start() ;
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
+    
+    index = 0 ;
     while( data().running )
     {
       data().timer.start() ;
       
       if( !data().pause )
       {
+        float avg ;
+
+        avg = 0 ;
+        str = std::stringstream() ;
+
+        for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
+        avg = avg / (static_cast<float>( SZ ) ) ;
+        str.precision( 3 ) ;
+        str << avg << " fps" ;
+        
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
         
-        data().img.setImage   ( "test"        ) ;
-        data().img.setPosX    ( data().xpos   ) ;
-        data().img.setPosY    ( data().ypos   ) ;
-        data().img.setRotation( data().rot    ) ;
-
-
+        data().img.setImage   ( "test"            ) ;
+        data().img.setPosX    ( data().xpos       ) ;
+        data().img.setPosY    ( data().ypos       ) ;
+        data().img.setRotation( data().rot        ) ;
+        data().txt.setPosX    ( 0                 ) ;
+        data().txt.setPosY    ( 5                 ) ;
+        data().txt.setWidth   ( 0.25              ) ;
+        data().txt.setHeight  ( 0.25              ) ;
+        data().txt.setText    ( str.str().c_str() ) ;
+        data().txt.setColorR  ( 1.0f              ) ;
+        data().txt.setColorG  ( 1.0f              ) ;
+        data().txt.setColorB  ( 1.0f              ) ;
+        data().txt.setColorA  ( 0.5f              ) ;
+        
         data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
+        data().bus( "text::cmd"             ).emit( data().txt    ) ;
         data().bus( "instance_test::camera" ).emit( data().camera ) ;
         data().bus( "image::camera"         ).emit( data().camera ) ;
         data().interface.start() ;
         
         data().timer.stop() ;
+        fpss[ index % SZ ] = 1000.f / data().timer.time() ;
+        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
         
-        karma::log::Log::output( data().timer.output(), "ms. In fps: ", 1000.f / data().timer.time() ) ;
+        index++ ;
       }
       data().interface.pollEvents() ;
     }

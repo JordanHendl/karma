@@ -83,6 +83,8 @@ namespace kgl
       std::mutex                           sync_mutex            ; ///< The lock to make sure input is recieved one at a time.
       std::mutex                           image_mutex           ; ///< The lock to make sure input is recieved one at a time.
       unsigned                             current_command       ; ///< The current command being processed.
+      bool                                 debug                 ;
+
       /** Default Constructor. Initializes member data.
        */
       CombinerData() ;
@@ -95,6 +97,11 @@ namespace kgl
       /** Method to reset the input found flags.
        */
       void resetFound() ;
+      
+      /**
+       * @param val
+       */
+      void setDebug( bool val ) ;
 
       /** Method to set the GPU this object uses for operations.
        */
@@ -137,6 +144,7 @@ namespace kgl
       this->found_image_input[7] = false ;
       this->found_image_input[8] = false ;
       this->found_image_input[9] = false ;
+      this->debug                = false ;
     }
     
     void CombinerData::resetFound() 
@@ -161,6 +169,11 @@ namespace kgl
       this->found_image_input[7] = false ;
       this->found_image_input[8] = false ;
       this->found_image_input[9] = false ;
+    }
+    
+    void CombinerData::setDebug( bool val )
+    {
+      this->debug = val ;
     }
 
     void CombinerData::setOutputImageName( const char* output ) 
@@ -215,7 +228,8 @@ namespace kgl
     void Combiner::inputImageFour( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 3 ].copy( image );
+      data().images           [ 3 ] = image ;
+      data().found_image_input[ 3 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -223,7 +237,8 @@ namespace kgl
     void Combiner::inputImageFive( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 4 ].copy( image );
+      data().images           [ 4 ] = image ;
+      data().found_image_input[ 4 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -231,7 +246,8 @@ namespace kgl
     void Combiner::inputImageSix( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 5 ].copy( image );
+      data().images           [ 5 ] = image ;
+      data().found_image_input[ 5 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -239,7 +255,8 @@ namespace kgl
     void Combiner::inputImageSeven( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 6 ].copy( image );
+      data().images           [ 6 ] = image ;
+      data().found_image_input[ 6 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -247,7 +264,8 @@ namespace kgl
     void Combiner::inputImageEight( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 7 ].copy( image );
+      data().images           [ 7 ] = image ;
+      data().found_image_input[ 7 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -255,7 +273,8 @@ namespace kgl
     void Combiner::inputImageNine( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 8 ].copy( image );
+      data().images           [ 8 ] = image ;
+      data().found_image_input[ 8 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -263,7 +282,8 @@ namespace kgl
     void Combiner::inputImageTen( const ::kgl::vk::Image& image )
     {
       data().image_mutex.lock() ;
-      data().images[ 9 ].copy( image );
+      data().images           [ 9 ] = image ;
+      data().found_image_input[ 9 ] = true  ;
       this->semIncrement() ;
       data().image_mutex.unlock() ;
     }
@@ -297,6 +317,7 @@ namespace kgl
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
       data().found_input[ 2 ] = true ;
+      this->semIncrement() ;
       data().sync_mutex.unlock() ;
     }
     
@@ -640,6 +661,7 @@ namespace kgl
         data().uniforms[ i ].initialize( data().gpu                ) ;
       }
       
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       data().profiler       .initialize          ( ""                                   ) ;
       data().syncs.seek( 0 ).initialize          ( data().gpu                           ) ;
       data().syncs.seek( 1 ).initialize          ( data().gpu                           ) ;
@@ -647,7 +669,7 @@ namespace kgl
       data().vertices       .initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16 ) ;
       data().indices        .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6  ) ;
       
-      data().pass.setImageFinalLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
+//      data().pass.setImageFinalLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
       data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
       data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
@@ -699,6 +721,7 @@ namespace kgl
       data().bus( json_path.c_str(), "::input_image_ten"   ).attach( this         , &Combiner::setInputImageNameTen   ) ;
       data().bus( json_path.c_str(), "::output"            ).attach( this->data_2d, &CombinerData::setOutputName      ) ;
       data().bus( json_path.c_str(), "::output_image"      ).attach( this->data_2d, &CombinerData::setOutputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"             ).attach( this->data_2d, &CombinerData::setDebug           ) ;
       
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -723,7 +746,7 @@ namespace kgl
       data().sync_mutex.unlock() ;
 
       data().image_mutex.lock() ;
-      for( unsigned i = 0; i < 10; i++ ) images[ i ] = ( data().images[ i ] ) ;
+      for( unsigned i = 0; i < data().num_inputs / 2; i++ ) images[ i ] = ( data().images[ i ] ) ;
       data().image_mutex.unlock() ;
       
       data().resetFound() ;
@@ -738,7 +761,7 @@ namespace kgl
         data().buffers.value().drawIndexed( 6, data().indices.buffer(), data().vertices.buffer() ) ;
         data().sets.push( set ) ;
         
-        if( data().sets.size() > 2 )
+        if( data().sets.size() > 20 )
         {
           data().sets.front().reset() ;
           data().sets.pop() ;
@@ -753,6 +776,7 @@ namespace kgl
       data().output( sync ) ;
       
       data().profiler.stop() ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     CombinerData& Combiner::data()

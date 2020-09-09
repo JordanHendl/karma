@@ -47,14 +47,38 @@ namespace kgl
       void setPath( const char* path ) ;
       void setGPU( unsigned gpu ) ;
     };
+    
+    struct FontSetup
+    {
+      ::kgl::man::AssetManager manager ;
+      data::module::Bus        bus     ;
+      std::string              name    ;
+      std::string              path    ;
+      unsigned                 gpu     ;
+      unsigned                 width   ;
+      unsigned                 height  ;
+      unsigned                 size    ;
+
+      FontSetup() ;
+      void add() ;
+      void initialize( const char* name ) ;
+      void setName( const char* name ) ;
+      void setPath( const char* path ) ;
+      void setWidth( unsigned width ) ;
+      void setHeight( unsigned height ) ;
+      void setSize( unsigned height ) ;
+      void setGPU( unsigned gpu ) ;
+    };
 
     struct DatabaseData
     {
       typedef std::map<std::string, ImageSetup > ImageSets ;
       typedef std::map<std::string, SheetSetup > SheetSets ;
+      typedef std::map<std::string, FontSetup  > FontSets  ;
     
       ImageSets                   image_sets    ; 
       SheetSets                   sheet_sets    ; 
+      FontSets                    font_sets     ; 
       std::string                 database_path ;
       data::module::Bus           bus           ;
       karma::config::json::Parser parser        ;
@@ -70,6 +94,7 @@ namespace kgl
         this->bus( key ).emit( token.string() ) ;
       }
       
+      void fontName( const char* name ) ;
       void sheetName( const char* name ) ;
       void imageName( const char* name ) ;
     };
@@ -102,6 +127,61 @@ namespace kgl
       this->bus( "spritesheets::", name, "::sprite_height" ).attach( this, &SheetSetup::setSpriteHeight ) ;
     }
 
+    FontSetup::FontSetup()
+    {
+      this->gpu    = 0    ;
+      this->path   = ""   ;
+      this->width  = 1280 ;
+      this->height = 1280 ;
+      this->size   = 32   ;
+    }
+
+    void FontSetup::add()
+    {
+      this->manager.addFont( this->path.c_str(), this->name.c_str(), this->width, this->height, this->size, this->gpu ) ;
+    }
+
+    void FontSetup::initialize( const char* name )
+    {
+      this->setName( name ) ;
+      karma::log::Log::output( "Adding font ", this->name.c_str(), " to database." ) ;
+      this->bus( "font::", name, "::path"   ).attach( this, &FontSetup::setPath   ) ;
+      this->bus( "font::", name, "::gpu"    ).attach( this, &FontSetup::setGPU    ) ;
+      this->bus( "font::", name, "::width"  ).attach( this, &FontSetup::setWidth  ) ;
+      this->bus( "font::", name, "::height" ).attach( this, &FontSetup::setHeight ) ;
+      this->bus( "font::", name, "::size"   ).attach( this, &FontSetup::setSize   ) ;
+    }
+
+    void FontSetup::setName( const char* name )
+    {
+      this->name = name ;
+    }
+
+    void FontSetup::setPath( const char* path )
+    {
+      this->path = path ;
+    }
+
+    void FontSetup::setWidth( unsigned width )
+    {
+      this->width = width ;
+    }
+
+    void FontSetup::setHeight( unsigned height )
+    {
+      this->height = height ;
+    }
+
+    void FontSetup::setSize( unsigned size )
+    {
+      this->size = size ;
+    }
+
+    void FontSetup::setGPU( unsigned gpu )
+    {
+      this->gpu = gpu ;
+    }
+      
     void SheetSetup::setName( const char* name )
     {
       this->name = name ;
@@ -175,6 +255,15 @@ namespace kgl
       } 
     }
     
+    void DatabaseData::fontName( const char* name )
+    {
+      if( this->font_sets.find( name ) == this->font_sets.end() )
+      {
+        this->font_sets.insert( { std::string( name ), FontSetup() } ) ;
+        this->font_sets.at( name ).initialize( name ) ;
+      } 
+    }
+    
     void DatabaseData::imageName( const char* name )
     {
       if( this->image_sets.find( name ) == this->image_sets.end() )
@@ -204,6 +293,13 @@ namespace kgl
       return *this->db_data ;
     }
     
+    void Database::loadFont( const char* name )
+    {
+      auto iter = data().font_sets.find( name ) ;
+      
+      if( iter != data().font_sets.end() ) iter->second.add() ;
+    }
+    
     void Database::loadImage( const char* name )
     {
       auto iter = data().image_sets.find( name ) ;
@@ -230,6 +326,7 @@ namespace kgl
       data().bus( "database_path" ).attach( this->db_data, &DatabaseData::setDBPath ) ;
       data().bus( "spritesheets"  ).attach( this->db_data, &DatabaseData::sheetName ) ;
       data().bus( "textures"      ).attach( this->db_data, &DatabaseData::imageName ) ;
+      data().bus( "font"          ).attach( this->db_data, &DatabaseData::fontName  ) ;
     }
   }
 }

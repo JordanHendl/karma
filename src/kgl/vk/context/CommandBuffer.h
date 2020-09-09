@@ -89,7 +89,11 @@ namespace kgl
 
           /**
            */
-          void record( ::kgl::vk::RenderPass& pass ) const ;
+          void record( ::kgl::vk::RenderPass& pass ) const ;\
+
+          /**
+           */
+          void beginRenderPass( ::kgl::vk::RenderPass& pass ) const ;
           
           /**
            * @param command
@@ -108,7 +112,7 @@ namespace kgl
           /**
            * @param vertices
            */
-          void draw( const ::vk::Buffer vertices, unsigned element_size ) ;
+          void draw( const ::vk::Buffer vertices, unsigned element_size, unsigned offset = 0 ) ;
           
           /**
            * @param vertices

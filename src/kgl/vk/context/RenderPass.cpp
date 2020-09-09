@@ -108,7 +108,7 @@ namespace kgl
       for( auto &image : this->images )
       {
         image.initialize( this->gpu, width, height ) ;
-        image.setLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
+        image.setLayout( ::vk::ImageLayout::eGeneral ) ;
       }
       
       for( unsigned i = 0; i < num_framebuffers; i++ )
@@ -149,7 +149,7 @@ namespace kgl
       sub_dep.setSrcStageMask ( this->dependency_conf.src_stage_mask  ) ;
       sub_dep.setDstStageMask ( this->dependency_conf.dst_stage_mask  ) ;
       
-      attach_ref.setLayout    ( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
+      attach_ref.setLayout    ( ::vk::ImageLayout::eGeneral ) ;
       attach_ref.setAttachment( 0                                          ) ;
        
       sub_desc.setPipelineBindPoint   ( ::vk::PipelineBindPoint::eGraphics                                 ) ;
@@ -259,17 +259,16 @@ namespace kgl
     {
       static const std::vector<::vk::PipelineStageFlags> flags( 100, ::vk::PipelineStageFlagBits::eColorAttachmentOutput ) ;
 
-      const ::vk::CommandBuffer      cmd            = buffer.buffer             ( current_image         ) ;
+      const ::vk::CommandBuffer cmd = buffer.buffer( current_image ) ;
       ::vk::SubmitInfo  info  ;
       
       info.setWaitSemaphoreCount  ( sync.numWaitSems()   ) ;
       info.setPWaitSemaphores     ( sync.waitSems()      ) ;
       info.setSignalSemaphoreCount( sync.numSignalSems() ) ;
       info.setPSignalSemaphores   ( sync.signalSems()    ) ;
-      info.setPWaitDstStageMask   (  flags.data()        ) ;
-      
-      info.setCommandBufferCount  ( 1    ) ;
-      info.setPCommandBuffers     ( &cmd ) ;
+      info.setPWaitDstStageMask   ( flags.data()         ) ;
+      info.setCommandBufferCount  ( 1                    ) ;
+      info.setPCommandBuffers     ( &cmd                 ) ;
       
       buffer.submit( info, sync ) ;
     }

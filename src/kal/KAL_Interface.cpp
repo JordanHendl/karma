@@ -31,23 +31,23 @@ struct KAL_InterfaceData
   bool                           initialized        ; ///< Whether or not the audio library is initialized.
 
   void fixString( std::string& str ) ;
-  void playSound( const char* img_name ) ;
+  void playSound( unsigned loops, const char* img_name ) ;
   void playMusic( unsigned loops, const char* img_name ) ;
   void setDatabasePath( const char* path ) ;
   void directoryCheck() ;
 };
 
 
-void KAL_InterfaceData::playSound( const char* name )
+void KAL_InterfaceData::playSound( unsigned loops, const char* name )
 {
   auto iter = this->sound_map.find( name ) ;
   
   if( iter == this->sound_map.end() )
   {
     this->sound_map.insert( { name, Mix_LoadWAV( this->database.sound( name ) ) } ) ;
-    Mix_PlayChannel( -1, this->sound_map[ name ], 0 ) ;
+    Mix_PlayChannel( -1, this->sound_map[ name ], loops ) ;
   }
-  else Mix_PlayChannel( -1, iter->second, 0 ) ;
+  else Mix_PlayChannel( -1, iter->second, loops ) ;
 }
 
 void KAL_InterfaceData::playMusic( unsigned loops, const char* name )

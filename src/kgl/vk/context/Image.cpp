@@ -62,6 +62,13 @@ namespace kgl
        * @param old_layout
        * @param new_layout
        */
+      void transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout, ::vk::CommandBuffer& buffer ) const ;
+      
+      /**
+       * @param format
+       * @param old_layout
+       * @param new_layout
+       */
       void transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout ) const ;
       
       /**
@@ -154,7 +161,7 @@ namespace kgl
 
       info.setImage           ( this->img                   ) ;
       info.setViewType        ( ::vk::ImageViewType::e2D    ) ;
-      info.setFormat          ( ::vk::Format::eR8G8B8A8Srgb ) ;
+      info.setFormat          ( this->format                ) ;
       info.setSubresourceRange( range                       ) ;
       
       this->image_view = this->device.createImageView( info, nullptr ) ;
@@ -184,6 +191,42 @@ namespace kgl
       this->sampler = this->device.createSampler( info, nullptr ) ;
     }
 
+    void ImageData::transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout, ::vk::CommandBuffer& buffer ) const
+    {
+      ::vk::ImageMemoryBarrier    barrier ;
+      ::vk::ImageSubresourceRange range   ;
+      ::vk::PipelineStageFlags    src     ;
+      ::vk::PipelineStageFlags    dest    ;
+      ::vk::DependencyFlags       flags   ;
+
+      range.setBaseArrayLayer( 0                                 ) ;
+      range.setBaseMipLevel  ( 0                                 ) ;
+      range.setLevelCount    ( 1                                 ) ;
+      range.setLayerCount    ( 1                                 ) ;
+      range.setAspectMask    ( ::vk::ImageAspectFlagBits::eColor ) ;
+      
+      barrier.setOldLayout       ( old_layout ) ;
+      barrier.setNewLayout       ( new_layout ) ;
+      barrier.setImage           ( this->img  ) ;
+      barrier.setSubresourceRange( range      ) ;
+      barrier.setSrcAccessMask   ( ::vk::AccessFlagBits::eShaderRead ) ;
+      barrier.setDstAccessMask   ( ::vk::AccessFlagBits::eColorAttachmentWrite ) ;
+      
+//      if( old_layout != ::vk::ImageLayout::eUndefined )
+//      {
+//        barrier.setSrcAccessMask( accessFromLayout( old_layout ) ) ;
+//      }
+      flags = ::vk::DependencyFlagBits::eDeviceGroup ;
+      barrier.setDstAccessMask( accessFromLayout( new_layout ) ) ;
+//      src  = flagFromLayout( old_layout ) ;
+//      dest = flagFromLayout( new_layout ) ;
+      src  = ::vk::PipelineStageFlagBits::eAllCommands           ;
+      dest = ::vk::PipelineStageFlagBits::eFragmentShader        ;
+
+      buffer.pipelineBarrier( src, dest, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
+      this->layout = new_layout ;
+    }
+    
     void ImageData::transitionLayout( ::vk::Format format, ::vk::ImageLayout old_layout, ::vk::ImageLayout new_layout ) const
     {
       ::vk::ImageMemoryBarrier    barrier ;
@@ -205,7 +248,6 @@ namespace kgl
       barrier.setSrcAccessMask   ( ::vk::AccessFlagBits::eMemoryRead ) ;
       barrier.setDstAccessMask   ( ::vk::AccessFlagBits::eMemoryWrite ) ;
       
-      this->cmd_buffer.record() ;
       
       if( old_layout != ::vk::ImageLayout::eUndefined )
       {
@@ -216,11 +258,10 @@ namespace kgl
       src  = flagFromLayout( old_layout ) ;
       dest = flagFromLayout( new_layout ) ;
 
+      this->cmd_buffer.record() ;
       this->cmd_buffer.buffer( 0 ).pipelineBarrier( src, dest, flags, 0, nullptr, 0, nullptr, 1, &barrier ) ;
       this->cmd_buffer.stop() ;
       this->cmd_buffer.submit() ;
-      this->cmd_buffer.wait() ;
-      this->layout = new_layout ;
     }
 
     void ImageData::copyBufferToImage( ::vk::Buffer buffer )
@@ -347,7 +388,14 @@ namespace kgl
 
     void ImageData::generateVulkanImage()
     {
-      auto usage =  ::vk::ImageUsageFlagBits::eTransferSrc | ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled | ::vk::ImageUsageFlagBits::eColorAttachment ;
+      auto usage =  ::vk::ImageUsageFlagBits::eTransferSrc | ::vk::ImageUsageFlagBits::eTransferDst | ::vk::ImageUsageFlagBits::eSampled ;
+      if( this->format == ::vk::Format::eR8G8B8A8Srgb )
+      {
+        usage |= ::vk::ImageUsageFlagBits::eColorAttachment ;
+      }
+      else
+      {
+      }
 
       ::vk::ImageCreateInfo info   ;
       ::vk::Extent3D        extent ;
@@ -359,7 +407,7 @@ namespace kgl
       info.setExtent       ( extent                        ) ;
       info.setUsage        ( usage                         ) ;
       info.setImageType    ( ::vk::ImageType::e2D          ) ;
-      info.setFormat       ( ::vk::Format::eR8G8B8A8Srgb   ) ;
+      info.setFormat       ( this->format                  ) ;
       info.setTiling       ( ::vk::ImageTiling::eOptimal   ) ;
       info.setInitialLayout( ::vk::ImageLayout::eUndefined ) ;
       info.setSharingMode  ( ::vk::SharingMode::eExclusive ) ;
@@ -402,6 +450,11 @@ namespace kgl
     {
       return data().layout ;
     }
+    
+    void Image::setFormat( const ::vk::Format& format )
+    {
+      data().format = format ;
+    }
 
     void Image::setLayout( const ::vk::ImageLayout& layout ) const
     {
@@ -439,8 +492,8 @@ namespace kgl
       ::vk::DeviceSize     size               ;
       ::vk::MemoryMapFlags flags              ;
 
-      size   = data().width * data().height * 4 ;
-      offset = 0                                ;
+      size   = data().width * data().height * channels ;
+      offset = 0                                       ;
 
       data().createBuffer( size, usage, prop, staging_buffer, staging_buffer_mem ) ;
       data().device.mapMemory( staging_buffer_mem, offset, size, flags, &stage_data ) ;
@@ -455,10 +508,9 @@ namespace kgl
       data().device.freeMemory   ( staging_buffer_mem, nullptr ) ;
     }
     
-    void Image::copy( const Image& img )
+    void Image::copy( const Image& img, Synchronization& sync, ::vk::CommandBuffer& buffer )
     {
       const auto old_layout = img.data().layout ;
-
 
       if( data().width != img.data().width || data().height != img.data().height )
       {
@@ -468,33 +520,12 @@ namespace kgl
         this->initialize( data().gpu, data().width, data().height ) ;
       }
 
-          data().transitionLayout( data().format    , data().layout    , ::vk::ImageLayout::eTransferDstOptimal ) ;
-      img.data().transitionLayout( img.data().format, img.data().layout, ::vk::ImageLayout::eTransferSrcOptimal ) ;
+          data().transitionLayout( data().format    , data().layout    , ::vk::ImageLayout::eTransferDstOptimal, buffer ) ;
+      img.data().transitionLayout( img.data().format, img.data().layout, ::vk::ImageLayout::eTransferSrcOptimal, buffer ) ;
           data().copyImageToImage( img.data().img, img.data().layout ) ;
-          data().transitionLayout( data().format    , ::vk::ImageLayout::eTransferDstOptimal, ::vk::ImageLayout::eGeneral ) ;
-      img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                  ) ;
-    }
-
-    void Image::copy( const Image& img, Synchronization& sync )
-    {
-      const auto old_layout = img.data().layout ;
-
-      if( data().width != img.data().width || data().height != img.data().height )
-      {
-        data().width  = img.data().width  ;
-        data().height = img.data().height ;
-        this->reset() ;
-        this->initialize( data().gpu, data().width, data().height ) ;
-      }
-
-//      data().cmd_buffer.swap( sync ) ;
-
-          data().transitionLayout( data().format    , data().layout    , ::vk::ImageLayout::eTransferDstOptimal ) ;
-      img.data().transitionLayout( img.data().format, img.data().layout, ::vk::ImageLayout::eTransferSrcOptimal ) ;
-      data().copyImageToImage( img.data().img, img.data().layout ) ;
-          data().transitionLayout( data().format    , ::vk::ImageLayout::eTransferDstOptimal, ::vk::ImageLayout::eGeneral ) ;
-      img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                  ) ;
-    }
+          data().transitionLayout( data().format    , ::vk::ImageLayout::eTransferDstOptimal, ::vk::ImageLayout::eGeneral, buffer ) ;
+      img.data().transitionLayout( img.data().format, ::vk::ImageLayout::eTransferSrcOptimal, old_layout                 , buffer ) ;
+    } 
 
     Image& Image::operator=( const Image& image )
     {

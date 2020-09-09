@@ -6,6 +6,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 #ifdef _WIN32
   #include <windows.h>
@@ -18,6 +19,7 @@
 #elif __linux__ 
   #include <pthread.h>
 #include <sys/resource.h>
+#include <condition_variable>
 
   static inline void setThreadPriority()
   {
@@ -43,8 +45,11 @@ namespace kgl
       Flag                    should_run ; ///< TODO
       ::data::module::Bus     bus        ; ///< TODO
       unsigned                num_deps   ;
-      unsigned                wait_sem   ;
+      std::atomic_uint        wait_sem   ;
       unsigned                id         ;
+      std::mutex              mutex      ;
+      std::condition_variable cv         ;
+
       /**
        */
       ModuleData() ;
@@ -77,6 +82,8 @@ namespace kgl
             
     void Module::start()
     {
+      std::unique_lock<std::mutex> lock ;
+      
       data().running    = true ;
       data().should_run = true ;
       
@@ -84,8 +91,9 @@ namespace kgl
       
       while( data().should_run )
       {
-        while ( data().wait_sem < data().num_deps ) { } ;
-
+        lock = std::unique_lock( data().mutex ) ;
+        data().cv.wait( lock, [=]{ return data().wait_sem >= data().num_deps ; } ) ;
+        data().mutex.unlock() ;
         data().wait_sem = 0 ;
 
         this->execute() ;
@@ -143,7 +151,9 @@ namespace kgl
     
     void Module::semIncrement()
     {
-      data().wait_sem++ ;
+      data().wait_sem.fetch_add( 1 ) ;
+      
+      if( data().wait_sem >= data().num_deps ) data().cv.notify_one() ;
     }
 
     const char* Module::name() const

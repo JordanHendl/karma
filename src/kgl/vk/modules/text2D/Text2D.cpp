@@ -1,11 +1,12 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
-#include "SpriteSheet.h"
+#include "Text2D.h"
 #include "Bus.h"
 #include "Signal.h"
 #include <log/Log.h>
 #include <profiling/Timer.h>
+#include "io/Font.h"
 #include "vk/context/Buffer.h"
 #include "vk/context/Window.h"
 #include "vk/context/Swapchain.h"
@@ -41,14 +42,12 @@ namespace kgl
   {
     struct Transformation
     {
+      glm::vec2 vert  ;
+      glm::vec2 tex   ;
       glm::mat4 model ;
-      glm::vec2 bl    ;
-      glm::vec2 tr    ;
-      glm::vec2 tl    ;
-      glm::vec2 br    ;
     };
 
-    struct SpriteSheetData
+    struct Text2DData
     {
       struct Material
       {
@@ -56,11 +55,12 @@ namespace kgl
         DescriptorSet set     ;
       };
 
-      static constexpr unsigned BUFFERS = 3 ; // Todo make this 
+      static constexpr unsigned BUFFERS = 6 ; // Todo make this 
       typedef std::map<std::string, Material>                               Materials  ;
-      typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>                   Stack      ;
+      typedef ::kgl::BufferedStack<TextCommand, BUFFERS>                    Stack      ;
       typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffers ;
       typedef kgl::containers::Layered<Synchronization                 , 3> Syncs      ;
+      typedef std::vector<Transformation>                                   Transforms ;
 
       std::vector<float> vert = 
       { 
@@ -73,18 +73,7 @@ namespace kgl
         1.0f, 0.0f, 1
       };
       
-//      std::vector<float> vert = 
-//      { 
-//        // pos      // tex
-//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
-//        1.0f, 0.0f, 1.0f, 0.0f,// Top Right
-//        0.0f, 0.0f, 0.0f, 0.0f,// Top Left
-//       // 
-//        0.0f, 1.0f, 0.0f, 1.0f,// Bottom Left
-//        1.0f, 1.0f, 1.0f, 1.0f,// Bottom Right
-//        1.0f, 0.0f, 1.0f, 0.0f // Top Right
-//      };
-      
+      Transforms                       transforms        ;
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
       Stack                            commands          ;
@@ -107,16 +96,17 @@ namespace kgl
       std::string                      output_name       ; ///< The name of this object's synchronization output.
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
-      SheetCommand                     current_cmd       ; ///< The current command that is being processed.
+      TextCommand                      current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
       unsigned                         resx              ;
       unsigned                         resy              ;
+      unsigned                         buffer_offset     ;
       bool                             found_input       ;
       
       /** Default Constructor. Initializes member data.
        */
-      SpriteSheetData() ;
+      Text2DData() ;
       
       /** Method to set this object's window's name.
        * @param name The name of window this object uses.
@@ -152,15 +142,11 @@ namespace kgl
       
       /** Method to push a command to this object for operation.
       */
-      void setCommand( const ::kgl::SheetCommand& cmd ) ;
-      
-      /** Method to prepare the transformation matrix of this object for rendering.
-       */
-      void setUpModelMatrix() ;
+      void setCommand( const ::kgl::TextCommand& cmd ) ;
       
       /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
        */
-      Transformation setUpTextureCoords( const ::kgl::man::Atlas& sheet ) ;
+      unsigned setUpTextureCoords( const ::kgl::TextCommand& cmd ) ;
 
       /** Method to output this object's data.
        */
@@ -175,7 +161,7 @@ namespace kgl
       void setDebug( bool val ) ;
     };
     
-    SpriteSheetData::SpriteSheetData()
+    Text2DData::Text2DData()
     {
       this->resx           = 0     ;
       this->resy           = 0     ;
@@ -184,27 +170,27 @@ namespace kgl
       this->view           = glm::mat4( 1.f ) ;
     }
     
-    void SpriteSheetData::setDebug( bool val )
+    void Text2DData::setDebug( bool val )
     {
       this->debug = val ;
     }
 
-    void SpriteSheetData::pop()
+    void Text2DData::pop()
     {
       this->current_cmd = this->commands.pop() ;
     }
 
-    void SpriteSheetData::setResolutionX( unsigned x )
+    void Text2DData::setResolutionX( unsigned x )
     {
       this->resx = x ;
     }
     
-    void SpriteSheetData::setResolutionY( unsigned y )
+    void Text2DData::setResolutionY( unsigned y )
     {
       this->resy = y ;
     }
     
-    void SpriteSheetData::setCamera( const ::kgl::Camera& camera )
+    void Text2DData::setCamera( const ::kgl::Camera& camera )
     {
       const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
       const glm::vec3 front = glm::vec3( camera.frontX(), camera.frontY(), camera.frontZ() ) ;
@@ -213,114 +199,112 @@ namespace kgl
         this->view = glm::lookAt( pos, pos + front, up ) ;
     }
     
-    void SpriteSheetData::setCommand( const ::kgl::SheetCommand& cmd )
+    void Text2DData::setCommand( const ::kgl::TextCommand& cmd )
     {
-      auto iter = this->materials.find( cmd.sheet() ) ;
+      auto iter = this->materials.find( cmd.font() ) ;
       
       this->commands.insert( cmd, this->commands.next() ) ;
 
       // If we don't have enough uniform objects for the amount of commands we have, scale up.
       if( iter == this->materials.end() )
       {
-        if( this->manager.contains( cmd.sheet() ) )
+        if( this->manager.contains( cmd.font() ) )
         {
-          auto mat = this->materials.emplace( cmd.sheet(), Material() ) ;
+          auto mat = this->materials.emplace( cmd.font(), Material() ) ;
 
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                  ) ;
-          mat.first->second.uniform.initialize( this->gpu                                                ) ;
-          mat.first->second.uniform.addImage  ( "image"     , this->manager.atlas( cmd.sheet() ).image() ) ;
-          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection       ) ;
-          mat.first->second.uniform.add       ( "camera", Uniform::Type::UBO , this->view                ) ;
+          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()            ) ;
+          mat.first->second.uniform.initialize( this->gpu                                          ) ;
+          mat.first->second.uniform.addImage  ( "image"     , this->manager.fontMap( cmd.font() )  ) ;
+          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection ) ;
+          mat.first->second.uniform.add       ( "camera", Uniform::Type::UBO    , this->view       ) ;
           mat.first->second.set.set( mat.first->second.uniform ) ;
+          this->device.waitIdle() ;
         }
       }
     }
 
-    Transformation SpriteSheetData::setUpTextureCoords( const ::kgl::man::Atlas& sheet )
+    unsigned Text2DData::setUpTextureCoords( const ::kgl::TextCommand& cmd )
     {
-      Transformation ret ;
-      const unsigned sprite             = this->current_cmd.index()                        ;
-      const unsigned sprite_width       = sheet.spriteWidth()                              ;
-      const unsigned sprite_height      = sheet.spriteHeight()                             ;
-      const unsigned image_width        = sheet.image().width()                            ;
-      const unsigned image_height       = sheet.image().height()                           ;
-      const unsigned num_sprites_in_row = image_width  / sprite_width                      ; 
-      const unsigned sprite_y_index     = sprite / num_sprites_in_row                      ;
-      const unsigned sprite_x_index     = sprite - ( sprite_y_index * num_sprites_in_row ) ;
-      const unsigned sprite_ypixel      = sprite_y_index * sprite_height                   ;
-      const unsigned sprite_xpixel      = sprite_x_index * sprite_width                    ;
+      this->transforms.clear() ;
       
-      const float top_left_x     = static_cast<float>( sprite_xpixel                 ) / static_cast<float>( image_width  ) ;
-      const float top_left_y     = static_cast<float>( sprite_ypixel                 ) / static_cast<float>( image_height ) ;
-      const float top_right_x    = static_cast<float>( sprite_xpixel + sprite_width  ) / static_cast<float>( image_width  ) ;
-      const float top_right_y    = static_cast<float>( sprite_ypixel                 ) / static_cast<float>( image_height ) ;
-      const float bottom_left_x  = static_cast<float>( sprite_xpixel                 ) / static_cast<float>( image_width  ) ;
-      const float bottom_left_y  = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
-      const float bottom_right_x = static_cast<float>( sprite_xpixel + sprite_width  ) / static_cast<float>( image_width  ) ;
-      const float bottom_right_y = static_cast<float>( sprite_ypixel + sprite_height ) / static_cast<float>( image_height ) ;
-      
-      ret.bl.x = bottom_left_x  ;
-      ret.bl.y = bottom_left_y  ;
-      ret.br.x = bottom_right_x ;
-      ret.br.y = bottom_right_y ;
-      ret.tr.x = top_right_x    ;
-      ret.tr.y = top_right_y    ;
-      ret.tl.x = top_left_x     ;
-      ret.tl.y = top_left_y     ;
-      
-      return ret ;
-    }
+      const std::string text   = std::string( " " ) + cmd.text()                               ;
+      const auto        ptr    = this->manager.font( cmd.font() ).glyphs( text.c_str(), 0, 0 ) ;
+      const float w = cmd.width()    ;
+      const float h = cmd.height()   ;
+      const float r = cmd.rotation() ;
 
-    void SpriteSheetData::setUpModelMatrix()
-    {
-      const float       x   = this->current_cmd.posX()     ;
-      const float       y   = this->current_cmd.posY()     ;
-      const float       w   = this->current_cmd.width()    ;
-      const float       h   = this->current_cmd.height()   ;
-      const float       r   = this->current_cmd.rotation() ;
-      const std::string img = this->current_cmd.sheet()    ;
+      glm::mat4                   model     ;
+      std::vector<kgl::io::Glyph> glyphs    ;
+      Transformation              transform ;
 
       glm::vec2 size ;
-     
-      if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
+      size = glm::vec2( w, h ) ;
+
+      glyphs.resize( text.size() ) ;
+      glyphs.assign( ptr, ptr + text.size() ) ;
+      for( auto glyph : glyphs )
       {
-        const auto image = &this->manager.atlas( this->current_cmd.sheet() ) ;
-        size = glm::vec2( image->spriteWidth(), image->spriteHeight() ) ;
-      }
-      else
-      {
-        size = glm::vec2( w, h ) ;
+        model = glm::mat4( 1.f ) ;
+
+        glm::vec3 pos( cmd.posX(), cmd.posY(), 0.0f ) ;
+        model = glm::translate( model, pos ) ;
+
+        model = glm::translate( model, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
+        model = glm::rotate   ( model, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
+        model = glm::translate( model, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
+
+        model = glm::scale( model, glm::vec3( size, 1.0f ) ) ; 
+        transform.model = model ;
+
+        transform.tex   = glm::vec2( glyph.topLeftX(), glyph.topLeftY() ) ;
+        transform.vert  = glm::vec2( glyph.v0, glyph.v1                 ) ;
+        this->transforms.push_back( transform ) ;
+
+        transform.tex   = glm::vec2( glyph.bottomRightX(), glyph.bottomRightY() ) ;
+        transform.vert  = glm::vec2( glyph.v2, glyph.v3                         ) ;
+        this->transforms.push_back( transform ) ;
+
+        transform.tex   = glm::vec2( glyph.bottomLeftX(), glyph.bottomLeftY() ) ;
+        transform.vert  = glm::vec2( glyph.v0, glyph.v3                       ) ;
+        this->transforms.push_back( transform ) ;
+
+        transform.tex   = glm::vec2( glyph.topLeftX(), glyph.topLeftY() ) ;
+        transform.vert  = glm::vec2( glyph.v0, glyph.v1                 ) ;
+        this->transforms.push_back( transform ) ;
+
+        transform.tex   = glm::vec2( glyph.topRightX(), glyph.topRightY() ) ;
+        transform.vert  = glm::vec2( glyph.v2, glyph.v1                   ) ;
+        this->transforms.push_back( transform ) ;
+
+        transform.tex   = glm::vec2( glyph.bottomRightX(), glyph.bottomRightY() ) ;
+        transform.vert  = glm::vec2( glyph.v2, glyph.v3                         ) ;
+        this->transforms.push_back( transform ) ;
       }
 
-      this->model_matrix = glm::mat4( 1.f ) ;
+      this->vertices.copyToDevice( this->transforms.data(), this->transforms.size(), this->buffer_offset ) ;
       
-      glm::vec3 pos( x, y, 0.0f ) ;
-      this->model_matrix = glm::translate( this->model_matrix, pos ) ;
+      this->buffer_offset += this->transforms.size() * sizeof( Transformation ) ;
       
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
-      this->model_matrix = glm::rotate   ( this->model_matrix, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
-
-      this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
+      return this->transforms.size() ;
     }
 
-    void SpriteSheetData::setOutputImageName( const char* output ) 
+    void Text2DData::setOutputImageName( const char* output ) 
     {
       this->output_image_name = output ;
     }
 
-    void SpriteSheetData::setWindowName( const char* name )
+    void Text2DData::setWindowName( const char* name )
     {
       this->window_name = name ;
     }
 
-    void SpriteSheetData::setGPU( unsigned gpu )
+    void Text2DData::setGPU( unsigned gpu )
     {
       this->gpu    = gpu                                ;
       this->device = this->context.virtualDevice( gpu ) ;
     }
     
-    void SpriteSheet::input( const ::kgl::vk::Synchronization& sync )
+    void Text2D::input( const ::kgl::vk::Synchronization& sync )
     {
       data().mutex.lock() ;
       data().syncs.value().clear() ;
@@ -329,7 +313,7 @@ namespace kgl
       data().mutex.unlock() ;
     }
 
-    void SpriteSheetData::output( const Synchronization& sync )
+    void Text2DData::output( const Synchronization& sync )
     {
       const unsigned index = this->context.currentSwap( this->window_name.c_str() ) ;
      
@@ -337,36 +321,36 @@ namespace kgl
       this->bus( this->output_name      .c_str() ).emit( sync                      ) ;
     }
 
-    void SpriteSheet::setInputName( const char* name )
+    void Text2D::setInputName( const char* name )
     {
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !data().found_input )
       {
-        data().bus( name ).attach( this, &SpriteSheet::input ) ;
+        data().bus( name ).attach( this, &Text2D::input ) ;
         data().found_input = true ;
       }
     }
 
-    void SpriteSheetData::setOutputName( const char* name )
+    void Text2DData::setOutputName( const char* name )
     {
       this->output_name = name ;
     }
 
-    SpriteSheet::SpriteSheet()
+    Text2D::Text2D()
     {
-      this->data_2d = new SpriteSheetData() ;
+      this->data_2d = new Text2DData() ;
     }
     
-    SpriteSheet::~SpriteSheet()
+    Text2D::~Text2D()
     {
       delete this->data_2d ;
     }
 
-    void SpriteSheet::resize()
+    void Text2D::resize()
     {
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/text2d.uwu"                                   ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       pipeline_path = ::kgl::vk::basePath() ;
@@ -397,12 +381,12 @@ namespace kgl
       for( auto &uni : data().materials ) uni.second.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
     }
 
-    void SpriteSheet::initialize()
+    void Text2D::initialize()
     {
       const unsigned     MAX_SETS = 5                                                   ; ///< The max number of descriptor sets allowed.
       const unsigned     width    = data().context.width ( data().window_name.c_str() ) ; ///< Width of the screen.
       const unsigned     height   = data().context.height( data().window_name.c_str() ) ; ///< Height of the screen.
-      static const char* path     = "/uwu/sprite.uwu"                                   ; ///< Path to this object's shader in the local-directory.
+      static const char* path     = "/uwu/text2d.uwu"                                   ; ///< Path to this object's shader in the local-directory.
       std::string pipeline_path ;
       
       this->setNumDependancies( 1 ) ;
@@ -411,22 +395,21 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
-      
-      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) + ( sizeof( glm::vec2 ) * 4 )           ) ;
+      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
+      data().pipeline.setPushConstantByteSize ( ( sizeof( glm::vec4 ) )                                     ) ;
       data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
 
-      data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       // Initialize vulkan objects.
-      data().vertices        .initialize<float>( data().gpu, Buffer::Type::VERTEX, 18                                                   ) ;
-      data().pass            .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer.seek( 0 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 1 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 2 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().pipeline        .initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
-      data().pool            .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
-      data().syncs.seek( 0 ) .initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 1 ) .initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 2 ) .initialize       ( data().gpu                                                                             ) ;
+      data().vertices        .initialize<Transformation>( data().gpu, Buffer::Type::VERTEX, 10000, true                        ) ;
+      data().pass            .initialize                ( data().window_name.c_str(), data().gpu                               ) ;
+      data().buffer.seek( 0 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().buffer.seek( 1 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().buffer.seek( 2 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      data().pipeline        .initialize                ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass() ) ;
+      data().pool            .initialize                ( data().gpu, MAX_SETS, data().pipeline.shader()                       ) ;
+      data().syncs.seek( 0 ) .initialize                ( data().gpu                                                           ) ;
+      data().syncs.seek( 1 ) .initialize                ( data().gpu                                                           ) ;
+      data().syncs.seek( 2 ) .initialize                ( data().gpu                                                           ) ;
       
       // Initialize data.
       data().profiler.initialize() ;
@@ -441,22 +424,19 @@ namespace kgl
       {
         data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
       }
-      
-      // Copy vertex data to the device.
-      data().vertices.copyToDevice( data().vert.data() ) ;
     }
 
-    void SpriteSheet::shutdown()
+    void Text2D::shutdown()
     {
 //      data().sync    .reset() ; ///TODO
 //      data().uniform .reset() ; ///TODO
-      data().vertices.reset() ; 
-//      data().pass    .reset() ; ///TODO
 //      data().buffer  .reset() ; ///TODO
-//      data().pipeline.reset() ; ///TODO
+      data().vertices.reset() ; 
+      data().pass    .reset() ; 
+      data().pipeline.reset() ; 
     }
 
-    void SpriteSheet::subscribe( const char* pipeline, unsigned id )
+    void Text2D::subscribe( const char* pipeline, unsigned id )
     {
       const std::string json_path = std::string( "Graphs::" ) + std::string( pipeline ) + std::string( "::Modules::" ) + std::string( this->name() ) ;
       data().name = this->name() ;
@@ -465,21 +445,21 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
       
       // Graph-specific JSON-parameters.
-      data().bus( "Graphs::", pipeline, "::window" ).attach( this->data_2d, &SpriteSheetData::setWindowName ) ;
-      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &SpriteSheetData::setGPU        ) ;
+      data().bus( "Graphs::", pipeline, "::window" ).attach( this->data_2d, &Text2DData::setWindowName ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"    ).attach( this->data_2d, &Text2DData::setGPU        ) ;
       
       // Module-specific JSON-parameters.
-      data().bus( json_path.c_str(), "::input"        ).attach( this         , &SpriteSheet::setInputName           ) ;
-      data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId       ) ;
-      data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &SpriteSheetData::setOutputName      ) ;
-      data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &SpriteSheetData::setOutputImageName ) ;
-      data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &SpriteSheetData::setDebug           ) ;
-      data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &SpriteSheetData::setResolutionX     ) ;
-      data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &SpriteSheetData::setResolutionY     ) ;
+      data().bus( json_path.c_str(), "::input"        ).attach( this         , &Text2D::setInputName           ) ;
+      data().bus( json_path.c_str(), "::sem_id"       ).attach( dynamic_cast<Module*>( this ), &Module::setId  ) ;
+      data().bus( json_path.c_str(), "::output"       ).attach( this->data_2d, &Text2DData::setOutputName      ) ;
+      data().bus( json_path.c_str(), "::output_image" ).attach( this->data_2d, &Text2DData::setOutputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Text2DData::setDebug           ) ;
+      data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &Text2DData::setResolutionX     ) ;
+      data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &Text2DData::setResolutionY     ) ;
       
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
-      data().bus( this->name(), "::camera" ).attach( this->data_2d, &SpriteSheetData::setCamera  ) ;
+      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &Text2DData::setCommand ) ;
+      data().bus( this->name(), "::camera" ).attach( this->data_2d, &Text2DData::setCamera  ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -488,11 +468,13 @@ namespace kgl
       data().bus( json_path.c_str(), "::ViewportMaxDepth" ).emit( 0, 1.f ) ;
     }
 
-    void SpriteSheet::execute()
+    void Text2D::execute()
     {
-      Transformation  transform ;
-      Synchronization sync      ;
-
+      Synchronization sync  ;
+      glm::vec4       color ;
+      unsigned        index ;
+      unsigned        sz    ;
+      
       data().profiler.start() ;
       data().commands.swap() ;
       data().mutex.lock() ;
@@ -503,37 +485,48 @@ namespace kgl
       
       if( !data().commands.empty() )
       {
-        data().buffer.value().record( data().pass ) ;
+        data().buffer.value().record() ;
+        data().buffer.value().beginRenderPass( data().pass ) ;
+
+        index                = 0 ;
+        data().buffer_offset = 0 ;
+
         while( !data().commands.empty() )
         {
           // Pop latest draw command off the stack.
           data().pop() ;
-          
-          auto iter = data().materials.find( data().current_cmd.sheet() ) ;
-          // Build Transformation Matrix.
-          data().setUpModelMatrix()                                                       ;
-          transform = data().setUpTextureCoords( data().manager.atlas( data().current_cmd.sheet() ) ) ;
-          
-          transform.model = data().model_matrix ;
 
+          color.x = data().current_cmd.red()   ;
+          color.y = data().current_cmd.green() ;
+          color.z = data().current_cmd.blue()  ;
+          color.w = data().current_cmd.alpha() ;
+
+          // Build Transformation Matrix.
+          sz = data().setUpTextureCoords( data().current_cmd ) ;
+          
+          auto iter = data().materials.find( data().current_cmd.font() ) ;
+          
           // Bind pipeline and descriptor set to the command buffer.
           iter->second.uniform.add( "camera", Uniform::Type::UBO , data().view ) ;
 
           data().pipeline.bind( data().buffer.value(), iter->second.set ) ;
-          data().buffer.value().pushConstant( transform, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
+          data().buffer.value().pushConstant( color, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
-          data().buffer.value().draw( data().vertices.buffer(), 6  ) ;
+          data().buffer.value().draw( data().vertices.buffer(), sz, data().buffer_offset - ( sz * sizeof( Transformation ) ) ) ;
+          index++ ;
         }
+          data().buffer.value().stop() ;
+          data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
+          data().buffer.swap() ;
         
         // Stop recording the command buffer & Submit to the graphics queue.
-        data().buffer.value().stop() ;
-        data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
       }
       else
       {
         sync.flip() ;
       }
+      
       // Output our synchronization to next module in the graph & reset command index.
       data().output( sync ) ;
       data().profiler.stop() ;
@@ -541,12 +534,12 @@ namespace kgl
       if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
-    SpriteSheetData& SpriteSheet::data()
+    Text2DData& Text2D::data()
     {
       return *this->data_2d ;
     }
 
-    const SpriteSheetData& SpriteSheet::data() const
+    const Text2DData& Text2D::data() const
     {
       return *this->data_2d ;
     }
@@ -557,7 +550,7 @@ namespace kgl
  */
 exported_function const char* name()
 {
-  return "SpriteSheet" ;
+  return "Text2D" ;
 }
 
 /** Exported function to retrieve the version of this module.
@@ -573,7 +566,7 @@ exported_function unsigned version()
  */
 exported_function ::kgl::vk::Module* make( unsigned version )
 {
-  return new ::kgl::vk::SpriteSheet() ;
+  return new ::kgl::vk::Text2D() ;
 }
 
 /** Exported function to destroy an instance of this module.
@@ -581,9 +574,9 @@ exported_function ::kgl::vk::Module* make( unsigned version )
  */
 exported_function void destroy( ::kgl::vk::Module* module )
 {
-  ::kgl::vk::SpriteSheet* mod ;
+  ::kgl::vk::Text2D* mod ;
   
-  mod = dynamic_cast<::kgl::vk::SpriteSheet*>( module ) ;
+  mod = dynamic_cast<::kgl::vk::Text2D*>( module ) ;
   delete mod ;
 }
 

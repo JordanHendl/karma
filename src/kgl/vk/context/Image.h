@@ -3,10 +3,12 @@
 
 namespace vk
 {
-  class Sampler   ;
-  class ImageView ;
-  class Semaphore ;
+  class Sampler          ;
+  class ImageView        ;
+  class Semaphore        ;
+  class CommandBuffer    ;
   enum class ImageLayout ;
+  enum class Format      ;
 }
 
 namespace kgl
@@ -27,11 +29,11 @@ namespace kgl
         const ::vk::ImageView view() const ;
         const ::vk::ImageLayout& layout() const ;
         void setLayout( const ::vk::ImageLayout& layout ) const ;
+        void setFormat( const ::vk::Format& format ) ;
         unsigned width() const ;
         unsigned height() const ;
         void copy( const unsigned char* data, unsigned channels ) ;
-        void copy( const Image& image ) ;
-        void copy( const Image& image, Synchronization& sync ) ;
+        void copy( const Image& image, Synchronization& sync, ::vk::CommandBuffer& buffer ) ;
         void reset() ;
       private:
         struct ImageData *img_data ;

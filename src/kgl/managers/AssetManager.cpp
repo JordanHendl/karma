@@ -2,6 +2,7 @@
 #include "../vk/context/Context.h"
 #include "../vk/context/Image.h"
 #include "../io/ImageLoader.h"
+#include "../io/Font.h"
 #include <log/Log.h>
 #include <data/Bus.h>
 #include <data/Signal.h>
@@ -13,14 +14,22 @@ namespace kgl
 {
   namespace man
   {
-    typedef std::map<std::string, Atlas           *> AtlasMap ;
-    typedef std::map<std::string, ::kgl::vk::Image*> ImageMap ;
-//    typedef std::map<std::string, ::kgl::vk::Model*> ModelMap ;
+    struct FontContainer
+    {
+      ::kgl::vk::Image img  ;
+      ::kgl::io::Font  font ;
+    };
+
+    typedef std::map<std::string, Atlas                    *> AtlasMap ;
+    typedef std::map<std::string, ::kgl::vk::Image         *> ImageMap ;
+    typedef std::map<std::string, ::kgl::man::FontContainer*> FontMap  ;
 
     struct AssetMaps
     {
       ImageMap images      ;
       AtlasMap spritesheet ;
+      FontMap  fonts       ;
+
 //      ModelMap models ;
     };
     
@@ -89,10 +98,22 @@ namespace kgl
       return *this->atlas_data ;
     }
 
+    void AssetManager::addFont( const char* path, const char* name, unsigned width, unsigned height, unsigned size, unsigned gpu )
+    {
+      FontContainer* f = new FontContainer() ;
+      
+      karma::log::Log::output( "Loading font ", name, " at path ", path, " on GPU ", gpu ) ;
+      f->font.load      ( path, width, height, size ) ;
+      f->img .setFormat ( ::vk::Format::eR8Srgb     ) ;
+      f->img .initialize( gpu, width, height        ) ;
+      f->img .copy      ( f->font.pixels(), 1       ) ;
+      
+      data.fonts.insert( { std::string( name ), f } ) ;
+    }
+    
     void AssetManager::addImage( const char* path, const char* name, unsigned gpu )
     {
       ::kgl::io::ImageLoader loader ;
-      
 
       if( data.images.find( name ) == data.images.end() )
       {
@@ -116,8 +137,7 @@ namespace kgl
         data.spritesheet.insert( { name,  new Atlas() } ) ;
         
         data.spritesheet.at( name )->data().image.initialize( gpu, loader.width(), loader.height() ) ;
-        data.spritesheet.at( name )->data().image.copy( loader.pixels(), loader.channels() ) ;
-
+        data.spritesheet.at( name )->data().image.copy( loader.pixels(), loader.channels() )         ;
         data.spritesheet.at( name )->data().num_sprites_in_row = ( loader.width()  / sprite_width  ) ;
         data.spritesheet.at( name )->data().num_sprites_in_col = ( loader.height() / sprite_height ) ;
         data.spritesheet.at( name )->data().sprite_width       = sprite_width                        ;
@@ -125,6 +145,26 @@ namespace kgl
       }
     }
 
+    const ::kgl::io::Font& AssetManager::font( const char* name ) const
+    {
+      const static ::kgl::io::Font dummy ;
+      const auto iter = data.fonts.find( name ) ;
+      
+      if( iter != data.fonts.end() ) return iter->second->font ;
+      
+      return dummy ;
+    }
+    
+    const ::kgl::vk::Image& AssetManager::fontMap( const char* name ) const
+    {
+      const static ::kgl::vk::Image dummy ;
+      const auto iter = data.fonts.find( name ) ;
+      
+      if( iter != data.fonts.end() ) return iter->second->img ;
+      
+      return dummy ;
+    }
+    
     const ::kgl::vk::Image& AssetManager::image( const char* name ) const
     {
       const static ::kgl::vk::Image dummy ;
@@ -157,7 +197,7 @@ namespace kgl
 
     bool AssetManager::contains( const char* name ) const
     {
-      return data.images.find( std::string( name ) ) != data.images.end() || data.spritesheet.find( std::string( name ) ) != data.spritesheet.end() ;
+      return data.images.find( std::string( name ) ) != data.images.end() || data.spritesheet.find( std::string( name ) ) != data.spritesheet.end() || data.fonts.find( std::string( name ) ) != data.fonts.end()  ;
     }
 
     void AssetManager::remove( const char* name )
