@@ -300,7 +300,8 @@ namespace tools
     Attribute                attr       ;
     unsigned                 position   ;
     unsigned                 location   ;
-
+    
+    location = 0 ;
     position = 0 ;
     history.resize( 3 ) ;
     if( shader != this->map.end() )

@@ -17,6 +17,7 @@
           "output"       : "c1",
           "debug"        : true,
           "sem_id"       : 0,
+          "sheet"        : "grandma",
           "resx"         : 256,
           "resy"         : 256
         },

@@ -1,10 +1,11 @@
 cmake_minimum_required( VERSION 3.8.0 )
-
+project( karma LANGUAGES CXX )
 
 #Build Options
 option( WERROR         "Whether warnings should be treated as errors."                      ON  )
 option( BUILD_DOC      "Whether or not documentation should be build"                       OFF ) 
 option( BUILD_UWUMAKER "Whether or not to build the GLSLANG library & UWUMaker executable." ON  ) 
+option( RELEASE        "Whether or not to build with optimizations for release."            ON  ) 
 
 set ( MAJOR_VERSION 0 )
 set ( MINOR_VERSION 1 )
@@ -24,18 +25,25 @@ if( WERROR STREQUAL "OFF" )
     MESSAGE( "BUILDING FOR WINDOWS" )
 
     # which compilers to use for C and C++
-    set(CMAKE_C_FLAGS   "-g -fPIC")
-    set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC")
+    set(CMAKE_C_FLAGS   "-fPIC" )
+    set(CMAKE_CXX_FLAGS "-std=c++17 -lstdc++fs -fPIC")
 
 else()
     MESSAGE( " -Building for non-windows systems." )
 
-    set(CMAKE_C_FLAGS   "-g -fPIC -Werror -Wall")
-    set(CMAKE_CXX_FLAGS "-g -std=c++17 -lstdc++fs -fPIC -Werror -Wall")
+    set(CMAKE_C_FLAGS   "-fPIC -Werror -Wall")
+    set(CMAKE_CXX_FLAGS "-std=c++17 -lstdc++fs -fPIC -Werror -Wall")
 
 endif( WERROR STREQUAL "OFF" )
 
-project( karma LANGUAGES CXX )
+if( RELEASE STREQUAL "OFF" )
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -O3"   )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3" )
+else()
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -g"   )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g" )
+endif( RELEASE STREQUAL "OFF" )
+
 
 #Application information.
 set( ENGINE_NAME     "Karma"                       )
@@ -76,8 +84,6 @@ set( CPACK_PACKAGE_INSTALL_DIRECTORY   "./"               )
 set( CMAKE_INSTALL_PREFIX              "./"               ) 
 
 set( PROJECT_SRCS       ${CMAKE_WORKING_DIRECTORY}/src         )
-set( CASPER_DIR         ${CMAKE_WORKING_DIRECTORY}/src/casper  )
-set( VKTEST_DIR         ${CMAKE_WORKING_DIRECTORY}/src/vk_test )
 set( DOXYGEN_CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doxygen    )
 
 

@@ -81,7 +81,7 @@ namespace kgl
       bool                                 found_image_input[10] ; ///< 
       unsigned                             num_inputs            ; ///< The current number of inputs this module is expecting.
       std::mutex                           sync_mutex            ; ///< The lock to make sure input is recieved one at a time.
-      std::mutex                           image_mutex           ; ///< The lock to make sure input is recieved one at a time.
+      std::mutex                           image_mutex[10]       ; ///< The lock to make sure input is recieved one at a time.
       unsigned                             current_command       ; ///< The current command being processed.
       bool                                 debug                 ;
 
@@ -196,96 +196,96 @@ namespace kgl
     {
       while( data().found_input[ 0 ] ){} ;
 
-      data().image_mutex.lock() ;
+      data().image_mutex[ 0 ].lock() ;
       data().images           [ 0 ] = image ;
       data().found_image_input[ 0 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 0 ].unlock() ;
     }
     
     void Combiner::inputImageTwo( const ::kgl::vk::Image& image )
     {
       while( data().found_input[ 1 ] ){} ;
 
-      data().image_mutex.lock() ;
+      data().image_mutex[ 1 ].lock() ;
       data().images           [ 1 ] = image ;
       data().found_image_input[ 1 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 1 ].unlock() ;
     }
     
     void Combiner::inputImageThree( const ::kgl::vk::Image& image )
     {
       while( data().found_input[ 2 ] ){} ;
 
-      data().image_mutex.lock() ;
+      data().image_mutex[ 2 ].lock() ;
       data().images           [ 2 ] = image ;
       data().found_image_input[ 2 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 2 ].unlock() ;
     }
     
     void Combiner::inputImageFour( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 3 ].lock() ;
       data().images           [ 3 ] = image ;
       data().found_image_input[ 3 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 3 ].unlock() ;
     }
     
     void Combiner::inputImageFive( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 4 ].lock() ;
       data().images           [ 4 ] = image ;
       data().found_image_input[ 4 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 4 ].unlock() ;
     }
     
     void Combiner::inputImageSix( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 5 ].lock() ;
       data().images           [ 5 ] = image ;
       data().found_image_input[ 5 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 5 ].unlock() ;
     }
     
     void Combiner::inputImageSeven( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 6 ].lock() ;
       data().images           [ 6 ] = image ;
       data().found_image_input[ 6 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 6 ].unlock() ;
     }
     
     void Combiner::inputImageEight( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 0 ].lock() ;
       data().images           [ 7 ] = image ;
       data().found_image_input[ 7 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 0 ].unlock() ;
     }
     
     void Combiner::inputImageNine( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 0 ].lock() ;
       data().images           [ 8 ] = image ;
       data().found_image_input[ 8 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 0 ].unlock() ;
     }
     
     void Combiner::inputImageTen( const ::kgl::vk::Image& image )
     {
-      data().image_mutex.lock() ;
+      data().image_mutex[ 0 ].lock() ;
       data().images           [ 9 ] = image ;
       data().found_image_input[ 9 ] = true  ;
       this->semIncrement() ;
-      data().image_mutex.unlock() ;
+      data().image_mutex[ 0 ].unlock() ;
     }
 
     void Combiner::inputOne( const ::kgl::vk::Synchronization& sync )
@@ -745,9 +745,12 @@ namespace kgl
 
       data().sync_mutex.unlock() ;
 
-      data().image_mutex.lock() ;
-      for( unsigned i = 0; i < data().num_inputs / 2; i++ ) images[ i ] = ( data().images[ i ] ) ;
-      data().image_mutex.unlock() ;
+      for( unsigned i = 0; i < data().num_inputs / 2; i++ )
+      {
+        data().image_mutex[ i ].lock() ;
+        images[ i ] = ( data().images[ i ] ) ;
+        data().image_mutex[ i ].unlock() ;
+      }
       
       data().resetFound() ;
       

@@ -233,6 +233,17 @@ namespace kgl
       }
     }
     
+    void DescriptorSet::setSSBO( const char* name, const ::kgl::vk::Buffer& ssbo )
+    {
+      for( auto set : data().map )
+      {
+        if( std::string( name ) == set.first )
+        {
+          data().setBuffer( ssbo, set.second ) ;
+        }
+      }
+    }
+    
     void DescriptorSet::reset()
     {
       data().device.freeDescriptorSets( data().pool, data().descriptors.size(), data().descriptors.data() ) ;

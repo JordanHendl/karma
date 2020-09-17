@@ -264,18 +264,21 @@ namespace kgl
     {
       this->data     = nullptr ;
       this->location = 0       ;
-      this->data_sz     = 0    ;
+      this->data_sz  = 0       ;
     }
 
     template<typename T>
     List<T>::List()
     {
+      this->sz       = 0       ;
       this->data_ptr = nullptr ;
     }
 
     template<typename T>
     List<T>::List( const List& list )
     {
+      this->sz       = 0       ;
+      this->data_ptr = nullptr ;
       this->copy( list ) ;
     }
 
@@ -288,7 +291,7 @@ namespace kgl
     template<typename T>
     void List<T>::clear()
     {
-      delete this->data_ptr ;
+      if( this->data_ptr ) delete[] this->data_ptr ;
       this->sz = 0 ;
     }
 

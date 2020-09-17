@@ -359,7 +359,6 @@ namespace kgl
         data().acquire_sem.swap() ;
       }
       while( data().current_frame >= 2 ) { std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ; } ;
-      
     }
     
     void Window::setBorderless( bool val )
