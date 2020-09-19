@@ -33,8 +33,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
-
-
+#include <mutex>
 
 namespace kgl
 {
@@ -51,8 +50,9 @@ namespace kgl
     {
       struct Material
       {
-        Uniform       uniform ;
-        DescriptorSet set     ;
+        Uniform       uniform         ;
+        DescriptorSet set             ;
+        bool          init    = false ;
       };
 
       static constexpr unsigned BUFFERS = 6 ; // Todo make this 
@@ -76,9 +76,9 @@ namespace kgl
       Transforms                       transforms        ;
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
-      Stack                            commands          ;
+      std::vector<kgl::TextCommand>    commands          ;
+      Material                         material          ; ///< The material for this module.
       CmdBuffers                       buffer            ; ///< The command buffer to use for all GPU calls.
-      Materials                        materials         ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
       ::kgl::vk::Window*               window            ; ///< The window this object is a child of.
       ::kgl::vk::render::Pipeline      pipeline          ; ///< The pipeline that is associated with this object's rendering.
@@ -96,14 +96,17 @@ namespace kgl
       std::string                      output_name       ; ///< The name of this object's synchronization output.
       std::string                      output_image_name ; ///< The name of this object's framebuffer output.
       std::string                      name              ; ///< The name of this module.
-      TextCommand                      current_cmd       ; ///< The current command that is being processed.
       bool                             debug             ;
       std::mutex                       mutex             ;
       unsigned                         resx              ;
       unsigned                         resy              ;
       unsigned                         buffer_offset     ;
       bool                             found_input       ;
-      
+      unsigned                         start             ;
+      unsigned                         stop              ;
+      std::mutex                       cmd_mutex         ;
+      std::string                      font              ;
+
       /** Default Constructor. Initializes member data.
        */
       Text2DData() ;
@@ -113,10 +116,6 @@ namespace kgl
        */
       void setWindowName( const char* name ) ;
       
-      /** Method to pop a command off the stack for processing.
-       */
-      void pop() ;
-
       /** Method to set the x resolution of this object.
        * @param x The value to set this object's x resolution to.
        */
@@ -126,7 +125,27 @@ namespace kgl
        * @param y The value to set this object's y resolution to.
        */
       void setResolutionY( unsigned y ) ;
+      
+      /**
+       * @param start
+       */
+      void setStart( unsigned start ) ;
+      
+      /**
+       * @param start
+       */
+      void setStop( unsigned start ) ;
 
+      /**
+       * @param font
+       */
+      void setFont( const char* font ) ;
+      
+      /**
+       * @param size
+       */
+      void setCharSize( unsigned size ) ;
+      
       /** Method to retrieve a camera to use for this object's rendering.
        */
       void setCamera( const ::kgl::Camera& camera ) ;
@@ -140,9 +159,17 @@ namespace kgl
        */
       void setOutputImageName( const char* output ) ;
       
+      /** Method to check for font initialization.
+       */
+      void checkFont() ;
+      
       /** Method to push a command to this object for operation.
       */
-      void setCommand( const ::kgl::TextCommand& cmd ) ;
+      void setCommand( unsigned index, const ::kgl::TextCommand& cmd ) ;
+      
+      /** Method to push a command to this object for operation.
+      */
+      void setCommandList( const kgl::List<::kgl::TextCommand>& list ) ;
       
       /** Method to set the texture coordinates of the vertices to match what the sprite being drawn.
        */
@@ -163,11 +190,14 @@ namespace kgl
     
     Text2DData::Text2DData()
     {
-      this->resx           = 0     ;
-      this->resy           = 0     ;
-      this->debug          = false ;
-      this->found_input    = false ;
+      this->resx           = 0                ;
+      this->resy           = 0                ;
+      this->debug          = false            ;
+      this->found_input    = false            ;
       this->view           = glm::mat4( 1.f ) ;
+      this->start          = 0                ;
+      this->stop           = 0                ;
+      this->font           = ""               ;
     }
     
     void Text2DData::setDebug( bool val )
@@ -175,14 +205,19 @@ namespace kgl
       this->debug = val ;
     }
 
-    void Text2DData::pop()
-    {
-      this->current_cmd = this->commands.pop() ;
-    }
-
     void Text2DData::setResolutionX( unsigned x )
     {
       this->resx = x ;
+    }
+    
+    void Text2DData::setStart( unsigned start )
+    {
+      if( start < this->commands.size() ) this->start = start ;
+    }
+     
+    void Text2DData::setStop( unsigned stop )
+    {
+      if( stop <= this->commands.size() ) this->stop = stop ;
     }
     
     void Text2DData::setResolutionY( unsigned y )
@@ -199,27 +234,68 @@ namespace kgl
         this->view = glm::lookAt( pos, pos + front, up ) ;
     }
     
-    void Text2DData::setCommand( const ::kgl::TextCommand& cmd )
+    void Text2DData::checkFont()
     {
-      auto iter = this->materials.find( cmd.font() ) ;
-      
-      this->commands.insert( cmd, this->commands.next() ) ;
-
-      // If we don't have enough uniform objects for the amount of commands we have, scale up.
-      if( iter == this->materials.end() )
+      if( !this->material.init )
       {
-        if( this->manager.contains( cmd.font() ) )
+        if( this->manager.contains( this->font.c_str() ) )
         {
-          auto mat = this->materials.emplace( cmd.font(), Material() ) ;
-
-          mat.first->second.set = this->pool.makeDescriptorSet( this->pass.numBuffers()            ) ;
-          mat.first->second.uniform.initialize( this->gpu                                          ) ;
-          mat.first->second.uniform.addImage  ( "image"     , this->manager.fontMap( cmd.font() )  ) ;
-          mat.first->second.uniform.add       ( "projection", Uniform::Type::UBO, this->projection ) ;
-          mat.first->second.uniform.add       ( "camera", Uniform::Type::UBO    , this->view       ) ;
-          mat.first->second.set.set( mat.first->second.uniform ) ;
+          this->material.init = true                                                                     ;
+          this->material.set  = this->pool.makeDescriptorSet( this->pass.numBuffers()                  ) ;
+          this->material.uniform.initialize( this->gpu                                                 ) ;
+          this->material.uniform.addImage  ( "image"     , this->manager.fontMap( this->font.c_str() ) ) ;
+          this->material.uniform.add       ( "projection", Uniform::Type::UBO, this->projection        ) ;
+          this->material.uniform.add       ( "camera", Uniform::Type::UBO    , this->view, true        ) ;
+          this->material.set.set           ( this->material.uniform                                    ) ;
           this->device.waitIdle() ;
         }
+      }
+    }
+
+    void Text2DData::setCharSize( unsigned size )  
+    {
+      this->cmd_mutex.lock() ;
+      if( this->commands.size() != size ) this->commands.resize( size ) ;
+      this->cmd_mutex.unlock() ;
+    }
+    
+    void Text2DData::setCommand( unsigned index, const ::kgl::TextCommand& cmd )
+    {
+      if( this->commands.size() <= index )
+      {
+        this->cmd_mutex.lock() ;
+        this->commands.resize( index + 1 ) ;
+        this->cmd_mutex.unlock() ;
+      }
+      
+      this->commands[ index ] = cmd ;
+    }
+    
+    void Text2DData::setFont( const char* font )
+    {
+      this->font = font ;
+
+      if( this->manager.contains( this->font.c_str() ) )
+      {
+         this->material.init = true                                                               ;
+         this->material.set  = this->pool.makeDescriptorSet( this->pass.numBuffers()            ) ;
+         this->material.uniform.initialize( this->gpu                                           ) ;
+         this->material.uniform.addImage  ( "image"     , this->manager.fontMap( font )         ) ;
+         this->material.uniform.add       ( "projection", Uniform::Type::UBO, this->projection  ) ;
+         this->material.uniform.add       ( "camera", Uniform::Type::UBO    , this->view, true  ) ;
+         this->material.set.set           ( this->material.uniform                              ) ;
+         this->device.waitIdle() ;
+      }
+    }
+    void Text2DData::setCommandList( const kgl::List<::kgl::TextCommand>& list )
+    {
+      unsigned index ;
+      
+      index = 0 ;
+      for( auto cmd : list )
+      {
+        this->setCommand( index, cmd ) ;
+        index++ ;
       }
     }
 
@@ -228,7 +304,7 @@ namespace kgl
       this->transforms.clear() ;
       
       const std::string text   = std::string( " " ) + cmd.text()                               ;
-      const auto        ptr    = this->manager.font( cmd.font() ).glyphs( text.c_str(), 0, 0 ) ;
+      const auto        ptr    = this->manager.font( this->font.c_str() ).glyphs( text.c_str(), 0, 0 ) ;
       const float w = cmd.width()    ;
       const float h = cmd.height()   ;
       const float r = cmd.rotation() ;
@@ -378,7 +454,7 @@ namespace kgl
         data().projection = glm::ortho(  0.0f, (float)data().resx, 0.0f, (float)data().resy, -100.0f, 100.0f ) ;
       }
       
-      for( auto &uni : data().materials ) uni.second.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
+      data().material.uniform.add( "projection", Uniform::Type::UBO , data().projection ) ;
     }
 
     void Text2D::initialize()
@@ -456,10 +532,15 @@ namespace kgl
       data().bus( json_path.c_str(), "::debug"        ).attach( this->data_2d, &Text2DData::setDebug           ) ;
       data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &Text2DData::setResolutionX     ) ;
       data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &Text2DData::setResolutionY     ) ;
+      data().bus( json_path.c_str(), "::size"         ).attach( this->data_2d, &Text2DData::setCharSize        ) ;
+      data().bus( json_path.c_str(), "::font"         ).attach( this->data_2d, &Text2DData::setFont            ) ;
       
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &Text2DData::setCommand ) ;
-      data().bus( this->name(), "::camera" ).attach( this->data_2d, &Text2DData::setCamera  ) ;
+      data().bus( this->name(), "::set"     ).attach( this->data_2d, &Text2DData::setCommand     ) ;
+      data().bus( this->name(), "::list"    ).attach( this->data_2d, &Text2DData::setCommandList ) ;
+      data().bus( this->name(), "::start"   ).attach( this->data_2d, &Text2DData::setStart       ) ;
+      data().bus( this->name(), "::stop"    ).attach( this->data_2d, &Text2DData::setStop        ) ;
+      data().bus( this->name(), "::camera"  ).attach( this->data_2d, &Text2DData::setCamera      ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -472,55 +553,48 @@ namespace kgl
     {
       Synchronization sync  ;
       glm::vec4       color ;
-      unsigned        index ;
       unsigned        sz    ;
       
       data().profiler.start() ;
-      data().commands.swap() ;
       data().mutex.lock() ;
       sync = data().syncs.value() ;
       data().syncs .swap() ;
       data().buffer.swap() ;
       data().mutex.unlock() ;
       
-      if( !data().commands.empty() )
+      data().checkFont() ;
+      if( data().stop - data().start != 0 && data().material.init )
       {
         data().buffer.value().record() ;
         data().buffer.value().beginRenderPass( data().pass ) ;
 
-        index                = 0 ;
         data().buffer_offset = 0 ;
-
-        while( !data().commands.empty() )
+        data().cmd_mutex.lock() ;
+        for( unsigned index = data().start; index != data().stop; index++ ) 
         {
-          // Pop latest draw command off the stack.
-          data().pop() ;
-
-          color.x = data().current_cmd.red()   ;
-          color.y = data().current_cmd.green() ;
-          color.z = data().current_cmd.blue()  ;
-          color.w = data().current_cmd.alpha() ;
+          color.x = data().commands[ index ].red()   ;
+          color.y = data().commands[ index ].green() ;
+          color.z = data().commands[ index ].blue()  ;
+          color.w = data().commands[ index ].alpha() ;
 
           // Build Transformation Matrix.
-          sz = data().setUpTextureCoords( data().current_cmd ) ;
-          
-          auto iter = data().materials.find( data().current_cmd.font() ) ;
+          sz = data().setUpTextureCoords( data().commands[ index ] ) ;
           
           // Bind pipeline and descriptor set to the command buffer.
-          iter->second.uniform.add( "camera", Uniform::Type::UBO , data().view ) ;
+          data().material.uniform.add( "camera", Uniform::Type::UBO , data().view, true ) ;
 
-          data().pipeline.bind( data().buffer.value(), iter->second.set ) ;
+          data().pipeline.bind( data().buffer.value(), data().material.set ) ;
           data().buffer.value().pushConstant( color, data().pipeline.layout(), static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ), 1 ) ;
 
           // Draw using vertices.
           data().buffer.value().draw( data().vertices.buffer(), sz, data().buffer_offset - ( sz * sizeof( Transformation ) ) ) ;
-          index++ ;
         }
           data().buffer.value().stop() ;
           data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
           data().buffer.swap() ;
         
         // Stop recording the command buffer & Submit to the graphics queue.
+        data().cmd_mutex.unlock() ;
       }
       else
       {

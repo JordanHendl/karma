@@ -55,13 +55,13 @@ namespace karma
     GameData()
     {
       this->running = false ;
-      this->xpos    = 0.0f  ;
-      this->ypos    = 0.0f  ;
-      this->rot     = 0.0f  ;
-      this->xpos_2  = 0.0f  ;
-      this->ypos_2  = 0.0f  ;
-      this->zpos_2  = 0.0f  ;
-      this->rot_2   = 0.0f  ;
+      this->xpos    = 64.0f  ;
+      this->ypos    = 64.0f  ;
+      this->rot     = 64.0f  ;
+      this->xpos_2  = 64.0f  ;
+      this->ypos_2  = 64.0f  ;
+      this->zpos_2  = 64.0f  ;
+      this->rot_2   = 64.0f  ;
       this->sprite  = 0     ;
     }
   };
@@ -282,14 +282,18 @@ namespace karma
     data().curr_anim = data().animations[ "front_idle" ] ;
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
+    auto current_sprite = data().curr_anim.current( data().xpos, data().ypos, 0, data().rot ) ;
     
+    for( unsigned i = 0; i < 1600; i++ ) data().bus( "image::set" ).emit( i, current_sprite ) ;
+    data().bus( "image::start" ).emit<unsigned>( 0    ) ;
+    data().bus( "image::stop"  ).emit<unsigned>( 1599 ) ;
     index = 0 ;
     while( data().running )
     {
-      data().timer.start() ;
       
       if( !data().pause )
       {
+        data().timer.start() ;
         float avg ;
 
         avg = 0 ;
@@ -297,7 +301,6 @@ namespace karma
 
         for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
         avg = avg / (static_cast<float>( SZ ) ) ;
-        str.precision( 3 ) ;
         str << avg << " fps" ;
         
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
@@ -316,17 +319,20 @@ namespace karma
         data().txt.setColorB  ( 1.0f              ) ;
         data().txt.setColorA  ( 0.5f              ) ;
         
-        for( unsigned i = 0; i < 1600; i++ ) data().bus( "image::cmd"            ).emit( data().curr_anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
-        data().bus( "text::cmd"             ).emit( data().txt    ) ;
-        data().bus( "instance_test::camera" ).emit( data().camera ) ;
-        data().bus( "image::camera"         ).emit( data().camera ) ;
+
+        auto current_sprite = data().curr_anim.current( data().xpos, data().ypos, 0, data().rot ) ;
+        data().bus( "image::set" ).emit( 0, current_sprite ) ;
+        data().bus( "text::set"  ).emit( 0, data().txt     ) ;
+        data().bus( "text::stop" ).emit<unsigned>( 1                 ) ;
+        data().bus( "instance_test::camera" ).emit( data().camera    ) ;
+        data().bus( "image::camera"         ).emit( data().camera    ) ;
         data().interface.start() ;
         
-        data().timer.stop() ;
         fpss[ index % SZ ] = 1000.f / data().timer.time() ;
-        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
+//        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
         
         index++ ;
+        data().timer.stop() ;
       }
       data().interface.pollEvents() ;
     }

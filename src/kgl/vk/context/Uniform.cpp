@@ -163,7 +163,6 @@ namespace kgl
         data().map.insert( { std::string( name ), new UniformBuffer() } ) ;
         
         iter = data().map.find( name ) ;
-        iter->second->image.initialize( data().gpu_id, 200, 200 ) ;
       }
       else
       {

@@ -117,7 +117,7 @@ namespace kgl
           /**
            * @param vertices
            */
-          void drawInstanced( const ::vk::Buffer vertices, unsigned element_size, unsigned instance_count ) ;
+          void drawInstanced( const ::vk::Buffer vertices, unsigned element_size, unsigned instance_count, unsigned vertex_offset = 0, unsigned first_vertex = 0, unsigned first_instance = 0 ) ;
           
           /** Method to draw an object with vertices & indices.
            * @param num_indices Number of indices provided.

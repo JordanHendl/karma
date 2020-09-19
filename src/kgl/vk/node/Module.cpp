@@ -10,10 +10,10 @@
 
 #ifdef _WIN32
   #include <windows.h>
-  
+
   static inline void setThreadPriority()
   {
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL ) )
+    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL ) ;
   }
 
 #elif __linux__ 
@@ -23,8 +23,7 @@
 
   static inline void setThreadPriority()
   {
-    setpriority( PRIO_PROCESS, 0, 30 ) ;
-    pthread_setschedprio( pthread_self(), 1 ) ;
+    // TODO because I don't think this is doable without writing my own thread library which is stupid. Why tf can't std thread handle this?
   }
 #endif
   
@@ -38,17 +37,17 @@ namespace kgl
     {
       typedef bool Flag ;
       
-      std::string             name       ; ///< TODO
-      std::string             type       ; ///< TODO
-      unsigned                version    ; ///< TODO
-      Flag                    running    ; ///< TODO
-      Flag                    should_run ; ///< TODO
-      ::data::module::Bus     bus        ; ///< TODO
-      unsigned                num_deps   ;
-      std::atomic_uint        wait_sem   ;
-      unsigned                id         ;
-      std::mutex              mutex      ;
-      std::condition_variable cv         ;
+      std::string             name       ; ///< The name of this module.
+      std::string             type       ; ///< The type of module this object is.
+      unsigned                version    ; ///< The version of module.
+      Flag                    running    ; ///< Whether or not this module is running.
+      Flag                    should_run ; ///< Whether or not this module should be running.
+      ::data::module::Bus     bus        ; ///< The bus to communicate data over.
+      unsigned                num_deps   ; ///< The number of dependancies this object has.
+      std::atomic_uint        wait_sem   ; ///< The semaphore to wait on for dependancies to be met.
+      unsigned                id         ; ///< The id associated with this module.
+      std::mutex              mutex      ; ///< The mutex for synchronization.
+      std::condition_variable cv         ; ///< The condition variable to wait on for dependancies to be met.
 
       /**
        */
@@ -93,7 +92,7 @@ namespace kgl
       {
         lock = std::unique_lock( data().mutex ) ;
         data().cv.wait( lock, [=]{ return data().wait_sem >= data().num_deps ; } ) ;
-        data().mutex.unlock() ;
+        data().mutex.unlock() ; 
         data().wait_sem = 0 ;
 
         this->execute() ;

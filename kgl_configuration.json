@@ -16,6 +16,7 @@
           "output_image" : "c1i",
           "output"       : "c1",
           "debug"        : true,
+          "data_size"    : 5000,
           "sem_id"       : 0,
           "sheet"        : "grandma",
           "resx"         : 256,
@@ -29,19 +30,8 @@
           "output_image" : "c2i",
           "output"       : "c2",
           "debug"        : true,
+          "font"         : "cool_font",
           "sem_id"       : 1,
-          "resx"         : 256,
-          "resy"         : 256
-        },
-        "instance_test" :
-        {
-          "version"      : 0,
-          "type"         : "InstancedSpriteSheet",
-          "input"        : "start",
-          "output_image" : "c3i",
-          "output"       : "c3",
-	  "debug"        : true,
-	  "sem_id"       : 2,
           "resx"         : 256,
           "resy"         : 256
         },
@@ -56,12 +46,10 @@
         {
           "version"         : 0,
           "type"            : "Combiner",
-          "input_one"         : "c1",
-          "input_two"         : "c2",
-          "input_three"       : "c3",
-          "input_image_one"   : "c1i",
-          "input_image_two"   : "c2i",
-          "input_image_three" : "c3i",
+          "input_one"       : "c1",
+          "input_two"       : "c2",
+          "input_image_one" : "c1i",
+          "input_image_two" : "c2i",
           "output"          : "present",
           "output_image"    : "present_image",
           "debug"           : true

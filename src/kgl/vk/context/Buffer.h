@@ -40,7 +40,7 @@ namespace kgl
 
     class Buffer
     {
-      public:
+      public :
         
         enum Type : unsigned
         {
@@ -57,7 +57,9 @@ namespace kgl
         void operator=( const Buffer& buffer ) ;
         template<typename T>
         void initialize( unsigned device, Type type, unsigned count, bool host_local = false ) ;
-
+        
+        bool isInitialized() const ;
+        
         template<typename T>
         void copyToDevice( const T& data, unsigned count = 0, unsigned offset = 0 ) ;
         

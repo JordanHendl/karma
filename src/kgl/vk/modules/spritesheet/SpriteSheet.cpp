@@ -80,6 +80,7 @@ namespace kgl
       
       karma::ms::Timer                 profiler          ;
       Syncs                            syncs             ;
+      std::vector<float>               data_host_buff    ;
       CmdBuffers                       buffer            ; ///< The command buffer to use for all GPU calls.
       Material                         material          ; ///< Objects to contain all data to be sent to a uniform.
       ::kgl::vk::render::Context       context           ; ///< The context to use for vulkan state information.
@@ -105,12 +106,14 @@ namespace kgl
       std::mutex                       sync_mutex        ;
       std::mutex                       cmd_mutex         ;
       unsigned                         resx              ;
+      unsigned                         start             ;
+      unsigned                         stop              ;
+      unsigned                         data_sz           ;
       unsigned                         resy              ;
       bool                             found_input       ;
       float                            camera_x          ;
       float                            camera_y          ;
       unsigned                         offset            ;
-      unsigned                         draw_count        ;
       bool                             has_image         ;
       
       /** Default Constructor. Initializes member data.
@@ -122,6 +125,25 @@ namespace kgl
        */
       void setWindowName( const char* name ) ;
       
+      /** Method to set where to start rendering.
+       * @param start Where in this object's command list to start rendering.
+       */
+      void setStart( unsigned start ) ;
+      
+      /** Method to set where to stop rendering.
+       * @param stop Where in this object's command list to stop rendering.
+       */
+      void setStop( unsigned stop ) ;
+      
+      /** Method to set the size of this object's command list.
+       * @param size The size of this object's internal command list.
+       */
+      void setSize( unsigned size ) ;
+      
+      /**
+       */
+      void checkForImage() ;
+
       /**
        * @param cmd
        * @return 
@@ -162,11 +184,19 @@ namespace kgl
       
       /** Method to push a command to this object for operation.
       */
-      void setCommand( const ::kgl::SheetCommand& cmd ) ;
+      void setCommand( unsigned index, const ::kgl::SheetCommand& cmd ) ;
+      
+      /** Method to push a command to this object for operation.
+      */
+      void setCommandListOffset( unsigned offset, const kgl::List<kgl::SheetCommand>& list ) ;
+      
+      /** Method to push a command to this object for operation.
+      */
+      void setCommandList( const kgl::List<kgl::SheetCommand>& list ) ;
       
       /** Method to prepare the transformation matrix of this object for rendering.
        */
-      void setUpModelMatrix( const kgl::SheetCommand& current_cmd ) ;
+      glm::mat4 setUpModelMatrix( const kgl::SheetCommand& current_cmd ) ;
       
       /** Method to output this object's data.
        */
@@ -191,10 +221,39 @@ namespace kgl
       this->camera_y       = 0.0f             ;
       this->view           = glm::mat4( 1.f ) ;
       this->offset         = 0                ;
-      this->draw_count     = 0                ;
+      this->start          = 0                ;
+      this->stop           = 0                ;
+      this->data_sz        = 2000             ;
       this->has_image      = false            ;
     }
     
+    void SpriteSheetData::checkForImage() 
+    {
+      if( !this->has_image )
+      {
+        if( this->manager.contains( this->sprite_sheet.c_str() ) )
+        {
+          SpriteInfo  info ;
+
+          info.sprite_width  = this->manager.atlas( this->sprite_sheet.c_str() ).spriteWidth()   ;
+          info.sprite_height = this->manager.atlas( this->sprite_sheet.c_str() ).spriteHeight()  ;
+          info.image_width   = this->manager.atlas( this->sprite_sheet.c_str() ).image().width() ;
+          info.image_height  = this->manager.atlas( this->sprite_sheet.c_str() ).image().width() ;
+          
+          this->has_image = true ;
+          
+          this->material.set = this->pool.makeDescriptorSet( this->pass.numBuffers()                                 ) ;
+          this->material.uniform.initialize( this->gpu                                                                ) ;
+          this->material.uniform.addImage  ( "image"     , this->manager.atlas( this->sprite_sheet.c_str() ).image() ) ;
+          this->material.uniform.add       ( "projection", Uniform::Type::UBO, this->projection                       ) ;
+          this->material.uniform.add       ( "camera"    , Uniform::Type::UBO, this->view, true                       ) ;
+          this->material.uniform.add       ( "SpriteInfo", Uniform::Type::UBO , info                                   ) ;
+          this->material.set.set           ( this->material.uniform                                                   ) ;
+          this->material.set.setSSBO       ( "offsets", this->data_buffer                                             ) ;
+        }
+      }
+    }
+
     void SpriteSheetData::setDebug( bool val )
     {
       this->debug = val ;
@@ -215,6 +274,27 @@ namespace kgl
       this->resy = y ;
     }
     
+    void SpriteSheetData::setStart( unsigned start )
+    {
+      this->start = start ;
+    }
+    
+    void SpriteSheetData::setStop( unsigned stop )
+    {
+      this->stop = stop ;
+    }
+    
+    void SpriteSheetData::setSize( unsigned size )
+    {
+      this->data_sz = size ;
+      if( this->data_buffer.isInitialized() )
+      {
+        this->data_buffer.reset() ;
+      }
+      
+      this->data_buffer.initialize<Transformation>( this->gpu, Buffer::Type::SSBO, size * ( sizeof( float ) * 20 ), true ) ;
+    }
+    
     void SpriteSheetData::setCamera( const ::kgl::Camera& camera )
     {
       const glm::vec3 pos   = glm::vec3( camera.posX()  , camera.posY()  , camera.posZ()   ) ;
@@ -223,6 +303,8 @@ namespace kgl
       this->camera_x = camera.posX() ;
       this->camera_y = camera.posY() ;
       this->view = glm::lookAt( pos, pos + front, up ) ;
+      
+      this->material.uniform.add( "camera", Uniform::Type::UBO , this->view, true ) ;
     }
     
     bool SpriteSheetData::insideCamera( const kgl::SheetCommand& cmd )
@@ -234,42 +316,66 @@ namespace kgl
                ypos > this->camera_y && ypos < this->camera_y + this->resy   ) ;
     }
     
-    void SpriteSheetData::setCommand( const ::kgl::SheetCommand& cmd )
+    void SpriteSheetData::setCommandListOffset( unsigned offset, const kgl::List<kgl::SheetCommand>& list ) 
     {
-      Transformation transform ;
-      float tmp[ 20 ] ;
+      unsigned index ;
       
-      this->setUpModelMatrix( cmd ) ;
+      index = 0 ;
+      for( auto sheet : list )
+      {
+        if( offset + index < this->data_sz )
+        {
+          this->setCommand( offset + index, sheet ) ;
+        }
+        index++ ;
+      }
+    }
 
-      tmp[ 0  ] = this->model_matrix[ 0 ][ 0 ]  ; 
-      tmp[ 1  ] = this->model_matrix[ 0 ][ 1 ]  ; 
-      tmp[ 2  ] = this->model_matrix[ 0 ][ 2 ]  ; 
-      tmp[ 3  ] = this->model_matrix[ 0 ][ 3 ]  ; 
-      tmp[ 4  ] = this->model_matrix[ 1 ][ 0 ]  ; 
-      tmp[ 5  ] = this->model_matrix[ 1 ][ 1 ]  ; 
-      tmp[ 6  ] = this->model_matrix[ 1 ][ 2 ]  ; 
-      tmp[ 7  ] = this->model_matrix[ 1 ][ 3 ]  ; 
-      tmp[ 8  ] = this->model_matrix[ 2 ][ 0 ]  ; 
-      tmp[ 9  ] = this->model_matrix[ 2 ][ 1 ]  ; 
-      tmp[ 10 ] = this->model_matrix[ 2 ][ 2 ]  ; 
-      tmp[ 11 ] = this->model_matrix[ 2 ][ 3 ]  ; 
-      tmp[ 12 ] = this->model_matrix[ 3 ][ 0 ]  ; 
-      tmp[ 13 ] = this->model_matrix[ 3 ][ 1 ]  ; 
-      tmp[ 14 ] = this->model_matrix[ 3 ][ 2 ]  ; 
-      tmp[ 15 ] = this->model_matrix[ 3 ][ 3 ]  ; 
-      tmp[ 16 ] = static_cast<float>( cmd.index() ) ;
+    void SpriteSheetData::setCommandList( const kgl::List<kgl::SheetCommand>& list ) 
+    {
+      unsigned index ;
+      
+      index = 0 ;
+      for( auto sheet : list )
+      {
+        this->setCommand( index, sheet ) ;
+        index++ ;
+      }
+    }
 
-      transform.model     = this->model_matrix ;
-      transform.padding.x = ( cmd.index() )    ;
+    void SpriteSheetData::setCommand( unsigned index, const ::kgl::SheetCommand& cmd )
+    {
+      const unsigned input_size = sizeof( float ) * 20   ;
+      const unsigned offset     = index * ( input_size ) ;
+      float          tmp_buff[ 20 ] ;
+      glm::mat4      model_matrix   ;
+
+      model_matrix = setUpModelMatrix( cmd ) ;
       
       this->cmd_mutex.lock() ;
-      this->draw_count++ ;
-      this->data_buffer.copyToDevice( tmp, 20, this->offset ) ;
-      this->offset += sizeof( tmp ) ; 
+      tmp_buff[ 0  ] = model_matrix[ 0 ][ 0 ]            ; 
+      tmp_buff[ 1  ] = model_matrix[ 0 ][ 1 ]            ; 
+      tmp_buff[ 2  ] = model_matrix[ 0 ][ 2 ]            ; 
+      tmp_buff[ 3  ] = model_matrix[ 0 ][ 3 ]            ; 
+      tmp_buff[ 4  ] = model_matrix[ 1 ][ 0 ]            ; 
+      tmp_buff[ 5  ] = model_matrix[ 1 ][ 1 ]            ; 
+      tmp_buff[ 6  ] = model_matrix[ 1 ][ 2 ]            ; 
+      tmp_buff[ 7  ] = model_matrix[ 1 ][ 3 ]            ; 
+      tmp_buff[ 8  ] = model_matrix[ 2 ][ 0 ]            ; 
+      tmp_buff[ 9  ] = model_matrix[ 2 ][ 1 ]            ; 
+      tmp_buff[ 10 ] = model_matrix[ 2 ][ 2 ]            ; 
+      tmp_buff[ 11 ] = model_matrix[ 2 ][ 3 ]            ; 
+      tmp_buff[ 12 ] = model_matrix[ 3 ][ 0 ]            ; 
+      tmp_buff[ 13 ] = model_matrix[ 3 ][ 1 ]            ; 
+      tmp_buff[ 14 ] = model_matrix[ 3 ][ 2 ]            ; 
+      tmp_buff[ 15 ] = model_matrix[ 3 ][ 3 ]            ; 
+      tmp_buff[ 16 ] = static_cast<float>( cmd.index() ) ;
+      
+      this->data_buffer.copyToDevice( tmp_buff, input_size, offset )  ;
       this->cmd_mutex.unlock() ;
     }
 
-    void SpriteSheetData::setUpModelMatrix( const kgl::SheetCommand& current_cmd )
+    glm::mat4 SpriteSheetData::setUpModelMatrix( const kgl::SheetCommand& current_cmd )
     {
       const float       x   = current_cmd.posX()     ;
       const float       y   = current_cmd.posY()     ;
@@ -277,12 +383,12 @@ namespace kgl
       const float       h   = current_cmd.height()   ;
       const float       r   = current_cmd.rotation() ;
       const std::string img = this->sprite_sheet     ;
-
-      glm::vec2 size ;
+      glm::mat4 model_matrix ;
+      glm::vec2 size         ;
      
       if( w < 0.1f && h < 0.1f && this->manager.contains( img.c_str() ) )
       {
-        const auto image = &this->manager.atlas( current_cmd.sheet() ) ;
+        const auto image = &this->manager.atlas( this->sprite_sheet.c_str() ) ;
         size = glm::vec2( image->spriteWidth(), image->spriteHeight() ) ;
       }
       else
@@ -290,16 +396,16 @@ namespace kgl
         size = glm::vec2( w, h ) ;
       }
 
-      this->model_matrix = glm::mat4( 1.f ) ;
+      model_matrix = glm::mat4( 1.f ) ;
       
       glm::vec3 pos( x, y, 0.0f ) ;
-      this->model_matrix = glm::translate( this->model_matrix, pos ) ;
+      model_matrix = glm::translate( model_matrix, pos ) ;
+      model_matrix = glm::translate( model_matrix, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
+      model_matrix = glm::rotate   ( model_matrix, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
+      model_matrix = glm::translate( model_matrix, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
+      model_matrix = glm::scale    ( model_matrix, glm::vec3   ( size, 1.0f )                       ) ; 
       
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( 0.5f  * w , 0.5f * h, 0.0f       ) ) ; 
-      this->model_matrix = glm::rotate   ( this->model_matrix, glm::radians( r ), glm::vec3( 0.0f, 0.0f, 1.0f ) ) ; 
-      this->model_matrix = glm::translate( this->model_matrix, glm::vec3   ( -0.5f * w, -0.5f * h, 0.0f       ) ) ;
-
-      this->model_matrix = glm::scale( this->model_matrix, glm::vec3( size, 1.0f ) ) ; 
+      return model_matrix ;
     }
 
     void SpriteSheetData::setOutputImageName( const char* output ) 
@@ -411,10 +517,11 @@ namespace kgl
       pipeline_path = ::kgl::vk::basePath() ;
       pipeline_path = pipeline_path + path  ;
       
+      if( !data().data_buffer.isInitialized() )
+      {
+        data().data_buffer.initialize<Transformation>( data().gpu, Buffer::Type::SSBO, data().data_sz, true ) ;
+      }
       
-      data().pipeline.setPushConstantByteSize ( sizeof( glm::mat4 ) + ( sizeof( unsigned ) )                ) ;
-      data().pipeline.setPushConstantStageFlag( static_cast<unsigned>( ::vk::ShaderStageFlagBits::eVertex ) ) ;
-
       data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
 
       // Initialize vulkan objects.
@@ -496,10 +603,15 @@ namespace kgl
       data().bus( json_path.c_str(), "::resx"         ).attach( this->data_2d, &SpriteSheetData::setResolutionX     ) ;
       data().bus( json_path.c_str(), "::resy"         ).attach( this->data_2d, &SpriteSheetData::setResolutionY     ) ;
       data().bus( json_path.c_str(), "::sheet"        ).attach( this->data_2d, &SpriteSheetData::setSpriteSheet     ) ;
+      data().bus( json_path.c_str(), "::data_size"    ).attach( this->data_2d, &SpriteSheetData::setSize            ) ;
       
       // Module-specific inputs.
-      data().bus( this->name(), "::cmd"    ).attach( this->data_2d, &SpriteSheetData::setCommand ) ;
-      data().bus( this->name(), "::camera" ).attach( this->data_2d, &SpriteSheetData::setCamera  ) ;
+      data().bus( this->name(), "::set"    ).attach( this->data_2d, &SpriteSheetData::setCommand           ) ;
+      data().bus( this->name(), "::start"  ).attach( this->data_2d, &SpriteSheetData::setStart             ) ;
+      data().bus( this->name(), "::stop"   ).attach( this->data_2d, &SpriteSheetData::setStop              ) ;
+      data().bus( this->name(), "::list"   ).attach( this->data_2d, &SpriteSheetData::setCommandList       ) ;
+      data().bus( this->name(), "::list"   ).attach( this->data_2d, &SpriteSheetData::setCommandListOffset ) ;
+      data().bus( this->name(), "::camera" ).attach( this->data_2d, &SpriteSheetData::setCamera            ) ;
 
       // Set our own Render Pass information, but allow it to be overwritten by JSON configuration.
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
@@ -515,52 +627,32 @@ namespace kgl
       
       data().profiler.start() ;
       
-      // Grab the sync.
+      // Grab the synchronization from the previous device operation.
       data().sync_mutex.lock() ;
       sync = data().syncs.value() ;
       data().syncs .swap() ;
       data().sync_mutex.unlock() ;
       
-      // Grab the number of commands needed.
-      data().cmd_mutex.lock() ;
-      num_cmds = data().draw_count ;
-      data().draw_count = 0 ;
-      data().offset     = 0 ;
-      data().cmd_mutex.unlock() ;
+      // Calculate the number of things to draw.
+      num_cmds = data().stop - data().start ;
       
+      // Check to make sure we have a spritesheet input to this object.
+      data().checkForImage() ;
+      
+      // Swap the command buffer to the one to draw on. Previous one is still in flight.
       data().buffer.swap() ; 
       
-      if( !data().has_image )
-      {
-        if( data().manager.contains( data().sprite_sheet.c_str() ) )
-        {
-          SpriteInfo  info ;
-
-          info.sprite_width  = data().manager.atlas( data().sprite_sheet.c_str() ).spriteWidth()   ;
-          info.sprite_height = data().manager.atlas( data().sprite_sheet.c_str() ).spriteHeight()  ;
-          info.image_width   = data().manager.atlas( data().sprite_sheet.c_str() ).image().width() ;
-          info.image_height  = data().manager.atlas( data().sprite_sheet.c_str() ).image().width() ;
-          
-          data().has_image = true ;
-          
-          data().material.set = data().pool.makeDescriptorSet( data().pass.numBuffers()                                 ) ;
-          data().material.uniform.initialize( data().gpu                                                                ) ;
-          data().material.uniform.addImage  ( "image"     , data().manager.atlas( data().sprite_sheet.c_str() ).image() ) ;
-          data().material.uniform.add       ( "projection", Uniform::Type::UBO, data().projection                       ) ;
-          data().material.uniform.add       ( "camera"    , Uniform::Type::UBO, data().view, true                       ) ;
-          data().material.uniform.add       ( "SpriteInfo", Uniform::Type::UBO , info                                   ) ;
-          data().material.set.set           ( data().material.uniform                                                   ) ;
-          data().material.set.setSSBO       ( "offsets", data().data_buffer                                             ) ;
-        }
-      }
       if( num_cmds != 0 && data().has_image )
       {
         data().buffer  .value().record     ( data().pass                                          ) ;
         data().pipeline.bind               ( data().buffer.value(), data().material.set           ) ;
-        data().material.uniform.add        ( "camera", Uniform::Type::UBO , data().view, true     ) ;
-        data().buffer.value().drawInstanced( data().vertices.buffer(), 6, num_cmds                ) ;
-        data().buffer.value().stop         (                                                      ) ;
-        data().pass.submit                 ( sync, data().buffer.value(), data().buffer.current() ) ;
+
+        
+        data().cmd_mutex.lock() ;
+        data().buffer.value().drawInstanced( data().vertices.buffer(), 6, num_cmds, 0, 0, data().start ) ;
+        data().buffer.value().stop         (                                                        ) ;
+        data().pass.submit                 ( sync, data().buffer.value(), data().buffer.current()   ) ;
+        data().cmd_mutex.unlock() ;
       }
       else
       {
@@ -568,7 +660,6 @@ namespace kgl
         data().buffer.value().stop()                ;
         data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
       }
-      // Output our synchronization to next module in the graph & reset command index.
       data().output( sync ) ;
       
       data().profiler.stop() ;

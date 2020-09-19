@@ -86,15 +86,23 @@ namespace kgl
       std::string                      install_path ; ///< TODO
       std::string                      name         ;
       std::mutex                       mutex        ;
-      
-      unsigned current_command ;
+      bool                             debug        ;
 
+      unsigned current_command ;
+      
+      PresentData() ;
+      void setDebug( bool debug ) ;
       void setGPU( unsigned gpu ) ;
       void setWindowName( const char* window ) ;
       void setInputImageName( const char* name ) ; 
       void setImage( const ::kgl::vk::Image& image ) ;
       void setCurrentSwap( unsigned index ) ;
     };
+    
+    PresentData::PresentData()
+    {
+      this->debug = false ;
+    }
     
     void PresentData::setCurrentSwap( unsigned index )
     {
@@ -114,6 +122,11 @@ namespace kgl
         
         found_input = true ;
       }
+    }
+    
+    void PresentData::setDebug( bool debug )
+    {
+      this->debug = debug ;
     }
 
     void PresentData::setInputImageName( const char* name )
@@ -245,9 +258,9 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
 
       data().bus( "current_swap" ).attach( this->present_data, &PresentData::setCurrentSwap ) ;
-      data().bus( json_path.c_str(), "::input"       ).attach( this         , &Present::setInputName          ) ;
+      data().bus( json_path.c_str(), "::input"       ).attach( this              , &Present::setInputName          ) ;
       data().bus( json_path.c_str(), "::input_image" ).attach( this->present_data, &PresentData::setInputImageName ) ;
-      data().bus( json_path.c_str(), "::image"       ).attach( this->present_data, &PresentData::setImage          ) ;
+      data().bus( json_path.c_str(), "::debug"       ).attach( this->present_data, &PresentData::setDebug          ) ;
       data().bus( "Graphs::", pipeline, "::window"   ).attach( this->present_data, &PresentData::setWindowName     ) ;
       data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->present_data, &PresentData::setGPU            ) ;
       
@@ -300,10 +313,9 @@ namespace kgl
         data().swaps.pop() ;
         data().buffers.swap() ;
       }
-
       
       data().profiler.stop() ;
-      karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
       data().bus( data().window_name.c_str(), "::present" ).emit( sync ) ;
     }
 

@@ -7,7 +7,7 @@
       "display_name" : "kgl_test",
       "height"       : 1024,
       "gpu"          : 0,
-      "num_sems"     : 3
+      "num_sems"     : 2
     },
   },
   "database_path"     : "database.json",
