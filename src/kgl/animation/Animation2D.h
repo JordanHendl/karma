@@ -41,6 +41,11 @@ namespace kgl
          */
         const SheetCommand& current( float posx, float posy, float posz, float rotation ) ;
         
+        /** Method to retrieve the current index of animation to draw given the current frame time.
+         * @return The index of frame ( 0 - number of frames ) to draw.
+         */
+        unsigned current() const ;
+        
         /**
          * @param sprite_sheet_name
          * @param frame_time

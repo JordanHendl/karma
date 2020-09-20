@@ -163,7 +163,6 @@ namespace kgl
         data().map.insert( { std::string( name ), new UniformBuffer() } ) ;
         
         iter = data().map.find( name ) ;
-        iter->second->image.initialize( data().gpu_id, 200, 200 ) ;
       }
       else
       {
@@ -174,7 +173,7 @@ namespace kgl
       iter->second->image = ( image ) ;
     }
 
-    void Uniform::addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count )
+    void Uniform::addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count, bool host_local )
     {
       BufferMap::iterator iter ;
       
@@ -185,7 +184,7 @@ namespace kgl
         
         iter = data().map.find( name ) ;
         
-        iter->second->buffer.initialize<char>( data().gpu_id, bufferTypeFromUni( type ), element_size * count ) ;
+        iter->second->buffer.initialize<char>( data().gpu_id, bufferTypeFromUni( type ), element_size * count, host_local ) ;
         iter->second->type = type ;
       }
       else

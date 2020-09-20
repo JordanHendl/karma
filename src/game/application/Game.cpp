@@ -15,7 +15,7 @@
 #include <string>
 #include <sstream>
 #include <queue>
-
+#include <map>
 namespace karma
 {
   struct GameData
@@ -23,7 +23,9 @@ namespace karma
     ::karma::config::Configuration config ;
     
     ::kgl::List<::kgl::SheetCommand> cmds ;
-    ::kgl::anim::Sprite2D anim        ;
+    std::map<std::string, ::kgl::anim::Sprite2D> animations ;
+    std::string curr_dir ;
+    ::kgl::anim::Sprite2D curr_anim ;
     ::kgl::SheetCommand cmd           ;
     ::kgl::ImageCommand img           ;
     ::kgl::TextCommand  txt           ;
@@ -53,13 +55,13 @@ namespace karma
     GameData()
     {
       this->running = false ;
-      this->xpos    = 0.0f  ;
-      this->ypos    = 0.0f  ;
-      this->rot     = 0.0f  ;
-      this->xpos_2  = 0.0f  ;
-      this->ypos_2  = 0.0f  ;
-      this->zpos_2  = 0.0f  ;
-      this->rot_2   = 0.0f  ;
+      this->xpos    = 64.0f  ;
+      this->ypos    = 64.0f  ;
+      this->rot     = 64.0f  ;
+      this->xpos_2  = 64.0f  ;
+      this->ypos_2  = 64.0f  ;
+      this->zpos_2  = 64.0f  ;
+      this->rot_2   = 64.0f  ;
       this->sprite  = 0     ;
     }
   };
@@ -84,20 +86,43 @@ namespace karma
           this->pause = !this->pause ;
           break ;
         case ::kgl::io::Event::IOCode::Left :
+          if( this->curr_dir != "LEFT" ) 
+          {
+            this->curr_dir = "LEFT" ;
+            this->curr_anim.pause() ;
+            this->curr_anim.reset() ;
+            this->curr_anim = this->animations[ "fl_walk" ] ;
+            this->curr_anim.start() ;
+          }
+          
           this->xpos -= delta  ;
-          this->ypos -= delta / 2    ;
           break ;
         case ::kgl::io::Event::IOCode::Right :
           this->xpos += delta  ;
-          this->ypos += delta  / 2 ;
           break ;
         case ::kgl::io::Event::IOCode::Up :
-          this->xpos += delta ;
-          this->ypos -= delta / 2 ;
+          if( this->curr_dir != "BACK" ) 
+          {
+            this->curr_dir = "BACK" ;
+            this->curr_anim.pause() ;
+            this->curr_anim.reset() ;
+            this->curr_anim = this->animations[ "back_walk" ] ;
+            this->curr_anim.start() ;
+          }
+          
+          this->ypos -= delta ;
           break ;
         case ::kgl::io::Event::IOCode::Down :
-          this->xpos -= delta ;
-          this->ypos += delta / 2 ;
+          
+        if( this->curr_dir != "FRONT" ) 
+          {
+            this->curr_dir = "FRONT" ;
+            this->curr_anim.pause() ;
+            this->curr_anim.reset() ;
+            this->curr_anim = this->animations[ "front_walk" ] ;
+            this->curr_anim.start() ;
+          }
+          this->ypos += delta ;
           break ;
         case ::kgl::io::Event::IOCode::Z :
           this->rot += delta ;
@@ -145,7 +170,7 @@ namespace karma
   {
     std::string key    ;
     std::vector<unsigned> tiles ;
-    std::string path = ( this->base_path + "data/maps/map.json" ) ;
+    std::string path = ( this->base_path + "data/maps/test_map.json" ) ;
     this->config.initialize( path.c_str(), 0 ) ;
     
     for( auto entry = config.begin(); entry != config.end(); ++entry )
@@ -173,14 +198,17 @@ namespace karma
     
     this->cmds.initialize( this->width * this->height ) ;
     
+    float off = 0 ;
     for( unsigned y = 0; y < this->height; y++ )
     {
       cmd.setPosY( (float) ( y * 8 ) ) ;
+      off = y * 16 ;
       for( unsigned x = 0; x < this->width; x++ )
       {
-        cmd.setPosX( (float) ( x * 8 ) ) ;
-        cmd.setIndex( tiles[ index ] - 1 ) ;
-        this->cmds[ x + ( y * this->width ) ] = cmd ;
+        cmd.setPosX( (float) ( off + x * 16      ) ) ;
+        cmd.setPosY( (float) cmd.posY() - ( 8 )    ) ;
+        cmd.setIndex( tiles[ index ] - 1           ) ;
+        this->cmds[ ( width - x ) + ( y * this->width ) ] = cmd ;
         index++ ;
       }
     }
@@ -220,20 +248,52 @@ namespace karma
     data().txt.setFont( "test_font" ) ;
     
 
-    data().anim.initialize( "grandma", 0, 0, 1000.f ) ;
-    data().anim.insertAnimation( 0 ) ;
-    data().anim.insertAnimation( 1 ) ;
-    data().anim.start() ;
+    data().animations[ "fl_idle" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "fl_idle" ].insertAnimation( 0 ) ;
+    
+    data().animations[ "front_idle" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "front_idle" ].insertAnimation( 40 ) ;
+    
+    data().animations[ "back_idle" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "back_idle" ].insertAnimation( 80 ) ;
+    
+    data().animations[ "back_idle" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "back_idle" ].insertAnimation( 80 ) ;
+    
+    data().animations[ "bl_idle" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "bl_idle" ].insertAnimation( 120 ) ;
+    
+    data().animations[ "fl_walk" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "fl_walk" ].insertAnimation( 1 ) ;
+    data().animations[ "fl_walk" ].insertAnimation( 2 ) ;
+    
+    data().animations[ "front_walk" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "front_walk" ].insertAnimation( 41 ) ;
+    data().animations[ "front_walk" ].insertAnimation( 42 ) ;
+    
+    data().animations[ "back_walk" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "back_walk" ].insertAnimation( 81 ) ;
+    data().animations[ "back_walk" ].insertAnimation( 82 ) ;
+    
+    data().animations[ "bl_walk" ].initialize( "grandma", 0, 0, 500.f ) ;
+    data().animations[ "bl_walk" ].insertAnimation( 121 ) ;
+    data().animations[ "bl_walk" ].insertAnimation( 122 ) ;
+    
+    data().curr_anim = data().animations[ "front_idle" ] ;
     data().bus( "instance_test::cmd" ).emit( data().cmds ) ;
     data().timer.initialize( "FRAME_TIME" ) ;
+    auto current_sprite = data().curr_anim.current( data().xpos, data().ypos, 0, data().rot ) ;
     
+    for( unsigned i = 0; i < 1600; i++ ) data().bus( "image::set" ).emit( i, current_sprite ) ;
+    data().bus( "image::start" ).emit<unsigned>( 0    ) ;
+    data().bus( "image::stop"  ).emit<unsigned>( 1599 ) ;
     index = 0 ;
     while( data().running )
     {
-      data().timer.start() ;
       
       if( !data().pause )
       {
+        data().timer.start() ;
         float avg ;
 
         avg = 0 ;
@@ -241,7 +301,6 @@ namespace karma
 
         for( unsigned i = 0; i < SZ; i++ ) avg += fpss[ i ] ;
         avg = avg / (static_cast<float>( SZ ) ) ;
-        str.precision( 3 ) ;
         str << avg << " fps" ;
         
         data().camera.setPos( data().xpos_2, data().ypos_2, data().zpos_2 ) ;
@@ -260,17 +319,20 @@ namespace karma
         data().txt.setColorB  ( 1.0f              ) ;
         data().txt.setColorA  ( 0.5f              ) ;
         
-        data().bus( "image::cmd"            ).emit( data().anim.current( data().xpos, data().ypos, 0, data().rot ) ) ;
-        data().bus( "text::cmd"             ).emit( data().txt    ) ;
-        data().bus( "instance_test::camera" ).emit( data().camera ) ;
-        data().bus( "image::camera"         ).emit( data().camera ) ;
+
+        auto current_sprite = data().curr_anim.current( data().xpos, data().ypos, 0, data().rot ) ;
+        data().bus( "image::set" ).emit( 0, current_sprite ) ;
+        data().bus( "text::set"  ).emit( 0, data().txt     ) ;
+        data().bus( "text::stop" ).emit<unsigned>( 1                 ) ;
+        data().bus( "instance_test::camera" ).emit( data().camera    ) ;
+        data().bus( "image::camera"         ).emit( data().camera    ) ;
         data().interface.start() ;
         
-        data().timer.stop() ;
         fpss[ index % SZ ] = 1000.f / data().timer.time() ;
-        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
+//        karma::log::Log::output( data().timer.output(), "ms. In fps: ", fpss[ index % SZ ] ) ;
         
         index++ ;
+        data().timer.stop() ;
       }
       data().interface.pollEvents() ;
     }

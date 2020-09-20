@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-
+#include <limits.h>
 namespace kgl
 {
   namespace vk
@@ -24,14 +24,6 @@ namespace kgl
      */
     static uint32_t findMemType( uint32_t filter, ::vk::MemoryPropertyFlags flag, ::vk::PhysicalDevice device ) ;
     
-//    /**
-//     * @param filter
-//     * @param props
-//     * @param gpu
-//     * @return 
-//     */
-//    static inline unsigned memoryType( unsigned filter, ::vk::MemoryPropertyFlags props, unsigned gpu ) ;
-
     struct BufferData
     {
       Buffer::Type           type           ; ///< TODO
@@ -113,7 +105,11 @@ namespace kgl
         
     BufferData::BufferData()
     {
-    
+      this->count      = 0                  ;
+      this->element_sz = 0                  ;
+      this->gpu        = UINT_MAX           ;
+      this->host_local = false              ;
+      this->type       = Buffer::Type::SSBO ;
     }
 
     void BufferData::operator=( const BufferData& data )
@@ -286,7 +282,12 @@ namespace kgl
         this->data().copy( this->data().staging_buffer, sz, offset ) ;
       }
     }
-
+    
+    bool Buffer::isInitialized() const
+    {
+      return this->impl.data().count != 0 ;
+    }
+    
     BufferData& BufferImpl::data()
     {
       return *this->buffer_data ;

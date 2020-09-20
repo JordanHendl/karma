@@ -59,27 +59,27 @@ namespace kgl
         void addImage( const char* name, const ::kgl::vk::Image& image ) ;
         
         template<typename T>
-        void add( const char* name, Type type, const T& val ) ;
+        void add( const char* name, Type type, const T& val, bool host_local = false ) ;
         
         template<typename T>
-        void add( const char* name, Type type, T* const val, unsigned count ) ;
+        void add( const char* name, Type type, T* const val, unsigned count, bool host_local = false ) ;
       private:
-        void addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count ) ;
+        void addBase( const char* name, Type type, const void* val, unsigned element_size, unsigned count, bool host_local ) ;
         struct UniformData* uni_data ;
         UniformData& data() ;
         const UniformData& data() const ;
     };
 
     template<typename T>
-    void Uniform::add( const char* name, Type type, const T& val )
+    void Uniform::add( const char* name, Type type, const T& val, bool host_local )
     {
-      this->addBase( name, type, static_cast<const void*>( &val ), sizeof( val ), 1 ) ;
+      this->addBase( name, type, static_cast<const void*>( &val ), sizeof( val ), 1, host_local ) ;
     }
 
     template<typename T>
-    void Uniform::add( const char* name, Type type, T* const val, unsigned count )
+    void Uniform::add( const char* name, Type type, T* const val, unsigned count, bool host_local )
     {
-      this->addBase( name, type, static_cast<const void*>( val ), sizeof( T ), count ) ;
+      this->addBase( name, type, static_cast<const void*>( val ), sizeof( T ), count, host_local ) ;
     }
   }
 }

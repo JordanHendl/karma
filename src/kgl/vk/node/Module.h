@@ -68,6 +68,11 @@ namespace kgl
          */
         bool stop() ;
         
+        /** Method to wait on the this module to finish execution.
+         * @return Whether or not this object is finished executing.
+         */
+        void wait( unsigned dep_id = 0 ) ;
+
         /** Method to set the version of this module.
          * @param version The version of this module.
          */
@@ -101,11 +106,11 @@ namespace kgl
         /** Method to set the amount of dependancies of this object.
          * @param count The amount of dependancies this object has.
          */
-        void setNumDependancies( unsigned count ) ;
+        void setNumDependancies( unsigned count, unsigned dep_id = 0 ) ;
         
         /** Method to decrement the semaphore of this this object.
          */
-        void semIncrement() ;
+        void semIncrement( unsigned dep_id = 0 ) ;
 
       private:
         

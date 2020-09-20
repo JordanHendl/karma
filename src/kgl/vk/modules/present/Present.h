@@ -10,7 +10,7 @@ namespace kgl
   namespace vk
   {
     class Synchronization ;
-
+    class Image ;
     /** Module for copying a framebuffer to the window & signalling window to present.
      */
     class Present : public ::kgl::vk::Module
@@ -47,6 +47,8 @@ namespace kgl
          */
         void setInputName( const char* name ) ;
         
+        void setInputImageName( const char* name ) ;
+        void setImage( const ::kgl::vk::Image& image ) ;
         /** Method to recieve a synchronization object for rendering synchronization.
          * @param sync The object to wait on for operations.
          */

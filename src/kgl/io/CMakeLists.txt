@@ -19,6 +19,10 @@ set( KGL_IO_HEADERS
      stb_truetype.h
    )
 
+set( KGL_IO_EXPORTED_HEADERS
+     Event.h
+   )
+
 set( KGL_IO_INCLUDE_DIRS
     ${DATA_BUS_DIR}
     ${SDL2_INCLUDE_DIRS}
@@ -34,6 +38,7 @@ add_library               ( kgl_io SHARED ${KGL_IO_SOURCES} ${KGL_IO_HEADERS} )
 target_link_libraries     ( kgl_io PUBLIC ${KGL_IO_LIBRARIES}                )
 target_include_directories( kgl_io PRIVATE ${KGL_IO_INCLUDE_DIRS}             )
 
-INSTALL( TARGETS kgl_io EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR} )
-EXPORT ( PACKAGE kgl_io                                      )
-INSTALL( TARGETS kgl_io DESTINATION ${KARMA_LIB_INSTALL_DIR} )
+INSTALL( TARGETS kgl_io EXPORT kgl_lib DESTINATION ${KARMA_LIB_INSTALL_DIR}       )
+EXPORT ( PACKAGE kgl_io                                                           )
+INSTALL( TARGETS kgl_io DESTINATION ${KARMA_LIB_INSTALL_DIR}                      )
+INSTALL( FILES ${KGL_IO_EXPORTED_HEADERS} DESTINATION ${KARMA_HEADER_INSTALL_DIR} )

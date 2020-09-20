@@ -114,6 +114,12 @@ namespace kgl
       
       return data().cmds[ index ] ;
     }
+    
+    unsigned Sprite2D::current() const
+    {
+      const float current_time = data().timer.time()                                        ;
+      return static_cast<unsigned>( current_time / data().frame_time ) % data().cmds.size() ;
+    }
 
     const ImageCommand& Image2D::current( float posx, float posy, float posz, float rotation )
     {

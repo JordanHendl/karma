@@ -13,6 +13,7 @@ namespace kgl
   {
     class Shader  ;
     class Uniform ;
+    class Buffer  ;
 
     namespace render
     {
@@ -32,6 +33,7 @@ namespace kgl
         ~DescriptorSet() ;
         void operator=( const DescriptorSet& set ) ;
         void set( const Uniform& uniform ) ;
+        void setSSBO( const char* name, const Buffer& uniform ) ;
         void reset() ;
         const ::vk::DescriptorSet descriptor( unsigned index ) const ;
       private:
