@@ -40,7 +40,8 @@
           "version"     : 0,
           "type"        : "Present",
           "input_image" : "present_image",
-          "input"       : "present"
+          "input"       : "present",
+          "debug"       : true 
         },
         "combine" :
         {

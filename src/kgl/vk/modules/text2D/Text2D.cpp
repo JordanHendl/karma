@@ -56,11 +56,11 @@ namespace kgl
       };
 
       static constexpr unsigned BUFFERS = 6 ; // Todo make this 
-      typedef std::map<std::string, Material>                               Materials  ;
-      typedef ::kgl::BufferedStack<TextCommand, BUFFERS>                    Stack      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffers ;
-      typedef kgl::containers::Layered<Synchronization                 , 3> Syncs      ;
-      typedef std::vector<Transformation>                                   Transforms ;
+      typedef std::map<std::string, Material>                                Materials  ;
+      typedef ::kgl::BufferedStack<TextCommand, BUFFERS>                     Stack      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 10> CmdBuffers ;
+      typedef kgl::containers::Layered<Synchronization                 , 10> Syncs      ;
+      typedef std::vector<Transformation>                                    Transforms ;
 
       std::vector<float> vert = 
       { 
@@ -382,11 +382,12 @@ namespace kgl
     
     void Text2D::input( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait() ;
       data().mutex.lock() ;
       data().syncs.value().clear() ;
       data().syncs.value().addWait( sync.signalSem( this->id() ) ) ;
-      this->semIncrement() ;
       data().mutex.unlock() ;
+      this->semIncrement() ;
     }
 
     void Text2DData::output( const Synchronization& sync )
@@ -433,16 +434,12 @@ namespace kgl
       pipeline_path = pipeline_path + path  ;
       
       data().pass            .reset() ;
-      data().buffer.seek( 0 ).reset() ; 
-      data().buffer.seek( 1 ).reset() ; 
-      data().buffer.seek( 2 ).reset() ; 
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffer.seek( i ).reset() ;
       data().pipeline        .reset() ; 
               
       // Initialize vulkan objects.
       data().pass            .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffer.seek( i ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().pipeline        .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
       
       if( data().resx == 0 && data().resy == 0 )
@@ -478,14 +475,10 @@ namespace kgl
       // Initialize vulkan objects.
       data().vertices        .initialize<Transformation>( data().gpu, Buffer::Type::VERTEX, 10000, true                        ) ;
       data().pass            .initialize                ( data().window_name.c_str(), data().gpu                               ) ;
-      data().buffer.seek( 0 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
-      data().buffer.seek( 1 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
-      data().buffer.seek( 2 ).initialize                ( data().window_name.c_str(), data().gpu, 3, BufferLevel::Primary      ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffer.seek( i ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().syncs .seek( i ).initialize( data().gpu ) ;
       data().pipeline        .initialize                ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass() ) ;
       data().pool            .initialize                ( data().gpu, MAX_SETS, data().pipeline.shader()                       ) ;
-      data().syncs.seek( 0 ) .initialize                ( data().gpu                                                           ) ;
-      data().syncs.seek( 1 ) .initialize                ( data().gpu                                                           ) ;
-      data().syncs.seek( 2 ) .initialize                ( data().gpu                                                           ) ;
       
       // Initialize data.
       data().profiler.initialize() ;
@@ -559,9 +552,9 @@ namespace kgl
       data().mutex.lock() ;
       sync = data().syncs.value() ;
       data().syncs .swap() ;
-      data().buffer.swap() ;
       data().mutex.unlock() ;
       
+      data().buffer.swap() ;
       data().checkFont() ;
       if( data().stop - data().start != 0 && data().material.init )
       {
@@ -591,7 +584,6 @@ namespace kgl
         }
           data().buffer.value().stop() ;
           data().pass.submit( sync, data().buffer.value(), data().buffer.current() ) ;
-          data().buffer.swap() ;
         
         // Stop recording the command buffer & Submit to the graphics queue.
         data().cmd_mutex.unlock() ;

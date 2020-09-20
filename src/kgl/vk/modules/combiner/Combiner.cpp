@@ -53,8 +53,8 @@ namespace kgl
       static constexpr unsigned BUFFERS = 3 ;
       typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS              > ImageStack ;
       typedef std::vector<::kgl::vk::Uniform                              > Uniforms   ;
-      typedef kgl::containers::Layered<Synchronization, 3                 > Syncs      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffs   ;
+      typedef kgl::containers::Layered<Synchronization                 ,10> Syncs      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer,10> CmdBuffs   ;
       
       std::queue<::kgl::vk::DescriptorSet> sets                  ;
       Syncs                                syncs                 ;
@@ -194,48 +194,47 @@ namespace kgl
     
     void Combiner::inputImageOne( const ::kgl::vk::Image& image )
     {
-      while( data().found_input[ 0 ] ){} ;
-
+      this->wait( ( data().num_inputs / 2 ) + 0 ) ;
       data().image_mutex[ 0 ].lock() ;
       data().images           [ 0 ] = image ;
       data().found_image_input[ 0 ] = true  ;
-      this->semIncrement() ;
       data().image_mutex[ 0 ].unlock() ;
+      this->semIncrement( ( data().num_inputs / 2 ) + 0 ) ;
     }
     
     void Combiner::inputImageTwo( const ::kgl::vk::Image& image )
     {
-      while( data().found_input[ 1 ] ){} ;
-
+      this->wait( ( data().num_inputs / 2 ) + 1 ) ;
       data().image_mutex[ 1 ].lock() ;
       data().images           [ 1 ] = image ;
       data().found_image_input[ 1 ] = true  ;
-      this->semIncrement() ;
       data().image_mutex[ 1 ].unlock() ;
+      this->semIncrement( ( data().num_inputs / 2 ) + 1 ) ;
     }
     
     void Combiner::inputImageThree( const ::kgl::vk::Image& image )
     {
-      while( data().found_input[ 2 ] ){} ;
-
+      this->wait( ( data().num_inputs / 2 ) + 2 ) ;
       data().image_mutex[ 2 ].lock() ;
       data().images           [ 2 ] = image ;
       data().found_image_input[ 2 ] = true  ;
-      this->semIncrement() ;
       data().image_mutex[ 2 ].unlock() ;
+      this->semIncrement( ( data().num_inputs / 2 ) + 2 ) ;
     }
     
     void Combiner::inputImageFour( const ::kgl::vk::Image& image )
     {
+      this->wait( ( data().num_inputs / 2 ) + 3 ) ;
       data().image_mutex[ 3 ].lock() ;
       data().images           [ 3 ] = image ;
       data().found_image_input[ 3 ] = true  ;
-      this->semIncrement() ;
+      this->semIncrement( ( data().num_inputs / 2 ) + 3 ) ;
       data().image_mutex[ 3 ].unlock() ;
     }
     
     void Combiner::inputImageFive( const ::kgl::vk::Image& image )
     {
+      this->wait() ;
       data().image_mutex[ 4 ].lock() ;
       data().images           [ 4 ] = image ;
       data().found_image_input[ 4 ] = true  ;
@@ -257,123 +256,135 @@ namespace kgl
       data().image_mutex[ 6 ].lock() ;
       data().images           [ 6 ] = image ;
       data().found_image_input[ 6 ] = true  ;
-      this->semIncrement() ;
       data().image_mutex[ 6 ].unlock() ;
+      this->semIncrement() ;
     }
     
     void Combiner::inputImageEight( const ::kgl::vk::Image& image )
     {
-      data().image_mutex[ 0 ].lock() ;
+      this->wait() ;
+      data().image_mutex[ 7 ].lock() ;
       data().images           [ 7 ] = image ;
       data().found_image_input[ 7 ] = true  ;
+      data().image_mutex[ 7 ].unlock() ;
       this->semIncrement() ;
-      data().image_mutex[ 0 ].unlock() ;
     }
     
     void Combiner::inputImageNine( const ::kgl::vk::Image& image )
     {
-      data().image_mutex[ 0 ].lock() ;
+      this->wait() ;
+      data().image_mutex[ 8 ].lock() ;
       data().images           [ 8 ] = image ;
       data().found_image_input[ 8 ] = true  ;
+      data().image_mutex[ 8 ].unlock() ;
       this->semIncrement() ;
-      data().image_mutex[ 0 ].unlock() ;
     }
     
     void Combiner::inputImageTen( const ::kgl::vk::Image& image )
     {
+      this->wait() ;
       data().image_mutex[ 0 ].lock() ;
       data().images           [ 9 ] = image ;
       data().found_image_input[ 9 ] = true  ;
-      this->semIncrement() ;
       data().image_mutex[ 0 ].unlock() ;
+      this->semIncrement() ;
     }
 
     void Combiner::inputOne( const ::kgl::vk::Synchronization& sync )
     {
-      while( data().found_input[ 0 ] ) {} ;
-      
+      this->wait( 0 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
       data().found_input[ 0 ] = true ;
-      this->semIncrement() ;
       data().sync_mutex.unlock() ;
+      this->semIncrement( 0 ) ;
     }
     
     void Combiner::inputTwo( const ::kgl::vk::Synchronization& sync )
     {
-      while( data().found_input[ 1 ] ) {} ;
-      
+      this->wait( 1 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
       data().found_input[ 1 ] = true ;
-      this->semIncrement() ;
+      this->semIncrement( 1 ) ;
       data().sync_mutex.unlock() ;
     }
     
     void Combiner::inputThree( const ::kgl::vk::Synchronization& sync )
     {
-      while( data().found_input[ 02] ) {} ;
-      
+      this->wait( 2 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
       data().found_input[ 2 ] = true ;
-      this->semIncrement() ;
+      this->semIncrement( 2 ) ;
       data().sync_mutex.unlock() ;
     }
     
     void Combiner::inputFour( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait( 3 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
+      this->semIncrement( 3 ) ;
       data().sync_mutex.unlock() ;
     }
     
     void Combiner::inputFive( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait( 4 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
+      this->semIncrement( 4 ) ;
       data().sync_mutex.unlock() ;
     }
     
     void Combiner::inputSix( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait( 5 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
+      this->semIncrement( 5 ) ;
       data().sync_mutex.unlock() ;
     }
     
     void Combiner::inputSeven( const ::kgl::vk::Synchronization& sync )
     {
+      while( data().found_input[ 6 ]  ) {} ;
+      this->wait( 6 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
       data().sync_mutex.unlock() ;
+      this->semIncrement( 6 ) ;
     }
     
     void Combiner::inputEight( const ::kgl::vk::Synchronization& sync )
     {
+      while( data().found_input[ 7 ]  ) {} ;
+      this->wait( 7 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
       data().sync_mutex.unlock() ;
+      this->semIncrement( 7 ) ;
     }
     
     void Combiner::inputNine( const ::kgl::vk::Synchronization& sync )
     {
+      while( data().found_input[ 8 ]  ) {} ;
+      this->wait( 8 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
       data().sync_mutex.unlock() ;
+      this->semIncrement( 8 ) ;
     }
     
     void Combiner::inputTen( const ::kgl::vk::Synchronization& sync )
     {
+      while( data().found_input[ 9 ]  ) {} ;
+      
+      this->wait( 9 ) ;
       data().sync_mutex.lock() ;
       data().syncs.value().addWait( sync.signalSem( 0 ) ) ;
-      this->semIncrement() ;
+      this->semIncrement( 9 ) ;
       data().sync_mutex.unlock() ;
     }
 
@@ -631,16 +642,12 @@ namespace kgl
       pipeline_path = pipeline_path + path  ;
       
       data().pass              .reset() ;
-      data().buffers.seek ( 0 ).reset() ; 
-      data().buffers.seek ( 1 ).reset() ; 
-      data().buffers.seek ( 2 ).reset() ; 
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).reset() ;
       data().pipeline          .reset() ; 
               
       // Initialize vulkan objects.
       data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
     }
 
@@ -652,7 +659,11 @@ namespace kgl
       const unsigned     width        = data().context.width ( data().window_name.c_str() ) ;
       const unsigned     height       = data().context.height( data().window_name.c_str() ) ;
       
-      this->setNumDependancies( data().num_inputs ) ;
+      for( unsigned i = 0; i < data().num_inputs; i++ )
+      {
+        this->setNumDependancies( 1, i ) ;
+      }
+
       data().uniforms.resize( data().num_inputs / 2 ) ;
 
       for( unsigned i = 0; i < data().num_inputs / 2; i++ )
@@ -663,17 +674,11 @@ namespace kgl
       
       data().pass.setImageFinalLayout( ::vk::ImageLayout::eGeneral ) ;
       data().profiler       .initialize          ( ""                                   ) ;
-      data().syncs.seek( 0 ).initialize          ( data().gpu                           ) ;
-      data().syncs.seek( 1 ).initialize          ( data().gpu                           ) ;
-      data().syncs.seek( 2 ).initialize          ( data().gpu                           ) ;
+      data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().syncs .seek( i ).initialize( data().gpu ) ;
       data().vertices       .initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16 ) ;
       data().indices        .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6  ) ;
-      
-//      data().pass.setImageFinalLayout( ::vk::ImageLayout::eColorAttachmentOptimal ) ;
-      data().pass             .initialize( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
       data().pool             .initialize( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
 
@@ -737,13 +742,9 @@ namespace kgl
 
       data().profiler.start() ;
       
-      data().sync_mutex.lock() ;
-      
       sync = data().syncs.value() ;
       data().syncs.value().clear() ;
       data().syncs.swap() ;
-
-      data().sync_mutex.unlock() ;
 
       for( unsigned i = 0; i < data().num_inputs / 2; i++ )
       {

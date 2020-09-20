@@ -35,6 +35,7 @@
 #include <map>
 #include <iostream>
 #include <queue>
+#include <mutex>
 
 static inline const float vertex_data[] = 
 { 
@@ -61,8 +62,8 @@ namespace kgl
       static constexpr unsigned BUFFERS = 3 ;
       typedef ::kgl::BufferedStack<::kgl::vk::Image, BUFFERS >              ImageStack ;
       typedef std::vector<::kgl::vk::Uniform >                              Uniforms   ;
-      typedef kgl::containers::Layered<Synchronization, 3>                  Syncs      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffs   ;
+      typedef kgl::containers::Layered<Synchronization                 , 10>Syncs      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 10>CmdBuffs   ;
       
       std::queue<::kgl::vk::DescriptorSet> sets  ;
       std::queue<unsigned>                 swaps ;
@@ -86,16 +87,15 @@ namespace kgl
       std::string                      install_path ; ///< TODO
       std::string                      name         ;
       std::mutex                       mutex        ;
+      std::mutex                       sync_mutex   ;
       bool                             debug        ;
-
+      std::mutex                       image_mutex  ;
       unsigned current_command ;
       
       PresentData() ;
       void setDebug( bool debug ) ;
       void setGPU( unsigned gpu ) ;
       void setWindowName( const char* window ) ;
-      void setInputImageName( const char* name ) ; 
-      void setImage( const ::kgl::vk::Image& image ) ;
       void setCurrentSwap( unsigned index ) ;
     };
     
@@ -129,13 +129,13 @@ namespace kgl
       this->debug = debug ;
     }
 
-    void PresentData::setInputImageName( const char* name )
+    void Present::setInputImageName( const char* name )
     {
       static bool found_input = false ;
       // We now know what input we're getting. Subscribe & add as a dependancy.
       if( !found_input )
       {
-        this->bus( name ).attach( this, &PresentData::setImage ) ;
+        data().bus( name ).attach( this, &Present::setImage ) ;
         found_input = true ;
       }
     }
@@ -153,26 +153,29 @@ namespace kgl
 
     void Present::input( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait( 0 ) ;
       data().syncs.value().copy( sync ) ;
-      this->semIncrement() ;
+      this->semIncrement( 0 ) ;
     }
 
-    void PresentData::setImage( const ::kgl::vk::Image& image )
+    void Present::setImage( const ::kgl::vk::Image& image )
     {
-      this->stack.insert( image, this->stack.next() ) ;
+      this->wait( 1 ) ;
+      data().stack.insert( image, data().stack.next() ) ;
       
       // If we don't have enough uniform objects for the amount of commands we have, scale up.
-      if( this->stack.size( static_cast<int>( this->stack.next() ) ) > this->uniforms.size() )
+      if( data().stack.size( static_cast<int>( data().stack.next() ) ) > data().uniforms.size() )
       {
-        unsigned start = this->uniforms.size() != 0 ? this->uniforms.size() - 1 : 0 ;
+        unsigned start = data().uniforms.size() != 0 ? data().uniforms.size() - 1 : 0 ;
         
-        this->uniforms.resize( this->stack.size( static_cast<int>( this->stack.next() ) ) ) ;
+        data().uniforms.resize( data().stack.size( static_cast<int>( data().stack.next() ) ) ) ;
 
-        for( unsigned index = start; index < this->stack.size(); index++ )
+        for( unsigned index = start; index < data().stack.size(); index++ )
         {
-          this->uniforms[ index ].initialize( this->gpu ) ;
+          data().uniforms[ index ].initialize( data().gpu ) ;
         }
       }
+      this->semIncrement( 1 ) ;
     }
 
     Present::Present()
@@ -194,15 +197,13 @@ namespace kgl
       const unsigned     width        = data().context.width ( data().window_name.c_str() )          ;
       const unsigned     height       = data().context.height( data().window_name.c_str() )          ;
       
-      this->setNumDependancies( 1 ) ;
+      this->setNumDependancies( 1, 0 ) ;
+      this->setNumDependancies( 1, 1 ) ;
 
       data().pass.setFormat( static_cast<::vk::Format>( data().context.window( data().window_name.c_str() ).chain().format() ) ) ;
       data().pass.setImageFinalLayout( ::vk::ImageLayout::ePresentSrcKHR ) ;
       
       data().profiler       .initialize( ""         ) ;
-      data().syncs.seek( 0 ).initialize( data().gpu ) ;
-      data().syncs.seek( 1 ).initialize( data().gpu ) ;
-      data().syncs.seek( 2 ).initialize( data().gpu ) ;
       data().uniform        .initialize( data().gpu ) ;
       data().vertices       .initialize<float   >( data().gpu, Buffer::Type::VERTEX, 16  ) ;
       data().indices        .initialize<unsigned>( data().gpu, Buffer::Type::INDEX , 6   ) ;
@@ -210,9 +211,8 @@ namespace kgl
 
       data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass ) ;
 
-      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().syncs .seek( i ).initialize( data().gpu ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
       data().pool             .initialize( data().gpu, MAX_SETS, data().pipeline.shader()                            ) ;
 
@@ -233,17 +233,13 @@ namespace kgl
       const char*       path          = "/uwu/present.uwu"                        ;
       const std::string pipeline_path = data().install_path + path                ;
 
-      data().buffers.seek( 0 ).reset() ;
-      data().buffers.seek( 1 ).reset() ;
-      data().buffers.seek( 2 ).reset() ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).reset() ;
       data().pipeline         .reset() ;
       data().pass             .reset() ;
       
       data().pass             .initialize( data().window_name.c_str(), data().gpu, false   ) ;
       data().context.window( data().window_name.c_str() ).chain().createFrameBuffers( data().pass ) ;
-      data().buffers.seek( 0 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-      data().buffers.seek( 1 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
-      data().buffers.seek( 2 ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffers.seek( i ).initialize( data().window_name.c_str(), data().gpu, num_buffers, BufferLevel::Primary ) ;
       data().pipeline         .initialize( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()      ) ;
     }
 
@@ -258,11 +254,11 @@ namespace kgl
       data().pipeline.subscribe( json_path.c_str(), id ) ;
 
       data().bus( "current_swap" ).attach( this->present_data, &PresentData::setCurrentSwap ) ;
-      data().bus( json_path.c_str(), "::input"       ).attach( this              , &Present::setInputName          ) ;
-      data().bus( json_path.c_str(), "::input_image" ).attach( this->present_data, &PresentData::setInputImageName ) ;
-      data().bus( json_path.c_str(), "::debug"       ).attach( this->present_data, &PresentData::setDebug          ) ;
-      data().bus( "Graphs::", pipeline, "::window"   ).attach( this->present_data, &PresentData::setWindowName     ) ;
-      data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->present_data, &PresentData::setGPU            ) ;
+      data().bus( json_path.c_str(), "::input"       ).attach( this              , &Present::setInputName      ) ;
+      data().bus( json_path.c_str(), "::input_image" ).attach( this              , &Present::setInputImageName ) ;
+      data().bus( json_path.c_str(), "::debug"       ).attach( this->present_data, &PresentData::setDebug      ) ;
+      data().bus( "Graphs::", pipeline, "::window"   ).attach( this->present_data, &PresentData::setWindowName ) ;
+      data().bus( "Graphs::", pipeline, "::gpu"      ).attach( this->present_data, &PresentData::setGPU        ) ;
       
       data().bus( json_path.c_str(), "::ViewportX"        ).emit( 0, 0.f ) ;
       data().bus( json_path.c_str(), "::ViewportY"        ).emit( 0, 0.f ) ;
@@ -275,8 +271,10 @@ namespace kgl
       ::kgl::vk::DescriptorSet set  ;
       Synchronization          sync ;
       
+      data().sync_mutex.lock() ;
       sync = data().syncs.value() ;
       data().syncs .swap()        ;
+      data().sync_mutex.unlock() ;
 
       data().current_command = 0 ;
 
@@ -284,9 +282,10 @@ namespace kgl
       data().profiler.start() ;
       
       // If we have no commands, flip the sync to skip this module's operation.
+      data().image_mutex.lock() ;
       if( data().stack.empty() )
       {
-        sync.flip() ;
+         sync.flip() ;
       }
       else
       {
@@ -313,10 +312,11 @@ namespace kgl
         data().swaps.pop() ;
         data().buffers.swap() ;
       }
+      data().image_mutex.unlock() ;
       
       data().profiler.stop() ;
-      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
       data().bus( data().window_name.c_str(), "::present" ).emit( sync ) ;
+      if( data().debug ) karma::log::Log::output( this->name(), " CPU Time: ", data().profiler.output(), "ms" ) ;
     }
 
     PresentData& Present::data()

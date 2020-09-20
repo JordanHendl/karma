@@ -63,9 +63,9 @@ namespace kgl
       };
 
       static constexpr unsigned BUFFERS = 3 ; // Todo make this 
-      typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>                   Stack      ;
-      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 3> CmdBuffers ;
-      typedef kgl::containers::Layered<Synchronization                 , 3> Syncs      ;
+      typedef ::kgl::BufferedStack<SheetCommand, BUFFERS>                    Stack      ;
+      typedef kgl::containers::Layered<::kgl::vk::render::CommandBuffer, 10> CmdBuffers ;
+      typedef kgl::containers::Layered<Synchronization                 , 10> Syncs      ;
 
       std::vector<float> vert = 
       { 
@@ -426,11 +426,12 @@ namespace kgl
     
     void SpriteSheet::input( const ::kgl::vk::Synchronization& sync )
     {
+      this->wait() ;
       data().sync_mutex.lock() ;
       data().syncs.value().clear() ;
       data().syncs.value().addWait( sync.signalSem( this->id() ) ) ;
-      this->semIncrement() ;
       data().sync_mutex.unlock() ;
+      this->semIncrement() ;
     }
 
     void SpriteSheetData::output( const Synchronization& sync )
@@ -528,14 +529,10 @@ namespace kgl
       data().vertices        .initialize<float>         ( data().gpu, Buffer::Type::VERTEX, 18                                          ) ;
       data().data_buffer     .initialize<float>( data().gpu, Buffer::Type::SSBO, sizeof( Transformation ) * 8000, true                  ) ;
       data().pass            .initialize       ( data().window_name.c_str(), data().gpu                                                 ) ;
-      data().buffer.seek( 0 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 1 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
-      data().buffer.seek( 2 ).initialize       ( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().buffer.seek( i ).initialize( data().window_name.c_str(), data().gpu, data().pass.numBuffers(), BufferLevel::Primary ) ;
+      for( unsigned i = 0 ; i < 10; i++ ) data().syncs .seek( i ).initialize( data().gpu ) ;
       data().pipeline        .initialize       ( pipeline_path.c_str(), data().gpu, width, height, data().pass.pass()                   ) ;
       data().pool            .initialize       ( data().gpu, MAX_SETS, data().pipeline.shader()                                         ) ;
-      data().syncs.seek( 0 ) .initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 1 ) .initialize       ( data().gpu                                                                             ) ;
-      data().syncs.seek( 2 ) .initialize       ( data().gpu                                                                             ) ;
       data().profiler        .initialize       (                                                                                        ) ;
       
       if( data().manager.contains( data().sprite_sheet.c_str() ) )
